@@ -14,10 +14,7 @@ set -o pipefail
 readonly SHIPPABLE_DOCKER_VERSION=1.9
 readonly MESSAGE_STORE_LOCATION="/tmp/cexec"
 readonly KEY_STORE_LOCATION="/tmp/ssh"
-readonly DOCKER_VERSION="1.13.0-0~ubuntu-trusty"
-
-# Indicates whether the script has succeeded
-export is_success=false
+readonly DOCKER_VERSION="1.9.1-0~ubuntu-trusty"
 
 # Indicates if docker service should be restarted
 export docker_restart=false
@@ -53,19 +50,16 @@ exec_grp() {
 }
 
 _run_update() {
-  is_success=false
   update_cmd="sudo apt-get update"
   exec_cmd "$update_cmd"
-  is_success=true
 }
 
 setup_directories() {
-  sudo mkdir -p "$MESSAGE_STORE_LOCATION"
-  sudo mkdir -p "$KEY_STORE_LOCATION"
+  exec_cmd "sudo mkdir -p '$MESSAGE_STORE_LOCATION'"
+  exec_cmd "sudo mkdir -p '$KEY_STORE_LOCATION'"
 }
 
 setup_shippable_user() {
-  is_success=false
   if id -u 'shippable' >/dev/null 2>&1; then
     echo "User shippable already exists"
   else
@@ -75,7 +69,6 @@ setup_shippable_user() {
   exec_cmd "sudo echo 'shippable ALL=(ALL) NOPASSWD:ALL' | sudo tee -a /etc/sudoers"
   exec_cmd "sudo chown -R $USER:$USER /home/shippable/"
   exec_cmd "sudo chown -R shippable:shippable /home/shippable/"
-  is_success=true
 }
 
 upgrade_kernel() {
@@ -97,7 +90,6 @@ install_prereqs() {
 }
 
 docker_install() {
-  is_success=false
   echo "Installing docker"
 
   _run_update
@@ -119,11 +111,9 @@ docker_install() {
   install_docker='sudo apt-get -y install docker-engine=$DOCKER_VERSION'
   exec_cmd "$install_docker"
 
-  is_success=true
 }
 
 check_docker_opts() {
-  is_success=false
   # SHIPPABLE docker options required for every node
   echo "Checking docker options"
 
@@ -142,11 +132,9 @@ check_docker_opts() {
   ## remove the docker option to listen on all ports
   echo "Disabling docker tcp listener"
   sudo sh -c "sed -e s/\"-H tcp:\/\/0.0.0.0:4243\"//g -i /etc/default/docker"
-  is_success=true
 }
 
 restart_docker_service() {
-  is_success=false
   echo "checking if docker restart is necessary"
   if [ $docker_restart == true ]; then
     echo "restarting docker service on reset"
@@ -154,11 +142,9 @@ restart_docker_service() {
   else
     echo "docker_restart set to false, not restarting docker daemon"
   fi
-  is_success=true
 }
 
 install_ntp() {
-  is_success=false
   {
     check_ntp=$(sudo service --status-all 2>&1 | grep ntp)
   } || {
@@ -172,7 +158,6 @@ install_ntp() {
     exec_cmd "sudo apt-get install -y ntp"
     exec_cmd "sudo service ntp restart"
   fi
-  is_success=true
 }
 
 before_exit() {
