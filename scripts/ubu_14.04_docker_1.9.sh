@@ -11,7 +11,6 @@ set -o pipefail
 ###########################################################
 ###########################################################
 
-readonly SHIPPABLE_DOCKER_VERSION=1.9
 readonly MESSAGE_STORE_LOCATION="/tmp/cexec"
 readonly KEY_STORE_LOCATION="/tmp/ssh"
 readonly DOCKER_VERSION="1.9.1"
