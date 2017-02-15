@@ -27,35 +27,29 @@ export docker_restart=false
 # and executes the supplied command
 #
 exec_cmd() {
-  cmd=$@
-  cmd_uuid=$(python -c 'import uuid; print str(uuid.uuid4())')
-  cmd_start_timestamp=`date +"%s"`
-  echo "Running $cmd"
+  local cmd=$@
+  __process_msg "Running $cmd"
   eval $cmd
   cmd_status=$?
   if [ "$2" ]; then
     echo $2;
   fi
 
-  cmd_end_timestamp=`date +"%s"`
   if [ $cmd_status == 0 ]; then
-    echo "Completed $cmd"
+    __process_msg "Completed $cmd"
     return $cmd_status
   else
-    echo "Failed $cmd"
+    __process_error "Failed $cmd"
     exit 99
   fi
 }
 
 exec_grp() {
-  group_name=$1
-  group_uuid=$(python -c 'import uuid; print str(uuid.uuid4())')
-  group_start_timestamp=`date +"%s"`
-  echo "Starting $group_name"
+  local group_name=$1
+  __process_marker "Starting $group_name"
   eval "$group_name"
   group_status=$?
-  group_end_timestamp=`date +"%s"`
-  echo "Completed $group_name"
+  __process_marker "Completed $group_name"
 }
 
 _run_update() {
@@ -182,11 +176,11 @@ install_ntp() {
 }
 
 before_exit() {
-  if [ "$is_success" == true ]; then
-    echo "__SH__SCRIPT_END_SUCCESS__";
-  else
-    echo "__SH__SCRIPT_END_FAILURE__";
-  fi
+  # flush streams
+  echo $1
+  echo $2
+
+  echo "Node  init script completed"
 }
 
 main() {
@@ -216,4 +210,3 @@ main() {
 }
 
 main
-echo "AMI init script completed"

@@ -29,36 +29,36 @@ source "$LIB_DIR/logger.sh"
 ###########################################################
 
 info() {
-  echo "Executing node boot script"
+  __process_marker "Checking environment"
 
-  echo "Env file location: $NODE_ENV"
+  __process_msg "Env file location: $NODE_ENV"
   if [ ! -f "$NODE_ENV" ]; then
-    echo "Error!!! No environment file found at $NODE_ENV"
+    __process_error "Error!!! No environment file found at $NODE_ENV"
     exit 1
   else
-    echo "Loading shippable envs"
+    __process_msg "Loading shippable envs"
     cat $NODE_ENV
     source $NODE_ENV
   fi
 
   readonly NODE_INIT_SCRIPT="$SCRIPTS_DIR/$SHIPPABLE_NODE_INIT_SCRIPT"
-  echo "Init script location: $NODE_INIT_SCRIPT"
+  __process_msg "Init script location: $NODE_INIT_SCRIPT"
   if [ ! -f "$NODE_INIT_SCRIPT" ]; then
-    echo "Error!!! No init script found at $NODE_INIT_SCRIPT"
+    __process_msg "Error!!! No init script found at $NODE_INIT_SCRIPT"
     exit 1
   else 
-    echo "Found init script at: $NODE_INIT_SCRIPT"
+    __process_msg "Found init script at: $NODE_INIT_SCRIPT"
   fi
 
 }
 
 initialize() {
-  echo "Executing node init script: $NODE_INIT_SCRIPT"
+  __process_marker "Executing node init script: $NODE_INIT_SCRIPT"
   source $NODE_INIT_SCRIPT
 }
 
 boot() {
-  echo "Executing genexec boot..."
+  __process_marker  "Executing genexec boot..."
 }
 
 main() {
