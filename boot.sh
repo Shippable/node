@@ -21,8 +21,8 @@ readonly LOGS_DIR="$USR_DIR/logs"
 readonly TIMESTAMP="$(date +%Y_%m_%d_%H:%M:%S)"
 readonly LOG_FILE="$LOGS_DIR/${TIMESTAMP}_logs.txt"
 readonly MAX_DEFAULT_LOG_COUNT=6
-readonly SHIPPABLE_NODE_INIT_SCRIPT="$SCRIPTS_DIR/$SHIPPABLE_NODE_INIT_SCRIPT"
-readonly SHIPPABLE_ENV="$USR_DIR/node.env"
+readonly NODE_INIT_SCRIPT="$SCRIPTS_DIR/$SHIPPABLE_NODE_INIT_SCRIPT"
+readonly NODE_ENV="$USR_DIR/node.env"
 
 source "$LIB_DIR/logger.sh"
 
@@ -32,20 +32,22 @@ source "$LIB_DIR/logger.sh"
 info() {
   echo "Executing node boot script"
 
-  echo "Env file location: $SHIPPABLE_ENV"
-  if [ ! -f "$SHIPPABLE_ENV" ]; then
-    echo "Error!!! No environment file found at $SHIPPABLE_ENV"
+  echo "Env file location: $NODE_ENV"
+  if [ ! -f "$NODE_ENV" ]; then
+    echo "Error!!! No environment file found at $NODE_ENV"
     exit 1
   else
     echo "Loading shippable envs"
-    cat $SHIPPABLE_ENV
-    source $SHIPPABLE_ENV
+    cat $NODE_ENV
+    source $NODE_ENV
   fi
 
-  echo "Init script location: $SHIPPABLE_NODE_INIT_SCRIPT"
-  if [ ! -f "$SHIPPABLE_NODE_INIT_SCRIPT" ]; then
-    echo "Error!!! No init script found at $SHIPPABLE_NODE_INIT_SCRIPT"
+  echo "Init script location: $NODE_INIT_SCRIPT"
+  if [ ! -f "$NODE_INIT_SCRIPT" ]; then
+    echo "Error!!! No init script found at $NODE_INIT_SCRIPT"
     exit 1
+  else 
+    echo "Found init script at: $NODE_INIT_SCRIPT"
   fi
 }
 
@@ -58,7 +60,7 @@ main() {
 
   if [ $SHIPPABLE_NODE_INIT == true ]; then
     echo "Node init set to true, initializing node"
-    source $SHIPPABLE_NODE_INIT_SCRIPT
+    source $NODE_INIT_SCRIPT
   else
     echo "Node init set to false, skipping node init"
   fi
