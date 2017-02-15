@@ -21,21 +21,57 @@ readonly LOGS_DIR="$USR_DIR/logs"
 readonly TIMESTAMP="$(date +%Y_%m_%d_%H:%M:%S)"
 readonly LOG_FILE="$LOGS_DIR/${TIMESTAMP}_logs.txt"
 readonly MAX_DEFAULT_LOG_COUNT=6
+readonly NODE_ENV="$USR_DIR/node.env"
 
 source "$LIB_DIR/logger.sh"
 
 # End Global variables #################################### 
 ###########################################################
 
-main() {
-  echo "Running node boot script........."
+info() {
+  __process_marker "Checking environment"
 
-  # source the file node.env
-  # check if SHIPPABLE_NODE_INIT is set
-  #   check if SHIPPABLE_NODE_INIT_FILE value is set
-  #   execute that script from scripts/ directory
-  # run genexec boot command
-  env
+  __process_msg "Env file location: $NODE_ENV"
+  if [ ! -f "$NODE_ENV" ]; then
+    __process_error "Error!!! No environment file found at $NODE_ENV"
+    exit 1
+  else
+    __process_msg "Loading shippable envs"
+    cat $NODE_ENV
+    source $NODE_ENV
+  fi
+
+  readonly NODE_INIT_SCRIPT="$SCRIPTS_DIR/$SHIPPABLE_NODE_INIT_SCRIPT"
+  __process_msg "Init script location: $NODE_INIT_SCRIPT"
+  if [ ! -f "$NODE_INIT_SCRIPT" ]; then
+    __process_msg "Error!!! No init script found at $NODE_INIT_SCRIPT"
+    exit 1
+  else 
+    __process_msg "Found init script at: $NODE_INIT_SCRIPT"
+  fi
+
+}
+
+initialize() {
+  __process_marker "Executing node init script: $NODE_INIT_SCRIPT"
+  source $NODE_INIT_SCRIPT
+}
+
+boot() {
+  __process_marker  "Executing genexec boot..."
+}
+
+main() {
+  info
+
+  if [ $SHIPPABLE_NODE_INIT == true ]; then
+    echo "Node init set to true, initializing node"
+    initialize
+  else
+    echo "Node init set to false, skipping node init"
+  fi
+
+  boot
 }
 
 main
