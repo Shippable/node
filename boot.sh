@@ -73,7 +73,7 @@ boot() {
 
   local start_cmd="sudo docker run -d \
           --restart=always \
-          $EXEC_ENVS \
+          $exec_envs \
           $EXEC_MOUNTS \
           --name=$EXEC_CONTAINER_NAME \
           $EXEC_OPTS \
