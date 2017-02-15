@@ -23,11 +23,18 @@ readonly LOG_FILE="$LOGS_DIR/${TIMESTAMP}_logs.txt"
 readonly MAX_DEFAULT_LOG_COUNT=6
 
 source "$LIB_DIR/logger.sh"
+
 # End Global variables #################################### 
 ###########################################################
 
 main() {
   echo "Running node boot script........."
+
+  # source the file node.env
+  # check if SHIPPABLE_NODE_INIT is set
+  #   check if SHIPPABLE_NODE_INIT_FILE value is set
+  #   execute that script from scripts/ directory
+  # run genexec boot command
   env
 }
 
