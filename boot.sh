@@ -38,4 +38,4 @@ main() {
   env
 }
 
-main()
+main
