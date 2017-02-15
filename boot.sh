@@ -41,6 +41,7 @@ info() {
     source $NODE_ENV
   fi
 
+  readonly NODE_INIT_SCRIPT="$SCRIPTS_DIR/$SHIPPABLE_NODE_INIT_SCRIPT"
   echo "Init script location: $NODE_INIT_SCRIPT"
   if [ ! -f "$NODE_INIT_SCRIPT" ]; then
     echo "Error!!! No init script found at $NODE_INIT_SCRIPT"
@@ -49,7 +50,6 @@ info() {
     echo "Found init script at: $NODE_INIT_SCRIPT"
   fi
 
-  readonly NODE_INIT_SCRIPT="$SCRIPTS_DIR/$SHIPPABLE_NODE_INIT_SCRIPT"
 }
 
 initialize() {
