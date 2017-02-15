@@ -31,11 +31,6 @@ source "$LIB_DIR/logger.sh"
 
 info() {
   echo "Executing node boot script"
-  echo "Init script location: $SHIPPABLE_NODE_INIT_SCRIPT"
-  if [ ! -f "$SHIPPABLE_NODE_INIT_SCRIPT" ]; then
-    echo "Error!!! No init script found at $SHIPPABLE_NODE_INIT_SCRIPT"
-    exit 1
-  fi
 
   echo "Env file location: $SHIPPABLE_ENV"
   if [ ! -f "$SHIPPABLE_ENV" ]; then
@@ -45,6 +40,12 @@ info() {
     echo "Loading shippable envs"
     cat $SHIPPABLE_ENV
     source $SHIPPABLE_ENV
+  fi
+
+  echo "Init script location: $SHIPPABLE_NODE_INIT_SCRIPT"
+  if [ ! -f "$SHIPPABLE_NODE_INIT_SCRIPT" ]; then
+    echo "Error!!! No init script found at $SHIPPABLE_NODE_INIT_SCRIPT"
+    exit 1
   fi
 }
 
