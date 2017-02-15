@@ -67,6 +67,8 @@ main() {
   if [ $SHIPPABLE_NODE_INIT == true ]; then
     echo "Node init set to true, initializing node"
     initialize
+    pull_exec_image
+    pull_exec_repo
   else
     echo "Node init set to false, skipping node init"
   fi

@@ -14,7 +14,8 @@ set -o pipefail
 readonly SHIPPABLE_DOCKER_VERSION=1.9
 readonly MESSAGE_STORE_LOCATION="/tmp/cexec"
 readonly KEY_STORE_LOCATION="/tmp/ssh"
-readonly DOCKER_VERSION="1.9.1-0~ubuntu-trusty"
+readonly DOCKER_VERSION="1.9.1"
+readonly CEXEC_LOCATION_ON_HOST="/home/shippable/cexec"
 
 # Indicates if docker service should be restarted
 export docker_restart=false
@@ -94,22 +95,57 @@ docker_install() {
 
   _run_update
 
-  inst_extras_cmd='sudo apt-get install -y linux-image-extra-`uname -r`'
-  exec_cmd "$inst_extras_cmd"
-
-  inst_extras_cmd='sudo apt-get install -y linux-image-extra-virtual software-properties-common ca-certificates'
-  exec_cmd "$inst_extras_cmd"
-
-  add_docker_repo_keys='curl -fsSL https://yum.dockerproject.org/gpg | sudo apt-key add -'
+  add_docker_repo_keys='sudo -E apt-key adv --keyserver hkp://p80.pool.sks-keyservers.net:80 --recv-keys 58118E89F3A912897C070ADBF76221572C52609D'
   exec_cmd "$add_docker_repo_keys"
 
-  add_docker_repo='sudo add-apt-repository "deb https://apt.dockerproject.org/repo/ ubuntu-$(lsb_release -cs) main"'
-  exec_cmd "$add_docker_repo"
+  local docker_repo_entry="deb https://apt.dockerproject.org/repo ubuntu-trusty main"
+  local docker_sources_file="/etc/apt/sources.list.d/docker.list"
+  local add_docker_hosts=true
+
+  if [ -f "$docker_sources_file" ]; then
+    local docker_source_present=""
+    {
+      docker_source_present=$(grep "$docker_repo_entry" $docker_sources_file)
+    } || {
+      true
+    }
+
+    if [ "$docker_source_present" != "" ]; then
+      ## docker hosts entry already present in file
+      add_docker_hosts=false
+    fi
+  fi
+
+  if [ $add_docker_hosts == true ]; then
+    add_docker_repo="echo $docker_repo_entry | sudo tee -a $docker_sources_file"
+    exec_cmd "$add_docker_repo"
+  else
+    exec_cmd "echo 'Docker sources already present, skipping'"
+  fi
 
   _run_update
 
-  install_docker='sudo apt-get -y install docker-engine=$DOCKER_VERSION'
+  install_kernel_extras='sudo -E apt-get install -y -q linux-image-extra-$(uname -r) linux-image-extra-virtual'
+  exec_cmd "$install_kernel_extras"
+
+  local docker_version=$DOCKER_VERSION"-0~trusty"
+  install_docker="sudo -E apt-get install -q --force-yes -y -o Dpkg::Options::='--force-confnew' docker-engine=$docker_version"
   exec_cmd "$install_docker"
+
+  get_static_docker_binary="wget https://get.docker.com/builds/Linux/x86_64/docker-$DOCKER_VERSION -P /tmp/docker"
+  exec_cmd "$get_static_docker_binary"
+
+  create_docker_directory="mkdir -p /opt/docker"
+  exec_cmd "$create_docker_directory"
+
+  move_docker_binary="mv /tmp/docker/docker-$DOCKER_VERSION /opt/docker/docker"
+  exec_cmd "$move_docker_binary"
+
+  make_docker_executable="chmod +x /opt/docker/docker"
+  exec_cmd "$make_docker_executable"
+
+  remove_static_docker_binary='rm -rf /tmp/docker'
+  exec_cmd "$remove_static_docker_binary"
 
 }
 
@@ -160,6 +196,17 @@ install_ntp() {
   fi
 }
 
+pull_exec_image() {
+  docker pull "$EXEC_IMAGE"
+}
+
+pull_exec_repo() {
+  if [ -d "$CEXEC_LOCATION_ON_HOST" ]; then
+    exec_cmd "sudo rm -rf $CEXEC_LOCATION_ON_HOST"
+  fi
+  exec_cmd "git clone https://github.com/Shippable/cexec.git $CEXEC_LOCATION_ON_HOST"
+}
+
 before_exit() {
   # flush streams
   echo $1
@@ -192,6 +239,12 @@ main() {
 
   trap before_exit EXIT
   exec_grp "install_ntp"
+
+  trap before_exit EXIT
+  exec_grp "pull_exec_image"
+
+  trap before_exit EXIT
+  exec_grp "pull_exec_repo"
 }
 
 main
