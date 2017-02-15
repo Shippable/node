@@ -59,6 +59,29 @@ initialize() {
 
 boot() {
   __process_marker  "Executing genexec boot..."
+
+  local exec_envs=" -e SHIPPABLE_AMQP_URL=$SHIPPABLE_AMQP_URL \
+    -e SHIPPABLE_API_URL=$SHIPPABLE_API_URL \
+    -e LISTEN_QUEUE=$LISTEN_QUEUE \
+    -e SHIPPABLE_API_TOKEN=$SHIPPABLE_API_TOKEN \
+    -e RUN_MODE=$RUN_MODE \
+    -e COMPONENT=$COMPONENT \
+    -e SHIPPABLE_AMQP_DEFAULT_EXCHANGE=$SHIPPABLE_AMQP_DEFAULT_EXCHANGE \
+    -e SUBSCRIPTION_ID=$SUBSCRIPTION_ID \
+    -e NODE_TYPE_CODE=$NODE_TYPE_CODE \
+    -e DOCKER_CLIENT_LATEST=/opt/docker/docker "
+
+  local start_cmd="sudo docker run -d \
+          --restart=always \
+          $EXEC_ENVS \
+          $EXEC_MOUNTS \
+          --name=$EXEC_CONTAINER_NAME \
+          $EXEC_OPTS \
+          $EXEC_IMAGE"
+
+  __process_msg "executing $start_cmd"
+  eval "$start_cmd"
+
 }
 
 main() {
