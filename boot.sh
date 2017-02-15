@@ -21,7 +21,6 @@ readonly LOGS_DIR="$USR_DIR/logs"
 readonly TIMESTAMP="$(date +%Y_%m_%d_%H:%M:%S)"
 readonly LOG_FILE="$LOGS_DIR/${TIMESTAMP}_logs.txt"
 readonly MAX_DEFAULT_LOG_COUNT=6
-readonly NODE_INIT_SCRIPT="$SCRIPTS_DIR/$SHIPPABLE_NODE_INIT_SCRIPT"
 readonly NODE_ENV="$USR_DIR/node.env"
 
 source "$LIB_DIR/logger.sh"
@@ -49,6 +48,13 @@ info() {
   else 
     echo "Found init script at: $NODE_INIT_SCRIPT"
   fi
+
+  readonly NODE_INIT_SCRIPT="$SCRIPTS_DIR/$SHIPPABLE_NODE_INIT_SCRIPT"
+}
+
+initialize() {
+  echo "Executing node init script: $NODE_INIT_SCRIPT"
+  source $NODE_INIT_SCRIPT
 }
 
 boot() {
@@ -60,7 +66,7 @@ main() {
 
   if [ $SHIPPABLE_NODE_INIT == true ]; then
     echo "Node init set to true, initializing node"
-    source $NODE_INIT_SCRIPT
+    initialize
   else
     echo "Node init set to false, skipping node init"
   fi
