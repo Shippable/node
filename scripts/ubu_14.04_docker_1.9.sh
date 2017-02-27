@@ -204,6 +204,8 @@ pull_exec_repo() {
     exec_cmd "sudo rm -rf $CEXEC_LOCATION_ON_HOST"
   fi
   exec_cmd "git clone https://github.com/Shippable/cexec.git $CEXEC_LOCATION_ON_HOST"
+  exec_cmd "echo 'Checking out tag: $SHIPPABLE_RELEASE_VERSION'"
+  exec_cmd "git checkout $SHIPPABLE_RELEASE_VERSION"
 }
 
 before_exit() {
