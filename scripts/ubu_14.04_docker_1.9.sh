@@ -5,7 +5,7 @@ set -o pipefail
 
 ###########################################################
 ###########################################################
-# Initialization script for Shippable node on 
+# Initialization script for Shippable node on
 #   - Ubuntu 14.04
 #   - Docker 1.9
 ###########################################################
@@ -205,6 +205,7 @@ pull_exec_repo() {
   fi
   exec_cmd "git clone https://github.com/Shippable/cexec.git $CEXEC_LOCATION_ON_HOST"
   exec_cmd "echo 'Checking out tag: $SHIPPABLE_RELEASE_VERSION'"
+  cd $CEXEC_LOCATION_ON_HOST
   exec_cmd "git checkout $SHIPPABLE_RELEASE_VERSION"
 }
 
