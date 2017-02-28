@@ -16,18 +16,17 @@ set -o pipefail
 readonly ROOT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 readonly SCRIPTS_DIR="$ROOT_DIR/scripts"
 readonly LIB_DIR="$ROOT_DIR/lib"
-readonly USR_DIR="$ROOT_DIR/usr"
-readonly LOGS_DIR="$USR_DIR/logs"
+readonly SHIPPABLE_DIR="/etc/shippable"
+readonly LOGS_DIR="$SHIPPABLE_DIR/logs"
 readonly TIMESTAMP="$(date +%Y_%m_%d_%H:%M:%S)"
 readonly LOG_FILE="$LOGS_DIR/${TIMESTAMP}_logs.txt"
 readonly MAX_DEFAULT_LOG_COUNT=6
-readonly NODE_ENV="$USR_DIR/node.env"
+readonly NODE_ENV="$SHIPPABLE_DIR/node.env"
 
 source "$LIB_DIR/logger.sh"
 
-# End Global variables #################################### 
+# End Global variables ####################################
 ###########################################################
-
 info() {
   __process_marker "Checking environment"
 
@@ -46,7 +45,7 @@ info() {
   if [ ! -f "$NODE_INIT_SCRIPT" ]; then
     __process_msg "Error!!! No init script found at $NODE_INIT_SCRIPT"
     exit 1
-  else 
+  else
     __process_msg "Found init script at: $NODE_INIT_SCRIPT"
   fi
 
