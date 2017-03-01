@@ -215,13 +215,13 @@ set_mounts() {
 
   local docker_mounts="$EXEC_MOUNTS \
     -v /usr/lib/x86_64-linux-gnu/libapparmor.so.1.1.0:/lib/x86_64-linux-gnu/libapparmor.so.1:rw \
-	  -v /var/run:/var/run:rw \
-	  -v /opt/docker/docker:/usr/bin/docker:rw \
-	  -v /var/run/docker.sock:/var/run/docker.sock:rw \
-	  -v /home/shippable/cache:/home/shippable/cache:rw \
-	  -v /tmp/ssh:/tmp/ssh:rw \
-	  -v /tmp/cexec:/tmp/cexec:rw \
-	  -v /build:/build:rw "
+    -v /var/run:/var/run:rw \
+    -v /opt/docker/docker:/usr/bin/docker:rw \
+    -v /var/run/docker.sock:/var/run/docker.sock:rw \
+    -v /home/shippable/cache:/home/shippable/cache:rw \
+    -v /tmp/ssh:/tmp/ssh:rw \
+    -v /tmp/cexec:/tmp/cexec:rw \
+    -v /build:/build:rw "
 
   exec_cmd "echo 'Deleting mounts env to update with new values'"
   exec_cmd "sed -i.bak '/EXEC_MOUNTS/d' $NODE_ENV"
