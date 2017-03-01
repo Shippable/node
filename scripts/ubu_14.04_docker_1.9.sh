@@ -224,9 +224,9 @@ set_mounts() {
 	  -v /build:/build:rw "
 
   exec_cmd "echo 'Deleting mounts env to update with new values'"
-  exec_cmd "sed -i $NODE_ENV '/EXEC_MOUNTS/d'"
+  exec_cmd "sed -i.bak '/EXEC_MOUNTS/d' $NODE_ENV"
 
-  exec_cmd "echo $docker_mounts | sudo tee -a $NODE_ENV"
+  exec_cmd "echo 'EXEC_MOUNTS=$docker_mounts' | sudo tee -a $NODE_ENV"
 
   exec_cmd "echo 'Successfully updated mount values in env'"
   exec_cmd "cat $NODE_ENV"
