@@ -66,6 +66,9 @@ remove_stale_containers() {
 boot() {
   __process_marker  "Executing genexec boot..."
 
+  __process_msg "Loading shippable envs"
+  source $NODE_ENV
+
   local exec_envs=" -e SHIPPABLE_AMQP_URL=$SHIPPABLE_AMQP_URL \
     -e SHIPPABLE_API_URL=$SHIPPABLE_API_URL \
     -e LISTEN_QUEUE=$LISTEN_QUEUE \
