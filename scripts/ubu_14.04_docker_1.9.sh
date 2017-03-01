@@ -213,7 +213,7 @@ pull_exec_repo() {
 set_mounts() {
   exec_cmd "echo 'Setting volume mounts in environments'"
 
-	local docker_mounts="$EXEC_MOUNTS \
+  local docker_mounts="$EXEC_MOUNTS \
     -v /usr/lib/x86_64-linux-gnu/libapparmor.so.1.1.0:/lib/x86_64-linux-gnu/libapparmor.so.1:rw \
 	  -v /var/run:/var/run:rw \
 	  -v /opt/docker/docker:/usr/bin/docker:rw \
@@ -226,7 +226,7 @@ set_mounts() {
   exec_cmd "echo 'Deleting mounts env to update with new values'"
   exec_cmd "sed -i.bak '/EXEC_MOUNTS/d' $NODE_ENV"
 
-  exec_cmd "echo 'EXEC_MOUNTS=$docker_mounts' | sudo tee -a $NODE_ENV"
+  echo "EXEC_MOUNTS='$docker_mounts'" | sudo tee -a $NODE_ENV
 
   exec_cmd "echo 'Successfully updated mount values in env'"
   exec_cmd "cat $NODE_ENV"
