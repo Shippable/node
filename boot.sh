@@ -58,9 +58,9 @@ initialize() {
 
 remove_stale_containers() {
   __process_marker "Removing stale containers"
-  local rm_cmd="sudo docker rm -f -v $EXEC_CONTAINER_NAME || true"
+  local rm_cmd="sudo docker rm -f -v $EXEC_CONTAINER_NAME"
   __process_marker "Executing $rm_cmd"
-  eval "rm_cmd"
+  eval "$rm_cmd" || true
 }
 
 boot() {
