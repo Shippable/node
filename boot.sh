@@ -56,6 +56,13 @@ initialize() {
   source $NODE_INIT_SCRIPT
 }
 
+remove_stale_containers() {
+  __process_marker "Removing stale containers"
+  local rm_cmd="sudo docker rm -f -v $EXEC_CONTAINER_NAME || true"
+  __process_marker "Executing $rm_cmd"
+  eval "rm_cmd"
+}
+
 boot() {
   __process_marker  "Executing genexec boot..."
 
@@ -90,12 +97,11 @@ main() {
   if [ $SHIPPABLE_NODE_INIT == true ]; then
     echo "Node init set to true, initializing node"
     initialize
-    pull_exec_image
-    pull_exec_repo
   else
     echo "Node init set to false, skipping node init"
   fi
 
+  remove_stale_containers
   boot
 }
 
