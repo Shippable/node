@@ -131,17 +131,11 @@ docker_install() {
   install_docker="sudo -E apt-get install -q --force-yes -y -o Dpkg::Options::='--force-confnew' docker-engine=$docker_version"
   exec_cmd "$install_docker"
 
-  get_static_docker_binary="wget https://get.docker.com/builds/Linux/x86_64/docker-$DOCKER_VERSION -P /tmp/docker"
+  get_static_docker_binary="wget https://get.docker.com/builds/Linux/x86_64/docker-$DOCKER_VERSION.tgz -P /tmp/docker"
   exec_cmd "$get_static_docker_binary"
 
-  create_docker_directory="mkdir -p /opt/docker"
-  exec_cmd "$create_docker_directory"
-
-  move_docker_binary="mv /tmp/docker/docker-$DOCKER_VERSION /opt/docker/docker"
-  exec_cmd "$move_docker_binary"
-
-  make_docker_executable="chmod +x /opt/docker/docker"
-  exec_cmd "$make_docker_executable"
+  extract_static_docker_binary="sudo tar -xzf /tmp/docker/docker-$DOCKER_VERSION.tgz --directory /opt"
+  exec_cmd "$extract_static_docker_binary"
 
   remove_static_docker_binary='rm -rf /tmp/docker'
   exec_cmd "$remove_static_docker_binary"
