@@ -13,7 +13,7 @@ set -o pipefail
 
 readonly MESSAGE_STORE_LOCATION="/tmp/cexec"
 readonly KEY_STORE_LOCATION="/tmp/ssh"
-readonly DOCKER_VERSION="1.13.1"
+readonly DOCKER_VERSION="1.13.0"
 readonly CEXEC_LOCATION_ON_HOST="/home/shippable/cexec"
 
 # Indicates if docker service should be restarted
