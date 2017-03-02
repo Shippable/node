@@ -94,41 +94,21 @@ docker_install() {
 
   _run_update
 
-  add_docker_repo_keys='sudo -E apt-key adv --keyserver hkp://p80.pool.sks-keyservers.net:80 --recv-keys 58118E89F3A912897C070ADBF76221572C52609D'
+  inst_extras_cmd='sudo apt-get install -y linux-image-extra-`uname -r`'
+  exec_cmd "$inst_extras_cmd"
+
+  inst_extras_cmd='sudo apt-get install -y linux-image-extra-virtual software-properties-common ca-certificates'
+  exec_cmd "$inst_extras_cmd"
+
+  add_docker_repo_keys='curl -fsSL https://yum.dockerproject.org/gpg | sudo apt-key add -'
   exec_cmd "$add_docker_repo_keys"
 
-  local docker_repo_entry="deb https://apt.dockerproject.org/repo ubuntu-trusty main"
-  local docker_sources_file="/etc/apt/sources.list.d/docker.list"
-  local add_docker_hosts=true
-
-  if [ -f "$docker_sources_file" ]; then
-    local docker_source_present=""
-    {
-      docker_source_present=$(grep "$docker_repo_entry" $docker_sources_file)
-    } || {
-      true
-    }
-
-    if [ "$docker_source_present" != "" ]; then
-      ## docker hosts entry already present in file
-      add_docker_hosts=false
-    fi
-  fi
-
-  if [ $add_docker_hosts == true ]; then
-    add_docker_repo="echo $docker_repo_entry | sudo tee -a $docker_sources_file"
-    exec_cmd "$add_docker_repo"
-  else
-    exec_cmd "echo 'Docker sources already present, skipping'"
-  fi
+  add_docker_repo='sudo add-apt-repository "deb https://apt.dockerproject.org/repo/ ubuntu-$(lsb_release -cs) main"'
+  exec_cmd "$add_docker_repo"
 
   _run_update
 
-  install_kernel_extras='sudo -E apt-get install -y -q linux-image-extra-$(uname -r) linux-image-extra-virtual'
-  exec_cmd "$install_kernel_extras"
-
-  local docker_version=$DOCKER_VERSION"-0~trusty"
-  install_docker="sudo -E apt-get install -q --force-yes -y -o Dpkg::Options::='--force-confnew' docker-engine=$docker_version"
+  install_docker='sudo apt-get -y install docker-engine=$DOCKER_VERSION-0~ubuntu-trusty'
   exec_cmd "$install_docker"
 
   get_static_docker_binary="wget https://get.docker.com/builds/Linux/x86_64/docker-$DOCKER_VERSION.tgz -P /tmp/docker"
@@ -139,6 +119,8 @@ docker_install() {
 
   remove_static_docker_binary='rm -rf /tmp/docker'
   exec_cmd "$remove_static_docker_binary"
+
+  _run_update
 
 }
 
