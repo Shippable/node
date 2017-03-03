@@ -22,8 +22,13 @@ readonly TIMESTAMP="$(date +%Y_%m_%d_%H:%M:%S)"
 readonly LOG_FILE="$LOGS_DIR/${TIMESTAMP}_logs.txt"
 readonly MAX_DEFAULT_LOG_COUNT=6
 readonly NODE_ENV="$SHIPPABLE_DIR/node.env"
+readonly MESSAGE_STORE_LOCATION="/tmp/cexec"
+readonly KEY_STORE_LOCATION="/tmp/ssh"
+readonly CEXEC_LOCATION_ON_HOST="/home/shippable/cexec"
+readonly BUILD_LOCATION="/build"
 
 source "$LIB_DIR/logger.sh"
+source "$LIB_DIR/headers.sh"
 
 # End Global variables ####################################
 ###########################################################
