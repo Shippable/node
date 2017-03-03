@@ -18,6 +18,7 @@ readonly CEXEC_LOCATION_ON_HOST="/home/shippable/cexec"
 
 # Indicates if docker service should be restarted
 export docker_restart=false
+export IS_DOCKER_LEGACY=true
 
 #
 # Prints the command start and end markers with timestamps
