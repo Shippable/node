@@ -157,21 +157,6 @@ install_ntp() {
   fi
 }
 
-pull_exec_image() {
-  exec_cmd "docker pull '$EXEC_IMAGE'"
-}
-
-pull_exec_repo() {
-  if [ -d "$CEXEC_LOCATION_ON_HOST" ]; then
-    exec_cmd "sudo rm -rf $CEXEC_LOCATION_ON_HOST"
-  fi
-  exec_cmd "git clone https://github.com/Shippable/cexec.git $CEXEC_LOCATION_ON_HOST"
-  exec_cmd "echo 'Checking out tag: $SHIPPABLE_RELEASE_VERSION in $CEXEC_LOCATION_ON_HOST'"
-  pushd $CEXEC_LOCATION_ON_HOST
-  exec_cmd "git checkout $SHIPPABLE_RELEASE_VERSION"
-  popd
-}
-
 set_mounts() {
   exec_cmd "echo 'Setting volume mounts in environments'"
 
@@ -226,12 +211,6 @@ main() {
 
   trap before_exit EXIT
   exec_grp "install_ntp"
-
-  trap before_exit EXIT
-  exec_grp "pull_exec_image"
-
-  trap before_exit EXIT
-  exec_grp "pull_exec_repo"
 
   trap before_exit EXIT
   exec_grp "set_mounts"

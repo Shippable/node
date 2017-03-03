@@ -59,6 +59,19 @@ info() {
 initialize() {
   __process_marker "Executing node init script: $NODE_INIT_SCRIPT"
   source $NODE_INIT_SCRIPT
+
+  __process_msg "Pulling exec image"
+  exec_cmd "docker pull '$EXEC_IMAGE'"
+
+  __process_msg "Pulling cexec repo"
+  if [ -d "$CEXEC_LOCATION_ON_HOST" ]; then
+    exec_cmd "sudo rm -rf $CEXEC_LOCATION_ON_HOST"
+  fi
+  exec_cmd "git clone https://github.com/Shippable/cexec.git $CEXEC_LOCATION_ON_HOST"
+  __process_msg "Checking out tag: $SHIPPABLE_RELEASE_VERSION in $CEXEC_LOCATION_ON_HOST"
+  pushd $CEXEC_LOCATION_ON_HOST
+  exec_cmd "git checkout $SHIPPABLE_RELEASE_VERSION"
+  popd
 }
 
 remove_stale_containers() {
