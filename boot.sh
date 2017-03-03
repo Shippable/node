@@ -63,9 +63,13 @@ initialize() {
 
 remove_stale_containers() {
   __process_marker "Removing stale containers"
-  local rm_cmd="sudo docker rm -f -v $EXEC_CONTAINER_NAME"
-  __process_marker "Executing $rm_cmd"
-  eval "$rm_cmd" || true
+  if [ "$EXEC_CONTAINER_NAME" == "" ]; then
+    __process_msg "No exec container name specified for stopping"
+  else
+    local rm_cmd="sudo docker rm -f -v $EXEC_CONTAINER_NAME"
+    __process_msg "Executing $rm_cmd"
+    eval "$rm_cmd" || true
+  fi
 }
 
 boot() {
@@ -74,28 +78,31 @@ boot() {
   __process_msg "Loading shippable envs"
   source $NODE_ENV
 
-  local exec_envs=" -e SHIPPABLE_AMQP_URL=$SHIPPABLE_AMQP_URL \
-    -e SHIPPABLE_API_URL=$SHIPPABLE_API_URL \
-    -e LISTEN_QUEUE=$LISTEN_QUEUE \
-    -e NODE_ID=$NODE_ID \
-    -e RUN_MODE=$RUN_MODE \
-    -e COMPONENT=$COMPONENT \
-    -e SHIPPABLE_AMQP_DEFAULT_EXCHANGE=$SHIPPABLE_AMQP_DEFAULT_EXCHANGE \
-    -e SUBSCRIPTION_ID=$SUBSCRIPTION_ID \
-    -e NODE_TYPE_CODE=$NODE_TYPE_CODE \
-    -e IS_DOCKER_LEGACY=$IS_DOCKER_LEGACY \
-    -e DOCKER_CLIENT_LATEST=/opt/docker/docker "
+  if [ "$EXEC_CONTAINER_NAME" == "" ]; then
+    __process_msg "No container name specified for booting, skipping"
+  else
+    local exec_envs=" -e SHIPPABLE_AMQP_URL=$SHIPPABLE_AMQP_URL \
+      -e SHIPPABLE_API_URL=$SHIPPABLE_API_URL \
+      -e LISTEN_QUEUE=$LISTEN_QUEUE \
+      -e NODE_ID=$NODE_ID \
+      -e RUN_MODE=$RUN_MODE \
+      -e COMPONENT=$COMPONENT \
+      -e SHIPPABLE_AMQP_DEFAULT_EXCHANGE=$SHIPPABLE_AMQP_DEFAULT_EXCHANGE \
+      -e SUBSCRIPTION_ID=$SUBSCRIPTION_ID \
+      -e NODE_TYPE_CODE=$NODE_TYPE_CODE \
+      -e IS_DOCKER_LEGACY=$IS_DOCKER_LEGACY \
+      -e DOCKER_CLIENT_LATEST=/opt/docker/docker "
 
-  local start_cmd="sudo docker run -d \
-          --restart=always \
-          $exec_envs \
-          $EXEC_MOUNTS \
-          --name=$EXEC_CONTAINER_NAME \
-          $EXEC_OPTS \
-          $EXEC_IMAGE"
-
-  __process_msg "executing $start_cmd"
-  eval "$start_cmd"
+    local start_cmd="sudo docker run -d \
+            --restart=always \
+            $exec_envs \
+            $EXEC_MOUNTS \
+            --name=$EXEC_CONTAINER_NAME \
+            $EXEC_OPTS \
+            $EXEC_IMAGE"
+    __process_msg "executing $start_cmd"
+    eval "$start_cmd"
+  fi
 
 }
 
