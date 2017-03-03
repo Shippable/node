@@ -78,6 +78,7 @@ boot() {
     -e SHIPPABLE_AMQP_DEFAULT_EXCHANGE=$SHIPPABLE_AMQP_DEFAULT_EXCHANGE \
     -e SUBSCRIPTION_ID=$SUBSCRIPTION_ID \
     -e NODE_TYPE_CODE=$NODE_TYPE_CODE \
+    -e IS_DOCKER_LEGACY=$IS_DOCKER_LEGACY \
     -e DOCKER_CLIENT_LATEST=/opt/docker/docker "
 
   local start_cmd="sudo docker run -d \
