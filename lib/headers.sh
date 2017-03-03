@@ -32,7 +32,7 @@ exec_grp() {
 }
 
 setup_directories() {
-  exec_cmd "sudo mkdir -p '$MESSAGE_STORE_LOCATION'"
-  exec_cmd "sudo mkdir -p '$KEY_STORE_LOCATION'"
-  exec_cmd "sudo mkdir -p '$BUILD_LOCATION'"
+  exec_cmd "mkdir -p '$MESSAGE_STORE_LOCATION'"
+  exec_cmd "mkdir -p '$KEY_STORE_LOCATION'"
+  exec_cmd "mkdir -p '$BUILD_LOCATION'"
 }
