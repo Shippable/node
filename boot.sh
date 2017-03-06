@@ -61,7 +61,12 @@ initialize() {
   source $NODE_INIT_SCRIPT
 
   __process_msg "Pulling exec image"
-  exec_cmd "docker pull '$EXEC_IMAGE'"
+  if [ "$EXEC_IMAGE" == "" ]; then
+    __process_msg "No exec image defined, skipping pull"
+  else
+    __process_msg "Pulling exec image: $EXEC_IMAGE"
+    exec_cmd "docker pull '$EXEC_IMAGE'"
+  fi
 
   __process_msg "Pulling cexec repo"
   if [ -d "$CEXEC_LOCATION_ON_HOST" ]; then
