@@ -109,7 +109,8 @@ boot() {
       -e SUBSCRIPTION_ID=$SUBSCRIPTION_ID \
       -e NODE_TYPE_CODE=$NODE_TYPE_CODE \
       -e IS_DOCKER_LEGACY=$IS_DOCKER_LEGACY \
-      -e DOCKER_CLIENT_LATEST=/opt/docker/docker "
+      -e DOCKER_CLIENT_LATEST=$DOCKER_CLIENT_LATEST \
+      -e DOCKER_CLIENT_LEGACY=$DOCKER_CLIENT_LEGACY "
 
     local start_cmd="sudo docker run -d \
             --restart=always \
