@@ -151,24 +151,6 @@ install_ntp() {
   fi
 }
 
-set_mounts() {
-  exec_cmd "echo 'Setting volume mounts in environments'"
-
-  local docker_mounts="$EXEC_MOUNTS \
-    -v /home/shippable/cache:/home/shippable/cache:rw \
-    -v /tmp/ssh:/tmp/ssh:rw \
-    -v /tmp/cexec:/tmp/cexec:rw \
-    -v /build:/build:rw "
-
-  exec_cmd "echo 'Deleting mounts env to update with new values'"
-  exec_cmd "sed -i.bak '/EXEC_MOUNTS/d' $NODE_ENV"
-
-  echo "EXEC_MOUNTS='$docker_mounts'" | sudo tee -a $NODE_ENV
-
-  exec_cmd "echo 'Successfully updated mount values in env'"
-  exec_cmd "cat $NODE_ENV"
-}
-
 before_exit() {
   # flush streams
   echo $1
@@ -201,9 +183,6 @@ main() {
 
   trap before_exit EXIT
   exec_grp "install_ntp"
-
-  trap before_exit EXIT
-  exec_grp "set_mounts"
 }
 
 main
