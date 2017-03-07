@@ -108,6 +108,7 @@ boot() {
       is_docker_legacy=false
       docker_client_location=$DOCKER_CLIENT_LATEST
     fi
+    __process_msg "Docker client location on host: $docker_client_location"
 
     local exec_mounts="$EXEC_MOUNTS \
       -v /usr/lib/x86_64-linux-gnu/libapparmor.so.1.1.0:/lib/x86_64-linux-gnu/libapparmor.so.1:rw \
@@ -131,7 +132,7 @@ boot() {
     local start_cmd="sudo docker run -d \
             --restart=always \
             $exec_envs \
-            $EXEC_MOUNTS \
+            $exec_mounts \
             --name=$EXEC_CONTAINER_NAME \
             $EXEC_OPTS \
             $EXEC_IMAGE"
