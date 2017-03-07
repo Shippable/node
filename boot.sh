@@ -26,6 +26,8 @@ readonly MESSAGE_STORE_LOCATION="/tmp/cexec"
 readonly KEY_STORE_LOCATION="/tmp/ssh"
 readonly CEXEC_LOCATION_ON_HOST="/home/shippable/cexec"
 readonly BUILD_LOCATION="/build"
+readonly DOCKER_CLIENT_LEGACY="/usr/bin/docker"
+readonly DOCKER_CLIENT_LATEST="/opt/docker/docker"
 
 source "$LIB_DIR/logger.sh"
 source "$LIB_DIR/headers.sh"
@@ -99,6 +101,20 @@ boot() {
   if [ "$EXEC_CONTAINER_NAME" == "" ]; then
     __process_msg "No container name specified for booting, skipping"
   else
+    local docker_client_location=$DOCKER_CLIENT_LEGACY
+    local is_docker_legacy=true
+
+    if [ -f "$DOCKER_CLIENT_LATEST" ]; then
+      is_docker_legacy=false
+      docker_client_location=$DOCKER_CLIENT_LATEST
+    fi
+
+    local exec_mounts="$EXEC_MOUNTS \
+      -v /usr/lib/x86_64-linux-gnu/libapparmor.so.1.1.0:/lib/x86_64-linux-gnu/libapparmor.so.1:rw \
+      -v /var/run:/var/run:rw \
+      -v $docker_client_location:/usr/bin/docker:rw \
+      -v /var/run/docker.sock:/var/run/docker.sock:rw"
+
     local exec_envs=" -e SHIPPABLE_AMQP_URL=$SHIPPABLE_AMQP_URL \
       -e SHIPPABLE_API_URL=$SHIPPABLE_API_URL \
       -e LISTEN_QUEUE=$LISTEN_QUEUE \
@@ -108,7 +124,7 @@ boot() {
       -e SHIPPABLE_AMQP_DEFAULT_EXCHANGE=$SHIPPABLE_AMQP_DEFAULT_EXCHANGE \
       -e SUBSCRIPTION_ID=$SUBSCRIPTION_ID \
       -e NODE_TYPE_CODE=$NODE_TYPE_CODE \
-      -e IS_DOCKER_LEGACY=$IS_DOCKER_LEGACY \
+      -e IS_DOCKER_LEGACY=$is_docker_legacy \
       -e DOCKER_CLIENT_LATEST=$DOCKER_CLIENT_LATEST \
       -e DOCKER_CLIENT_LEGACY=$DOCKER_CLIENT_LEGACY "
 
