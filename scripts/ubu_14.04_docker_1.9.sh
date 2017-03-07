@@ -161,10 +161,6 @@ set_mounts() {
   exec_cmd "echo 'Setting volume mounts in environments'"
 
   local docker_mounts="$EXEC_MOUNTS \
-    -v /usr/lib/x86_64-linux-gnu/libapparmor.so.1.1.0:/lib/x86_64-linux-gnu/libapparmor.so.1:rw \
-    -v /var/run:/var/run:rw \
-    -v /opt/docker/docker:/usr/bin/docker:rw \
-    -v /var/run/docker.sock:/var/run/docker.sock:rw \
     -v /home/shippable/cache:/home/shippable/cache:rw \
     -v /tmp/ssh:/tmp/ssh:rw \
     -v /tmp/cexec:/tmp/cexec:rw \
