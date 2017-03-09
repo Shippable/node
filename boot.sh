@@ -171,7 +171,7 @@ verify_running_exec() {
       local is_running=$(echo $inspect_json \
         | grep 'Running' \
         | grep 'true')
-      __process_msg "Contianer $EXEC_CONTAINER_NAME successfully running"
+      __process_msg "Container $EXEC_CONTAINER_NAME successfully running"
     } || {
       __process_error "Container $EXEC_CONTAINER_NAME not running"
       exit 1
