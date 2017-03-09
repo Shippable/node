@@ -91,7 +91,7 @@ remove_stale_exec() {
     | grep $EXEC_CONTAINER_NAME_PATTERN \
     | awk '{print $1}')
     __process_msg "Stopping containers: $running_container_ids"
-    local rm_cmd="sudo docker rm -f -v $EXEC_CONTAINER_NAME_PATTERN"
+    local rm_cmd="sudo docker rm -f -v $running_container_ids"
     __process_msg "Executing $rm_cmd"
     eval "$rm_cmd" || true
   } || {
@@ -171,6 +171,7 @@ verify_running_exec() {
       local is_running=$(echo $inspect_json \
         | grep 'Running' \
         | grep 'true')
+      __process_msg "Contianer $EXEC_CONTAINER_NAME successfully running"
     } || {
       __process_error "Container $EXEC_CONTAINER_NAME not running"
       exit 1
