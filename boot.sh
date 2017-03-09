@@ -86,17 +86,18 @@ initialize() {
 remove_stale_exec() {
   __process_marker "Removing stale exec containers"
 
-  {
-    local running_container_ids=$(sudo docker ps -a \
+  local running_container_ids=$(sudo docker ps -a \
     | grep $EXEC_CONTAINER_NAME_PATTERN \
     | awk '{print $1}')
+
+  if [ ! -z "$running_container_ids" ]; then
     __process_msg "Stopping containers: $running_container_ids"
     local rm_cmd="sudo docker rm -f -v $running_container_ids"
     __process_msg "Executing $rm_cmd"
     eval "$rm_cmd" || true
-  } || {
+  else
     __process_msg "No exec containers running"
-  }
+  fi
 }
 
 boot() {
