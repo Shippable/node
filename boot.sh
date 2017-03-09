@@ -29,6 +29,7 @@ readonly CACHE_STORE_LOCATION="/home/shippable/cache"
 readonly BUILD_LOCATION="/build"
 readonly DOCKER_CLIENT_LEGACY="/usr/bin/docker"
 readonly DOCKER_CLIENT_LATEST="/opt/docker/docker"
+readonly BOOT_WAIT_TIME=10
 
 source "$LIB_DIR/logger.sh"
 source "$LIB_DIR/headers.sh"
@@ -82,14 +83,20 @@ initialize() {
   popd
 }
 
-remove_stale_containers() {
-  __process_marker "Removing stale containers"
-  if [ "$EXEC_CONTAINER_NAME" == "" ]; then
-    __process_msg "No exec container name specified for stopping"
-  else
-    local rm_cmd="sudo docker rm -f -v $EXEC_CONTAINER_NAME"
+remove_stale_exec() {
+  __process_marker "Removing stale exec containers"
+
+  local running_container_ids=$(sudo docker ps -a \
+    | grep $EXEC_CONTAINER_NAME_PATTERN \
+    | awk '{print $1}')
+
+  if [ ! -z "$running_container_ids" ]; then
+    __process_msg "Stopping containers: $running_container_ids"
+    local rm_cmd="sudo docker rm -f -v $running_container_ids"
     __process_msg "Executing $rm_cmd"
     eval "$rm_cmd" || true
+  else
+    __process_msg "No exec containers running"
   fi
 }
 
@@ -156,6 +163,25 @@ boot() {
 
 }
 
+verify_running_exec() {
+  if [ "$NODE_TYPE_CODE" != "7001" ]; then
+    ## only check for non-dynamic nodes
+    sleep $BOOT_WAIT_TIME
+    local inspect_json=$(sudo docker inspect $EXEC_CONTAINER_NAME)
+    {
+      local is_running=$(echo $inspect_json \
+        | grep 'Running' \
+        | grep 'true')
+      __process_msg "Container $EXEC_CONTAINER_NAME successfully running"
+    } || {
+      __process_error "Container $EXEC_CONTAINER_NAME not running"
+      exit 1
+    }
+  else
+    __process_msg "Skipping exec run check for dynamic nodes"
+  fi
+}
+
 main() {
   info
 
@@ -166,8 +192,9 @@ main() {
     echo "Node init set to false, skipping node init"
   fi
 
-  remove_stale_containers
+  remove_stale_exec
   boot
+  verify_running_exec
 }
 
 main
