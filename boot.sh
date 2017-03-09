@@ -163,7 +163,7 @@ boot() {
 }
 
 verify_running_exec() {
-  if [ "$NODE_TYPE_CODE" != 7001 ]; then
+  if [ "$NODE_TYPE_CODE" != "7001" ]; then
     ## only check for non-dynamic nodes
     sleep $BOOT_WAIT_TIME
     local inspect_json=$(sudo docker inspect $EXEC_CONTAINER_NAME)
