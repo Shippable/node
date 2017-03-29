@@ -148,6 +148,7 @@ boot() {
       -e NODE_TYPE_CODE=$NODE_TYPE_CODE \
       -e IS_DOCKER_LEGACY=$is_docker_legacy \
       -e DOCKER_CLIENT_LATEST=$DOCKER_CLIENT_LATEST \
+      -e EXEC_IMAGE=$EXEC_IMAGE \
       -e DOCKER_CLIENT_LEGACY=$DOCKER_CLIENT_LEGACY "
 
     local start_cmd="sudo docker run -d \
