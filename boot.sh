@@ -69,7 +69,7 @@ initialize() {
     __process_msg "No exec image defined, skipping pull"
   else
     __process_msg "Pulling exec image: $EXEC_IMAGE"
-    exec_cmd "docker pull '$EXEC_IMAGE'"
+    exec_cmd "sudo docker pull '$EXEC_IMAGE'"
   fi
 
   __process_msg "Pulling cexec repo"
