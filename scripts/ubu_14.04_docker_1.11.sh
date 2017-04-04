@@ -108,6 +108,16 @@ check_docker_opts() {
   # SHIPPABLE docker options required for every node
   echo "Checking docker options"
 
+  OLD_SHIPPABLE_DOCKER_OPTS='DOCKER_OPTS="$DOCKER_OPTS -H unix:///var/run/docker.sock -g=/data --storage-driver aufs"'
+  old_opts_exist=$(sudo sh -c "grep '$OLD_SHIPPABLE_DOCKER_OPTS' /etc/default/docker || echo ''")
+
+  if [ ! -z "$old_opts_exist" ]; then
+    ## old docker opts exist
+    echo "removing old DOCKER_OPTS from /etc/default/docker"
+    sudo sh -c "sed -e s/\"DOCKER_OPTS=\\\"\\\$DOCKER_OPTS -H unix:\\\/\\\/\\\/var\\\/run\\\/docker.sock -g=\\\/data --storage-driver aufs\\\"\"//g -i /etc/default/docker"
+    docker_restart=true
+  fi
+
   SHIPPABLE_DOCKER_OPTS='DOCKER_OPTS="$DOCKER_OPTS -H unix:///var/run/docker.sock -g=/data --storage-driver aufs --dns 8.8.8.8 --dns 8.8.4.4"'
   opts_exist=$(sudo sh -c "grep '$SHIPPABLE_DOCKER_OPTS' /etc/default/docker || echo ''")
 
