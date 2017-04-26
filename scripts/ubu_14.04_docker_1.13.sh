@@ -33,16 +33,6 @@ setup_shippable_user() {
   exec_cmd "sudo chown -R shippable:shippable /home/shippable/"
 }
 
-upgrade_kernel() {
-  ## This is required to fix this docker bug where java builds hang
-  ## https://github.com/docker/docker/issues/18180#issuecomment-184359636
-  ## once the updated kernel is released, we can remove this function
-  exec_cmd "echo 'deb http://archive.ubuntu.com/ubuntu/ trusty-proposed restricted main multiverse universe' | sudo tee -a /etc/apt/sources.list"
-  exec_cmd "echo -e 'Package: *\nPin: release a=trusty-proposed\nPin-Priority: 400' | sudo tee -a  /etc/apt/preferences.d/proposed-updates"
-  _run_update
-  exec_cmd "sudo apt-get -y  install linux-image-3.19.0-51-generic linux-image-extra-3.19.0-51-generic"
-}
-
 install_prereqs() {
   echo "Installing prerequisite binaries"
   _run_update
@@ -144,9 +134,6 @@ before_exit() {
 main() {
   trap before_exit EXIT
   exec_grp "setup_shippable_user"
-
-  trap before_exit EXIT
-  exec_grp "upgrade_kernel"
 
   trap before_exit EXIT
   exec_grp "setup_directories"
