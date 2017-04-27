@@ -6,7 +6,7 @@ set -o pipefail
 ###########################################################
 ###########################################################
 # Initialization script for Shippable node on
-#   - Ubuntu 16.04
+#   - Ubuntu 14.04
 #   - Docker 1.13
 ###########################################################
 ###########################################################
@@ -46,7 +46,7 @@ docker_install() {
   update_cmd="sudo apt-get -y upgrade"
   exec_cmd "$update_cmd"
 
-  inst_extras_cmd='sudo apt-get install -y linux-image-extra-`uname -r`'
+  inst_extras_cmd='sudo apt-get install -y linux-image-extra-virtual linux-image-extra-`uname -r`'
   exec_cmd "$inst_extras_cmd"
 
   add_docker_repo_keys='curl -fsSL https://apt.dockerproject.org/gpg | sudo apt-key add -'
