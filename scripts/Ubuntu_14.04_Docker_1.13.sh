@@ -16,11 +16,6 @@ readonly DOCKER_VERSION="1.13.0"
 # Indicates if docker service should be restarted
 export docker_restart=false
 
-_run_update() {
-  update_cmd="sudo apt-get update"
-  exec_cmd "$update_cmd"
-}
-
 setup_shippable_user() {
   if id -u 'shippable' >/dev/null 2>&1; then
     echo "User shippable already exists"
@@ -35,32 +30,35 @@ setup_shippable_user() {
 
 install_prereqs() {
   echo "Installing prerequisite binaries"
-  _run_update
+  update_cmd="sudo apt-get update"
+  exec_cmd "$update_cmd"
 
-  install_prereqs_cmd="sudo apt-get -yy install git python-pip"
+  install_prereqs_cmd="sudo apt-get -yy install apt-transport-https git python-pip software-properties-common ca-certificates curl"
   exec_cmd "$install_prereqs_cmd"
 }
 
 docker_install() {
   echo "Installing docker"
 
-  _run_update
+  update_cmd="sudo apt-get update"
+  exec_cmd "$update_cmd"
 
-  inst_extras_cmd='sudo apt-get install -y linux-image-extra-`uname -r`'
+  update_cmd="sudo apt-get -y upgrade"
+  exec_cmd "$update_cmd"
+
+  inst_extras_cmd='sudo apt-get install -y linux-image-extra-virtual linux-image-extra-`uname -r`'
   exec_cmd "$inst_extras_cmd"
 
-  inst_extras_cmd='sudo apt-get install -y linux-image-extra-virtual software-properties-common ca-certificates'
-  exec_cmd "$inst_extras_cmd"
-
-  add_docker_repo_keys='curl -fsSL https://yum.dockerproject.org/gpg | sudo apt-key add -'
+  add_docker_repo_keys='curl -fsSL https://apt.dockerproject.org/gpg | sudo apt-key add -'
   exec_cmd "$add_docker_repo_keys"
 
   add_docker_repo='sudo add-apt-repository "deb https://apt.dockerproject.org/repo/ ubuntu-$(lsb_release -cs) main"'
   exec_cmd "$add_docker_repo"
 
-  _run_update
+  update_cmd="sudo apt-get update"
+  exec_cmd "$update_cmd"
 
-  install_docker="sudo -E apt-get install -q --force-yes -y -o Dpkg::Options::='--force-confnew' docker-engine=$DOCKER_VERSION-0~ubuntu-trusty"
+  install_docker="sudo -E apt-get install -q --force-yes -y -o Dpkg::Options::='--force-confnew' docker-engine=$DOCKER_VERSION-0~ubuntu-`lsb_release -cs`"
   exec_cmd "$install_docker"
 
   get_static_docker_binary="wget https://get.docker.com/builds/Linux/x86_64/docker-$DOCKER_VERSION.tgz -P /tmp/docker"
@@ -72,7 +70,8 @@ docker_install() {
   remove_static_docker_binary='rm -rf /tmp/docker'
   exec_cmd "$remove_static_docker_binary"
 
-  _run_update
+  update_cmd="sudo apt-get update"
+  exec_cmd "$update_cmd"
 
 }
 
@@ -80,7 +79,7 @@ check_docker_opts() {
   # SHIPPABLE docker options required for every node
   echo "Checking docker options"
 
-  SHIPPABLE_DOCKER_OPTS='DOCKER_OPTS="$DOCKER_OPTS -H unix:///var/run/docker.sock -g=/data --storage-driver aufs --dns 8.8.8.8 --dns 8.8.4.4"'
+  SHIPPABLE_DOCKER_OPTS='DOCKER_OPTS="$DOCKER_OPTS -H unix:///var/run/docker.sock -g=/data --dns 8.8.8.8 --dns 8.8.4.4"'
   opts_exist=$(sudo sh -c "grep '$SHIPPABLE_DOCKER_OPTS' /etc/default/docker || echo ''")
 
   if [ -z "$opts_exist" ]; then
@@ -124,7 +123,6 @@ install_ntp() {
 }
 
 before_exit() {
-  # flush streams
   echo $1
   echo $2
 
@@ -134,9 +132,6 @@ before_exit() {
 main() {
   trap before_exit EXIT
   exec_grp "setup_shippable_user"
-
-  trap before_exit EXIT
-  exec_grp "setup_directories"
 
   trap before_exit EXIT
   exec_grp "install_prereqs"
