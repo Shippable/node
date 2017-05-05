@@ -78,9 +78,12 @@ check_docker_opts() {
   SHIPPABLE_DOCKER_OPTS='DOCKER_OPTS="$DOCKER_OPTS -H unix:///var/run/docker.sock -g=/data --dns 8.8.8.8 --dns 8.8.4.4"'
   opts_exist=$(sudo sh -c "grep '$SHIPPABLE_DOCKER_OPTS' /etc/default/docker || echo ''")
 
+  # DOCKER_OPTS do not exist or match.
   if [ -z "$opts_exist" ]; then
-    ## docker opts do not exist
-    echo "appending DOCKER_OPTS to /etc/default/docker"
+    echo "Removing existing DOCKER_OPTS in /etc/default/docker, if any"
+    sudo sed -i '/^DOCKER_OPTS/d' "/etc/default/docker"
+
+    echo "Appending DOCKER_OPTS to /etc/default/docker"
     sudo sh -c "echo '$SHIPPABLE_DOCKER_OPTS' >> /etc/default/docker"
     docker_restart=true
   else
