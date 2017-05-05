@@ -43,9 +43,6 @@ docker_install() {
   update_cmd="sudo apt-get update"
   exec_cmd "$update_cmd"
 
-  update_cmd="sudo apt-get -y upgrade"
-  exec_cmd "$update_cmd"
-
   inst_extras_cmd='sudo apt-get install -y linux-image-extra-virtual linux-image-extra-`uname -r`'
   exec_cmd "$inst_extras_cmd"
 
@@ -72,7 +69,6 @@ docker_install() {
 
   update_cmd="sudo apt-get update"
   exec_cmd "$update_cmd"
-
 }
 
 check_docker_opts() {
