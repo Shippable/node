@@ -2,7 +2,6 @@
 set -e
 set -o pipefail
 
-
 ###########################################################
 ###########################################################
 # Initialization script for Shippable node on
@@ -30,21 +29,6 @@ setup_shippable_user() {
 
 install_prereqs() {
   echo "Installing prerequisite binaries"
-  update_cmd="sudo apt-get update"
-  exec_cmd "$update_cmd"
-
-  install_prereqs_cmd="sudo apt-get -yy install apt-transport-https git python-pip software-properties-common ca-certificates curl"
-  exec_cmd "$install_prereqs_cmd"
-}
-
-docker_install() {
-  echo "Installing docker"
-
-  update_cmd="sudo apt-get update"
-  exec_cmd "$update_cmd"
-
-  inst_extras_cmd='sudo apt-get install -y linux-image-extra-virtual linux-image-extra-`uname -r`'
-  exec_cmd "$inst_extras_cmd"
 
   add_docker_repo_keys='curl -fsSL https://apt.dockerproject.org/gpg | sudo apt-key add -'
   exec_cmd "$add_docker_repo_keys"
@@ -54,6 +38,13 @@ docker_install() {
 
   update_cmd="sudo apt-get update"
   exec_cmd "$update_cmd"
+
+  install_prereqs_cmd="sudo apt-get -yy install apt-transport-https git python-pip software-properties-common ca-certificates linux-image-extra-virtual linux-image-extra-`uname -r`"
+  exec_cmd "$install_prereqs_cmd"
+}
+
+docker_install() {
+  echo "Installing docker"
 
   install_docker="sudo -E apt-get install -q --force-yes -y -o Dpkg::Options::='--force-confnew' docker-engine=$DOCKER_VERSION-0~ubuntu-`lsb_release -cs`"
   exec_cmd "$install_docker"
@@ -66,9 +57,6 @@ docker_install() {
 
   remove_static_docker_binary='rm -rf /tmp/docker'
   exec_cmd "$remove_static_docker_binary"
-
-  update_cmd="sudo apt-get update"
-  exec_cmd "$update_cmd"
 }
 
 check_docker_opts() {
@@ -125,7 +113,7 @@ before_exit() {
   echo $1
   echo $2
 
-  echo "Node  init script completed"
+  echo "Node init script completed"
 }
 
 main() {

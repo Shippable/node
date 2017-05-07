@@ -2,7 +2,6 @@
 set -e
 set -o pipefail
 
-
 ###########################################################
 ###########################################################
 # Initialization script for Shippable node on
@@ -15,11 +14,6 @@ readonly DOCKER_VERSION="1.13.0"
 
 # Indicates if docker service should be restarted
 export docker_restart=false
-
-_run_update() {
-  update_cmd="sudo apt-get update"
-  exec_cmd "$update_cmd"
-}
 
 setup_shippable_user() {
   if id -u 'shippable' >/dev/null 2>&1; then
@@ -35,22 +29,6 @@ setup_shippable_user() {
 
 install_prereqs() {
   echo "Installing prerequisite binaries"
-  _run_update
-
-  install_prereqs_cmd="sudo apt-get -yy install git python-pip"
-  exec_cmd "$install_prereqs_cmd"
-}
-
-docker_install() {
-  echo "Installing docker"
-
-  _run_update
-
-  inst_extras_cmd='sudo apt-get install -y linux-image-extra-`uname -r`'
-  exec_cmd "$inst_extras_cmd"
-
-  inst_extras_cmd='sudo apt-get install -y linux-image-extra-virtual software-properties-common ca-certificates'
-  exec_cmd "$inst_extras_cmd"
 
   add_docker_repo_keys='curl -fsSL https://apt.dockerproject.org/gpg | sudo apt-key add -'
   exec_cmd "$add_docker_repo_keys"
@@ -58,7 +36,15 @@ docker_install() {
   add_docker_repo='sudo add-apt-repository "deb https://apt.dockerproject.org/repo/ ubuntu-$(lsb_release -cs) main"'
   exec_cmd "$add_docker_repo"
 
-  _run_update
+  update_cmd="sudo apt-get update"
+  exec_cmd "$update_cmd"
+
+  install_prereqs_cmd="sudo apt-get -yy install git python-pip linux-image-extra-virtual software-properties-common ca-certificates linux-image-extra-`uname -r`"
+  exec_cmd "$install_prereqs_cmd"
+}
+
+docker_install() {
+  echo "Installing docker"
 
   install_docker="sudo -E apt-get install -q --force-yes -y -o Dpkg::Options::='--force-confnew' docker-engine=$DOCKER_VERSION-0~ubuntu-xenial"
   exec_cmd "$install_docker"
@@ -71,9 +57,6 @@ docker_install() {
 
   remove_static_docker_binary='rm -rf /tmp/docker'
   exec_cmd "$remove_static_docker_binary"
-
-  _run_update
-
 }
 
 check_docker_opts() {
@@ -128,7 +111,7 @@ before_exit() {
   echo $1
   echo $2
 
-  echo "Node  init script completed"
+  echo "Node init script completed"
 }
 
 main() {
