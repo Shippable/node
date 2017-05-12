@@ -39,7 +39,7 @@ install_prereqs() {
   update_cmd="sudo apt-get update"
   exec_cmd "$update_cmd"
 
-  install_prereqs_cmd="sudo apt-get -yy install git python-pip linux-image-extra-virtual software-properties-common ca-certificates linux-image-extra-`uname -r`"
+  install_prereqs_cmd="sudo apt-get -yy install git python-pip apt-transport-https software-properties-common ca-certificates"
   exec_cmd "$install_prereqs_cmd"
 }
 
