@@ -30,6 +30,12 @@ setup_shippable_user() {
 install_prereqs() {
   echo "Installing prerequisite binaries"
 
+  update_cmd="sudo apt-get update"
+  exec_cmd "$update_cmd"
+
+  install_prereqs_cmd="sudo apt-get -yy install apt-transport-https git python-pip software-properties-common ca-certificates curl linux-image-extra-virtual linux-image-extra-`uname -r`"
+  exec_cmd "$install_prereqs_cmd"
+
   add_docker_repo_keys='curl -fsSL https://apt.dockerproject.org/gpg | sudo apt-key add -'
   exec_cmd "$add_docker_repo_keys"
 
@@ -38,9 +44,6 @@ install_prereqs() {
 
   update_cmd="sudo apt-get update"
   exec_cmd "$update_cmd"
-
-  install_prereqs_cmd="sudo apt-get -yy install apt-transport-https git python-pip software-properties-common ca-certificates linux-image-extra-virtual linux-image-extra-`uname -r`"
-  exec_cmd "$install_prereqs_cmd"
 }
 
 docker_install() {
