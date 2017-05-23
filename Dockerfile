@@ -1,4 +1,4 @@
-FROM drydock/microbase:v5.5.3
+FROM drydock/microbase:{{%TAG%}}
 
 RUN mkdir -p /home/shippable/node
 ADD . /home/shippable/node
