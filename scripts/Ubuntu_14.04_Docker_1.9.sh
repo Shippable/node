@@ -51,6 +51,66 @@ install_prereqs() {
   exec_cmd "$install_prereqs_cmd"
 }
 
+check_swap() {
+  echo "Checking for swap space"
+
+  swap_available=$(free | grep Swap | awk '{print $2}')
+  if [ $swap_available -eq 0 ]; then
+    echo "No swap space available, adding swap"
+    is_swap_required=true
+  else
+    echo "Swap space available, not adding"
+  fi
+}
+
+add_swap() {
+  echo "Adding swap file"
+  echo "Creating Swap file at: $SWAP_FILE_PATH"
+  add_swap_file="sudo touch $SWAP_FILE_PATH"
+  exec_cmd "$add_swap_file"
+
+  swap_size=$(cat /proc/meminfo | grep MemTotal | awk '{print $2}')
+  swap_size=$(($swap_size/1024))
+  echo "Allocating swap of: $swap_size MB"
+  initialize_file="sudo dd if=/dev/zero of=$SWAP_FILE_PATH bs=1M count=$swap_size"
+  exec_cmd "$initialize_file"
+
+  echo "Updating Swap file permissions"
+  update_permissions="sudo chmod -c 600 $SWAP_FILE_PATH"
+  exec_cmd "$update_permissions"
+
+  echo "Setting up Swap area on the device"
+  initialize_swap="sudo mkswap $SWAP_FILE_PATH"
+  exec_cmd "$initialize_swap"
+
+  echo "Turning on Swap"
+  turn_swap_on="sudo swapon $SWAP_FILE_PATH"
+  exec_cmd "$turn_swap_on"
+
+}
+
+check_fstab_entry() {
+  echo "Checking fstab entries"
+
+  if grep -q $SWAP_FILE_PATH /etc/fstab; then
+    echo "/etc/fstab updated, swap check complete"
+  else
+    echo "No entry in /etc/fstab, updating ..."
+    add_swap_to_fstab="echo $SWAP_FILE_PATH none swap sw 0 0 | sudo tee -a /etc/fstab"
+    exec_cmd "$add_swap_to_fstab"
+    echo "/etc/fstab updated"
+  fi
+}
+
+initialize_swap() {
+  check_swap
+  if [ "$is_swap_required" == true ]; then
+    add_swap
+  fi
+  check_fstab_entry
+}
+
+
 docker_install() {
   echo "Installing docker"
 
@@ -177,6 +237,11 @@ main() {
 
   trap before_exit EXIT
   exec_grp "install_prereqs"
+
+  if [ "$IS_SWAP_ENABLED" == "true" ]; then
+    trap before_exit EXIT
+    exec_grp "initialize_swap"
+  fi
 
   trap before_exit EXIT
   exec_grp "docker_install"
