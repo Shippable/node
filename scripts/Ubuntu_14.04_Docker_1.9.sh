@@ -93,12 +93,12 @@ check_fstab_entry() {
   echo "Checking fstab entries"
 
   if grep -q $SWAP_FILE_PATH /etc/fstab; then
-    echo "/etc/fstab updated, swap check complete"
+    exec_cmd "echo /etc/fstab updated, swap check complete"
   else
     echo "No entry in /etc/fstab, updating ..."
     add_swap_to_fstab="echo $SWAP_FILE_PATH none swap sw 0 0 | sudo tee -a /etc/fstab"
     exec_cmd "$add_swap_to_fstab"
-    echo "/etc/fstab updated"
+    exec_cmd "echo /etc/fstab updated"
   fi
 }
 
