@@ -30,6 +30,7 @@ readonly BUILD_LOCATION="/build"
 readonly DOCKER_CLIENT_LEGACY="/usr/bin/docker"
 readonly DOCKER_CLIENT_LATEST="/opt/docker/docker"
 readonly BOOT_WAIT_TIME=10
+readonly SWAP_FILE_PATH="/root/.__sh_swap__"
 
 source "$LIB_DIR/logger.sh"
 source "$LIB_DIR/headers.sh"
