@@ -46,7 +46,6 @@ install_prereqs() {
   exec_cmd "$update_cmd"
 }
 
-
 check_swap() {
   echo "Checking for swap space"
 
