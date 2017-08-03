@@ -32,6 +32,8 @@ readonly DOCKER_CLIENT_LATEST="/opt/docker/docker"
 readonly BOOT_WAIT_TIME=10
 readonly SWAP_FILE_PATH="/root/.__sh_swap__"
 
+export DOCKER_VERSION=""
+
 source "$LIB_DIR/logger.sh"
 source "$LIB_DIR/headers.sh"
 
@@ -119,6 +121,8 @@ boot() {
     fi
     __process_msg "Docker client location on host: $docker_client_location"
 
+    DOCKER_VERSION=$(sudo docker version --format {{.Server.Version}})
+
     mkdir -p $CACHE_STORE_LOCATION
     mkdir -p $KEY_STORE_LOCATION
     mkdir -p $MESSAGE_STORE_LOCATION
@@ -150,7 +154,8 @@ boot() {
       -e IS_DOCKER_LEGACY=$is_docker_legacy \
       -e DOCKER_CLIENT_LATEST=$DOCKER_CLIENT_LATEST \
       -e EXEC_IMAGE=$EXEC_IMAGE \
-      -e DOCKER_CLIENT_LEGACY=$DOCKER_CLIENT_LEGACY "
+      -e DOCKER_CLIENT_LEGACY=$DOCKER_CLIENT_LEGACY \
+      -e SHIPPABLE_DOCKER_VERSION=$DOCKER_VERSION "
 
     local start_cmd="sudo docker run -d \
             --restart=always \
