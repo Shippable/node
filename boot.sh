@@ -32,8 +32,6 @@ readonly DOCKER_CLIENT_LATEST="/opt/docker/docker"
 readonly BOOT_WAIT_TIME=10
 readonly SWAP_FILE_PATH="/root/.__sh_swap__"
 
-export DOCKER_VERSION=""
-
 source "$LIB_DIR/logger.sh"
 source "$LIB_DIR/headers.sh"
 
@@ -120,8 +118,6 @@ boot() {
       docker_client_location=$DOCKER_CLIENT_LATEST
     fi
     __process_msg "Docker client location on host: $docker_client_location"
-
-    DOCKER_VERSION=$(sudo docker version --format {{.Server.Version}})
 
     mkdir -p $CACHE_STORE_LOCATION
     mkdir -p $KEY_STORE_LOCATION
