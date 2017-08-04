@@ -113,6 +113,11 @@ boot() {
     local docker_client_location=$DOCKER_CLIENT_LEGACY
     local is_docker_legacy=true
 
+    local installed_docker_version=$DOCKER_VERSION
+    if [ -z "$installed_docker_version" ]; then
+      installed_docker_version=$(docker version --format {{.Server.Version}})
+    fi
+
     if [ -f "$DOCKER_CLIENT_LATEST" ]; then
       is_docker_legacy=false
       docker_client_location=$DOCKER_CLIENT_LATEST
@@ -151,7 +156,7 @@ boot() {
       -e DOCKER_CLIENT_LATEST=$DOCKER_CLIENT_LATEST \
       -e EXEC_IMAGE=$EXEC_IMAGE \
       -e DOCKER_CLIENT_LEGACY=$DOCKER_CLIENT_LEGACY \
-      -e SHIPPABLE_DOCKER_VERSION=$DOCKER_VERSION "
+      -e SHIPPABLE_DOCKER_VERSION=$installed_docker_version "
 
     local start_cmd="sudo docker run -d \
             --restart=always \
