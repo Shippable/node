@@ -115,7 +115,7 @@ boot() {
 
     local installed_docker_version=$DOCKER_VERSION
     if [ -z "$installed_docker_version" ]; then
-      installed_docker_version=$(docker version --format {{.Server.Version}})
+      installed_docker_version=$(sudo docker version --format {{.Server.Version}})
     fi
 
     if [ -f "$DOCKER_CLIENT_LATEST" ]; then
