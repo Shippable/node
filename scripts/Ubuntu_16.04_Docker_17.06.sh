@@ -33,7 +33,7 @@ install_prereqs() {
   update_cmd="sudo apt-get update"
   exec_cmd "$update_cmd"
 
-  install_prereqs_cmd="sudo apt-get -yy install apt-transport-https git python-pip software-properties-common ca-certificates curl linux-image-extra-virtual linux-image-extra-`uname -r`"
+  install_prereqs_cmd="sudo apt-get -yy install apt-transport-https git python-pip software-properties-common ca-certificates curl"
   exec_cmd "$install_prereqs_cmd"
 
   add_docker_repo_keys='curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -'
