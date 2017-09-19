@@ -156,7 +156,8 @@ boot() {
       -e DOCKER_CLIENT_LATEST=$DOCKER_CLIENT_LATEST \
       -e EXEC_IMAGE=$EXEC_IMAGE \
       -e DOCKER_CLIENT_LEGACY=$DOCKER_CLIENT_LEGACY \
-      -e SHIPPABLE_DOCKER_VERSION=$installed_docker_version "
+      -e SHIPPABLE_DOCKER_VERSION=$installed_docker_version \
+      -e SHIPPABLE_NODE_ARCHITECTURE=$SHIPPABLE_NODE_ARCHITECTURE "
 
     local start_cmd="sudo docker run -d \
             --restart=always \
