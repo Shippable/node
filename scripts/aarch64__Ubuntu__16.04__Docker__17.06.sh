@@ -121,7 +121,7 @@ upgrade_golang() {
     local go_binary_upgade_failed=false
     pushd /tmp
       mkdir -p /usr/src/go
-      curl -fsSL https://golang.org/dl/go$golang_version.src.tar.gz | tar -v -C /usr/src/go -xz --strip-components=1
+      curl -fsSL https://golang.org/dl/go$golang_version.src.tar.gz | tar -C /usr/src/go -xz --strip-components=1
       cd /usr/src/go/src
       local temp_path=$PATH
       export PATH=/usr/bin:$PATH
