@@ -58,6 +58,7 @@ initialize() {
     'REQPROC_OPTS'
     'REQPROC_MOUNTS'
     'REQPROC_ENVS'
+    'REQKICK_DIR'
   )
 
   check_envs "${expected_envs[@]}"
@@ -82,6 +83,10 @@ boot_reqProc() {
 
 boot_reqKick() {
   __process_marker "Booting up reqKick..."
+  # TODO: This is just for the plumbing. This needs to change once we have
+  # reqKick service available.
+  git clone https://github.com/Shippable/reqKick.git $REQKICK_DIR
+  $REQKICK_DIR/init.sh &>/dev/null &
 }
 
 main () {
