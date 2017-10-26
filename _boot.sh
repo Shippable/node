@@ -22,15 +22,10 @@ source $NODE_ENV
 # Scripts
 readonly NODE_INIT_SCRIPT="$SCRIPTS_DIR/$NODE_INIT_SCRIPT"
 
-# Swap
-readonly SWAP_FILE_PATH="/root/.__sh_swap__"
-
-# Misc
-readonly BOOT_WAIT_TIME=10
-
 # Source libraries
 source "$LIB_DIR/logger.sh"
 source "$LIB_DIR/headers.sh"
+source "$LIB_DIR/helpers.sh"
 
 check_input() {
   local expected_envs=(
@@ -48,17 +43,10 @@ check_input() {
     'SHIPPABLE_AMQP_DEFAULT_EXCHANGE'
     'SHIPPABLE_AMQP_URL'
     'SHIPPABLE_API_URL'
-    'SUBSCRIPTION_ID'
+    'SUBSCRIPTION_ID',
   )
 
-  for env in "${expected_envs[@]}"
-  do
-    env_value=$(eval "echo \$$env")
-    if [ -z "$env_value" ]; then
-      echo "Missing ENV: $env"
-      exit 1
-    fi
-  done
+  check_envs "${expected_envs[@]}"
 }
 
 initialize() {
@@ -72,14 +60,7 @@ initialize() {
     'REQPROC_ENVS'
   )
 
-  for env in "${expected_envs[@]}"
-  do
-    env_value=$(eval "echo \$$env")
-    if [ -z "$env_value" ]; then
-      echo "Missing ENV: $env"
-      exit 1
-    fi
-  done
+  check_envs "${expected_envs[@]}"
 }
 
 remove_reqProc() {

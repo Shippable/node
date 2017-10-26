@@ -5,7 +5,19 @@ set -o pipefail
 # ------------------------------------------------------------------------------
 
 readonly DOCKER_VERSION="17.06.0"
+readonly SWAP_FILE_PATH="/root/.__sh_swap__"
 export docker_restart=false
+
+export BASE_DIR="$SHIPPABLE_DIR/$(cat /proc/sys/kernel/random/uuid)"
+export REQPROC_DIR="$BASE_DIR/reqProc"
+export REQEXEC_DIR="$BASE_DIR/reqExec"
+export REQEXEC_SRC_DIR="$BASE_DIR/reqExec/src"
+export REQKICK_DIR="$BASE_DIR/reqKick"
+export BUILD_DIR="$BASE_DIR/build"
+export REQPROC_MOUNTS=""
+export REQPROC_ENVS=""
+export REQPROC_OPTS=""
+export REQPROC_CONTAINER_NAME_PATTERN=""
 
 setup_shippable_user() {
   if id -u 'shippable' >/dev/null 2>&1; then
@@ -164,13 +176,6 @@ install_ntp() {
 }
 
 setup_mounts() {
-  export BASE_DIR="$SHIPPABLE_DIR/$(cat /proc/sys/kernel/random/uuid)"
-  export REQPROC_DIR="$BASE_DIR/reqProc"
-  export REQEXEC_DIR="$BASE_DIR/reqExec"
-  export REQEXEC_SRC_DIR="$BASE_DIR/reqExec/src"
-  export REQKICK_DIR="$BASE_DIR/reqKick"
-  export BUILD_DIR="$BASE_DIR/build"
-
   mkdir -p $BASE_DIR
   mkdir -p $REQPROC_DIR
   mkdir -p $REQEXEC_DIR
@@ -178,11 +183,11 @@ setup_mounts() {
   mkdir -p $REQKICK_DIR
   mkdir -p $BUILD_DIR
 
-  export REQPROC_MOUNTS="-v $BASE_DIR:$BASE_DIR"
+  REQPROC_MOUNTS="-v $BASE_DIR:$BASE_DIR"
 }
 
 setup_envs() {
-  export REQPROC_ENVS="\
+  REQPROC_ENVS="\
     -e SHIPPABLE_AMQP_URL=$SHIPPABLE_AMQP_URL \
     -e SHIPPABLE_AMQP_DEFAULT_EXCHANGE=$SHIPPABLE_AMQP_DEFAULT_EXCHANGE \
     -e SHIPPABLE_API_URL=$SHIPPABLE_API_URL \
@@ -201,8 +206,8 @@ setup_envs() {
 }
 
 setup_opts() {
-  export REQPROC_CONTAINER_NAME_PATTERN="shippable-exec"
-  export REQPROC_OPTS="\
+  REQPROC_CONTAINER_NAME_PATTERN="shippable-exec"
+  REQPROC_OPTS="\
     -d \
     --restart=always \
     --name=$REQPROC_CONTAINER_NAME_PATTERN-$NODE_ID \
