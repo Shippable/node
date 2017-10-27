@@ -13,7 +13,7 @@ export BASE_UUID="$(cat /proc/sys/kernel/random/uuid)"
 export BASE_DIR="$SHIPPABLE_RUNTIME_DIR/$BASE_UUID"
 export REQPROC_DIR="$BASE_DIR/reqProc"
 export REQEXEC_DIR="$BASE_DIR/reqExec"
-export REQEXEC_SRC_DIR="$BASE_DIR/reqExec/src"
+export REQEXEC_BIN_DIR="$BASE_DIR/reqExec/bin"
 export REQKICK_DIR="$BASE_DIR/reqKick"
 export BUILD_DIR="$BASE_DIR/build"
 export REQPROC_MOUNTS=""
@@ -183,7 +183,7 @@ setup_mounts() {
   mkdir -p $BASE_DIR
   mkdir -p $REQPROC_DIR
   mkdir -p $REQEXEC_DIR
-  mkdir -p $REQEXEC_SRC_DIR
+  mkdir -p $REQEXEC_BIN_DIR
   mkdir -p $REQKICK_DIR
   mkdir -p $BUILD_DIR
 
@@ -207,7 +207,7 @@ setup_envs() {
     -e BASE_DIR=$BASE_DIR \
     -e REQPROC_DIR=$REQPROC_DIR \
     -e REQEXEC_DIR=$REQEXEC_DIR \
-    -e REQEXEC_SRC_DIR=$REQEXEC_SRC_DIR \
+    -e REQEXEC_BIN_DIR=$REQEXEC_BIN_DIR \
     -e REQKICK_DIR=$REQKICK_DIR \
     -e BUILD_DIR=$BUILD_DIR \
     -e REQPROC_CONTAINER_NAME=$REQPROC_CONTAINER_NAME
@@ -236,6 +236,7 @@ remove_reqProc() {
 
 boot_reqProc() {
   __process_marker "Booting up reqProc..."
+  sudo docker pull $EXEC_IMAGE
   sudo docker run $REQPROC_OPTS $REQPROC_MOUNTS $REQPROC_ENVS $EXEC_IMAGE
 }
 
