@@ -185,11 +185,15 @@ setup_mounts() {
   mkdir -p $REQKICK_DIR
   mkdir -p $BUILD_DIR
 
-  REQPROC_MOUNTS="-v $BASE_DIR:$BASE_DIR"
+  REQPROC_MOUNTS="$REQPROC_MOUNTS \
+    -v $BASE_DIR:$BASE_DIR \
+    -v /opt/docker/docker:/usr/bin/docker \
+    -v /var/run/docker.sock:/var/run/docker.sock
+  "
 }
 
 setup_envs() {
-  REQPROC_ENVS="\
+  REQPROC_ENVS="$REQPROC_ENVS \
     -e SHIPPABLE_AMQP_URL=$SHIPPABLE_AMQP_URL \
     -e SHIPPABLE_AMQP_DEFAULT_EXCHANGE=$SHIPPABLE_AMQP_DEFAULT_EXCHANGE \
     -e SHIPPABLE_API_URL=$SHIPPABLE_API_URL \
@@ -209,7 +213,7 @@ setup_envs() {
 }
 
 setup_opts() {
-  REQPROC_OPTS="\
+  REQPROC_OPTS="$REQPROC_OPTS \
     -d \
     --restart=always \
     --name=$REQPROC_CONTAINER_NAME \
