@@ -8,8 +8,9 @@ readonly DOCKER_VERSION="17.06.0"
 readonly SWAP_FILE_PATH="/root/.__sh_swap__"
 export docker_restart=false
 
+export SHIPPABLE_RUNTIME_DIR="/var/lib/shippable"
 export BASE_UUID="$(cat /proc/sys/kernel/random/uuid)"
-export BASE_DIR="$SHIPPABLE_DIR/$BASE_UUID"
+export BASE_DIR="$SHIPPABLE_RUNTIME_DIR/$BASE_UUID"
 export REQPROC_DIR="$BASE_DIR/reqProc"
 export REQEXEC_DIR="$BASE_DIR/reqExec"
 export REQEXEC_SRC_DIR="$BASE_DIR/reqExec/src"
@@ -178,6 +179,7 @@ install_ntp() {
 }
 
 setup_mounts() {
+  rm -rf $SHIPPABLE_RUNTIME_DIR
   mkdir -p $BASE_DIR
   mkdir -p $REQPROC_DIR
   mkdir -p $REQEXEC_DIR
