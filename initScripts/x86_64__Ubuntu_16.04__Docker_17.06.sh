@@ -8,7 +8,8 @@ readonly DOCKER_VERSION="17.06.0"
 readonly SWAP_FILE_PATH="/root/.__sh_swap__"
 export docker_restart=false
 
-export BASE_DIR="$SHIPPABLE_DIR/$(cat /proc/sys/kernel/random/uuid)"
+export BASE_UUID="$(cat /proc/sys/kernel/random/uuid)"
+export BASE_DIR="$SHIPPABLE_DIR/$BASE_UUID"
 export REQPROC_DIR="$BASE_DIR/reqProc"
 export REQEXEC_DIR="$BASE_DIR/reqExec"
 export REQEXEC_SRC_DIR="$BASE_DIR/reqExec/src"
@@ -17,7 +18,8 @@ export BUILD_DIR="$BASE_DIR/build"
 export REQPROC_MOUNTS=""
 export REQPROC_ENVS=""
 export REQPROC_OPTS=""
-export REQPROC_CONTAINER_NAME_PATTERN=""
+export REQPROC_CONTAINER_NAME_PATTERN="reqProc"
+export REQPROC_CONTAINER_NAME="$REQPROC_CONTAINER_NAME_PATTERN-$BASE_UUID"
 
 setup_shippable_user() {
   if id -u 'shippable' >/dev/null 2>&1; then
@@ -201,16 +203,16 @@ setup_envs() {
     -e REQEXEC_DIR=$REQEXEC_DIR \
     -e REQEXEC_SRC_DIR=$REQEXEC_SRC_DIR \
     -e REQKICK_DIR=$REQKICK_DIR \
-    -e BUILD_DIR=$BUILD_DIR
+    -e BUILD_DIR=$BUILD_DIR \
+    -e REQPROC_CONTAINER_NAME=$REQPROC_CONTAINER_NAME
   "
 }
 
 setup_opts() {
-  REQPROC_CONTAINER_NAME_PATTERN="shippable-exec"
   REQPROC_OPTS="\
     -d \
     --restart=always \
-    --name=$REQPROC_CONTAINER_NAME_PATTERN-$NODE_ID \
+    --name=$REQPROC_CONTAINER_NAME \
     "
 }
 
