@@ -185,7 +185,10 @@ setup_mounts() {
   mkdir -p $REQKICK_DIR
   mkdir -p $BUILD_DIR
 
-  REQPROC_MOUNTS="-v $BASE_DIR:$BASE_DIR"
+  REQPROC_MOUNTS="-v $BASE_DIR:$BASE_DIR \
+    -v /opt/docker/docker:/usr/bin/docker \
+    -v /var/run/docker.sock:/var/run/docker.sock
+  "
 }
 
 setup_envs() {
