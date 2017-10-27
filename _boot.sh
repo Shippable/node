@@ -51,49 +51,12 @@ check_input() {
 initialize() {
   __process_marker "Initializing node..."
   source $NODE_INIT_SCRIPT
-
-  local expected_envs=(
-    'REQPROC_CONTAINER_NAME_PATTERN'
-    'REQPROC_OPTS'
-    'REQPROC_MOUNTS'
-    'REQPROC_ENVS'
-    'REQKICK_DIR'
-  )
-
-  check_envs "${expected_envs[@]}"
 }
 
-remove_reqProc() {
-  __process_marker "Remove exisiting reqProc containers..."
 
-  local running_container_ids=$(sudo docker ps -a \
-    | grep $REQPROC_CONTAINER_NAME_PATTERN \
-    | awk '{print $1}')
-
-  if [ ! -z "$running_container_ids" ]; then
-    sudo docker rm -f -v $running_container_ids || true
-  fi
-}
-
-boot_reqProc() {
-  __process_marker "Booting up reqProc..."
-  sudo docker run $REQPROC_OPTS $REQPROC_MOUNTS $REQPROC_ENVS $EXEC_IMAGE
-}
-
-boot_reqKick() {
-  __process_marker "Booting up reqKick..."
-  # TODO: This is just for the plumbing. This needs to change once we have
-  # reqKick service available.
-  git clone https://github.com/Shippable/reqKick.git $REQKICK_DIR
-  $REQKICK_DIR/init.sh &>/dev/null &
-}
-
-main () {
+main() {
   check_input
   initialize
-  remove_reqProc
-  boot_reqProc
-  boot_reqKick
 }
 
 main
