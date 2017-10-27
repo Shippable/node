@@ -221,7 +221,7 @@ setup_opts() {
 }
 
 remove_reqProc() {
-  __process_marker "Remove exisiting reqProc containers..."
+  __process_marker "Removing exisiting reqProc containers..."
 
   local running_container_ids=$(sudo docker ps -a \
     | grep $REQPROC_CONTAINER_NAME_PATTERN \
