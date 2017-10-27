@@ -220,6 +220,31 @@ setup_opts() {
     "
 }
 
+remove_reqProc() {
+  __process_marker "Remove exisiting reqProc containers..."
+
+  local running_container_ids=$(sudo docker ps -a \
+    | grep $REQPROC_CONTAINER_NAME_PATTERN \
+    | awk '{print $1}')
+
+  if [ ! -z "$running_container_ids" ]; then
+    sudo docker rm -f -v $running_container_ids || true
+  fi
+}
+
+boot_reqProc() {
+  __process_marker "Booting up reqProc..."
+  sudo docker run $REQPROC_OPTS $REQPROC_MOUNTS $REQPROC_ENVS $EXEC_IMAGE
+}
+
+boot_reqKick() {
+  __process_marker "Booting up reqKick..."
+  # TODO: This is just for the plumbing. This needs to change once we have
+  # reqKick service available.
+  git clone https://github.com/Shippable/reqKick.git $REQKICK_DIR
+  $REQKICK_DIR/init.sh &>/dev/null &
+}
+
 before_exit() {
   echo $1
   echo $2
@@ -259,6 +284,15 @@ main() {
 
   trap before_exit EXIT
   exec_grp "setup_opts"
+
+  trap before_exit EXIT
+  exec_grp "remove_reqProc"
+
+  trap before_exit EXIT
+  exec_grp "boot_reqProc"
+
+  trap before_exit EXIT
+  exec_grp "boot_reqKick"
 }
 
 main
