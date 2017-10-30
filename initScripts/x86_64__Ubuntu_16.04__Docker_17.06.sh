@@ -244,7 +244,7 @@ boot_reqKick() {
   __process_marker "Booting up reqKick..."
   # TODO: This is just for the plumbing. This needs to change once we have
   # reqKick service available.
-  export STATUS_DIR=$BASE_DIR/status
+  export STATUS_DIR=$BUILD_DIR/status
   git clone https://github.com/Shippable/reqKick.git $REQKICK_DIR
   $REQKICK_DIR/init.sh &>$REQKICK_DIR/logs &
 }
