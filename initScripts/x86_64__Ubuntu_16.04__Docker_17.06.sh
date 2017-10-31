@@ -23,6 +23,7 @@ export REQPROC_ENVS=""
 export REQPROC_OPTS=""
 export REQPROC_CONTAINER_NAME_PATTERN="reqProc"
 export REQPROC_CONTAINER_NAME="$REQPROC_CONTAINER_NAME_PATTERN-$BASE_UUID"
+export REQKICK_SERVICE_NAME_PATTERN="shippable-reqKick@"
 
 setup_shippable_user() {
   if id -u 'shippable' >/dev/null 2>&1; then
@@ -251,6 +252,24 @@ remove_reqProc() {
   fi
 }
 
+remove_reqKick() {
+  __process_marker "Removing existing reqKick services..."
+
+  local running_service_names=$(sudo systemctl list-units -a \
+    | grep $REQKICK_SERVICE_NAME_PATTERN \
+    | awk '{ print $1 }')
+
+  if [ ! -z "$running_service_names" ]; then
+    sudo systemctl stop $running_service_names || true
+    sudo systemctl disable $running_service_names || true
+  fi
+
+  sudo rm -rf $REQKICK_CONFIG_DIR
+  sudo rm -f /etc/systemd/system/shippable-reqKick@.service
+
+  sudo systemctl daemon-reload
+}
+
 boot_reqProc() {
   __process_marker "Booting up reqProc..."
   sudo docker pull $EXEC_IMAGE
@@ -339,6 +358,9 @@ main() {
 
   trap before_exit EXIT
   exec_grp "remove_reqProc"
+
+  trap before_exit EXIT
+  exec_grp "remove_reqKick"
 
   trap before_exit EXIT
   exec_grp "boot_reqProc"
