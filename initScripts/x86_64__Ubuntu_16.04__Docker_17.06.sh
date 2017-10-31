@@ -40,7 +40,7 @@ install_prereqs() {
   update_cmd="sudo apt-get update"
   exec_cmd "$update_cmd"
 
-  install_prereqs_cmd="sudo apt-get -yy install apt-transport-https git python-pip software-properties-common ca-certificates curl"
+  install_prereqs_cmd="sudo apt-get -yy install apt-transport-https git python-pip software-properties-common ca-certificates curl wget tar"
   exec_cmd "$install_prereqs_cmd"
 
   add_docker_repo_keys='curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -'
@@ -49,7 +49,22 @@ install_prereqs() {
   add_docker_repo='sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"'
   exec_cmd "$add_docker_repo"
 
-  update_cmd="sudo apt-get update"
+  pushd /tmp
+  echo "Installing node 4.8.5"
+
+  get_node_tar_cmd="wget https://nodejs.org/dist/v4.8.5/node-v4.8.5-linux-x64.tar.xz"
+  exec_cmd "$get_node_tar_cmd"
+
+  node_extract_cmd="tar -xf node-v4.8.5-linux-x64.tar.xz"
+  exec_cmd "$node_extract_cmd"
+
+  node_copy_cmd="cp -Rf node-v4.8.5-linux-x64/{bin,include,lib,share} /usr/local"
+  exec_cmd "$node_copy_cmd"
+
+  check_node_version_cmd="node -v"
+  exec_cmd "$check_node_version_cmd"
+  popd
+
   exec_cmd "$update_cmd"
 }
 
