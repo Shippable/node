@@ -15,6 +15,8 @@ export REQPROC_DIR="$BASE_DIR/reqProc"
 export REQEXEC_DIR="$BASE_DIR/reqExec"
 export REQEXEC_BIN_DIR="$BASE_DIR/reqExec/bin"
 export REQKICK_DIR="$BASE_DIR/reqKick"
+export REQKICK_SERVICE_DIR="$REQKICK_DIR/init/$NODE_ARCHITECTURE/$NODE_OPERATING_SYSTEM"
+export REQKICK_CONFIG_DIR="/etc/shippable/reqKick"
 export BUILD_DIR="$BASE_DIR/build"
 export REQPROC_MOUNTS=""
 export REQPROC_ENVS=""
@@ -262,6 +264,37 @@ boot_reqKick() {
   export STATUS_DIR=$BUILD_DIR/status
   git clone https://github.com/Shippable/reqKick.git $REQKICK_DIR
   $REQKICK_DIR/init.sh &>$REQKICK_DIR/logs &
+
+  __process_marker "Booting up reqKick service..."
+  pushd $REQKICK_DIR
+  npm install
+
+  mkdir -p $REQKICK_CONFIG_DIR
+
+  cp $REQKICK_SERVICE_DIR/shippable-reqKick@.service.template /etc/systemd/system/shippable-reqKick@.service
+  chmod 644 /etc/systemd/system/shippable-reqKick@.service
+
+  local reqkick_env_template=$REQKICK_SERVICE_DIR/shippable-reqKick.env.template
+  local reqkick_env_file=$REQKICK_CONFIG_DIR/$BASE_UUID.env
+  touch $reqkick_env_file
+  sed "s#{{STATUS_DIR}}#$STATUS_DIR#g" $reqkick_env_template > $reqkick_env_file
+
+  systemctl daemon-reload
+  systemctl enable shippable-reqKick@$BASE_UUID.service
+  systemctl start shippable-reqKick@$BASE_UUID.service
+
+  {
+    echo "Checking if shippable-reqKick@$BASE_UUID.service is active"
+    local check_reqKick_is_active=$(systemctl is-active shippable-reqKick@$BASE_UUID.service)
+    echo "shippable-reqKick@$BASE_UUID.service is $check_reqKick_is_active"
+  } ||
+  {
+    echo "shippable-reqKick@$BASE_UUID.service failed to start"
+    journalctl -n 100 -u shippable-reqKick@$BASE_UUID.service
+    popd
+    exit 1
+  }
+  popd
 }
 
 before_exit() {
