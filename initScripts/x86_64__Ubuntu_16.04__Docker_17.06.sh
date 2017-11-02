@@ -18,6 +18,7 @@ export REQKICK_DIR="$BASE_DIR/reqKick"
 export REQKICK_SERVICE_DIR="$REQKICK_DIR/init/$NODE_ARCHITECTURE/$NODE_OPERATING_SYSTEM"
 export REQKICK_CONFIG_DIR="/etc/shippable/reqKick"
 export BUILD_DIR="$BASE_DIR/build"
+export STATUS_DIR=$BUILD_DIR/status
 export REQPROC_MOUNTS=""
 export REQPROC_ENVS=""
 export REQPROC_OPTS=""
@@ -277,14 +278,8 @@ boot_reqProc() {
 }
 
 boot_reqKick() {
-  __process_marker "Booting up reqKick..."
-  # TODO: This is just for the plumbing. This needs to change once we have
-  # reqKick service available.
-  export STATUS_DIR=$BUILD_DIR/status
-  git clone https://github.com/Shippable/reqKick.git $REQKICK_DIR
-  $REQKICK_DIR/init.sh &>$REQKICK_DIR/logs &
-
   __process_marker "Booting up reqKick service..."
+  git clone https://github.com/Shippable/reqKick.git $REQKICK_DIR
   pushd $REQKICK_DIR
   npm install
 
