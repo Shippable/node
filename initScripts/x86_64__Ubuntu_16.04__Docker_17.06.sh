@@ -14,11 +14,13 @@ export BASE_DIR="$SHIPPABLE_RUNTIME_DIR/$BASE_UUID"
 export REQPROC_DIR="$BASE_DIR/reqProc"
 export REQEXEC_DIR="$BASE_DIR/reqExec"
 export REQEXEC_BIN_DIR="$BASE_DIR/reqExec/bin"
+export REQEXEC_BIN_PATH="$REQEXEC_BIN_DIR/dist/main/main"
 export REQKICK_DIR="$BASE_DIR/reqKick"
 export REQKICK_SERVICE_DIR="$REQKICK_DIR/init/$NODE_ARCHITECTURE/$NODE_OPERATING_SYSTEM"
 export REQKICK_CONFIG_DIR="/etc/shippable/reqKick"
 export BUILD_DIR="$BASE_DIR/build"
 export STATUS_DIR=$BUILD_DIR/status
+export SCRIPTS_DIR=$BUILD_DIR/scripts
 export REQPROC_MOUNTS=""
 export REQPROC_ENVS=""
 export REQPROC_OPTS=""
@@ -292,6 +294,8 @@ boot_reqKick() {
   local reqkick_env_file=$REQKICK_CONFIG_DIR/$BASE_UUID.env
   touch $reqkick_env_file
   sed "s#{{STATUS_DIR}}#$STATUS_DIR#g" $reqkick_env_template > $reqkick_env_file
+  sed -i "s#{{SCRIPTS_DIR}}#$SCRIPTS_DIR#g" $reqkick_env_file
+  sed -i "s#{{REQEXEC_BIN_PATH}}#$REQEXEC_BIN_PATH#g" $reqkick_env_file
 
   systemctl daemon-reload
   systemctl enable shippable-reqKick@$BASE_UUID.service
