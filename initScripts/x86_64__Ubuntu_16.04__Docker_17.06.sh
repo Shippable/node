@@ -27,6 +27,11 @@ export REQPROC_OPTS=""
 export REQPROC_CONTAINER_NAME_PATTERN="reqProc"
 export REQPROC_CONTAINER_NAME="$REQPROC_CONTAINER_NAME_PATTERN-$BASE_UUID"
 export REQKICK_SERVICE_NAME_PATTERN="shippable-reqKick@"
+export LEGACY_CI_CACHE_STORE_LOCATION="/home/shippable/cache"
+export LEGACY_CI_KEY_STORE_LOCATION="/tmp/ssh"
+export LEGACY_CI_MESSAGE_STORE_LOCATION="/tmp/cexec"
+export LEGACY_CI_BUILD_LOCATION="/build"
+export LEGACY_CI_CEXEC_LOCATION_ON_HOST="/home/shippable/cexec"
 
 setup_shippable_user() {
   if id -u 'shippable' >/dev/null 2>&1; then
@@ -207,11 +212,19 @@ setup_mounts() {
   mkdir -p $REQEXEC_BIN_DIR
   mkdir -p $REQKICK_DIR
   mkdir -p $BUILD_DIR
+  mkdir -p $LEGACY_CI_CACHE_STORE_LOCATION
+  mkdir -p $LEGACY_CI_KEY_STORE_LOCATION
+  mkdir -p $LEGACY_CI_MESSAGE_STORE_LOCATION
+  mkdir -p $LEGACY_CI_BUILD_LOCATION
 
   REQPROC_MOUNTS="$REQPROC_MOUNTS \
     -v $BASE_DIR:$BASE_DIR \
     -v /opt/docker/docker:/usr/bin/docker \
-    -v /var/run/docker.sock:/var/run/docker.sock
+    -v /var/run/docker.sock:/var/run/docker.sock \
+    -v $LEGACY_CI_CACHE_STORE_LOCATION:$LEGACY_CI_CACHE_STORE_LOCATION:rw \
+    -v $LEGACY_CI_KEY_STORE_LOCATION:$LEGACY_CI_KEY_STORE_LOCATION:rw \
+    -v $LEGACY_CI_MESSAGE_STORE_LOCATION:$LEGACY_CI_MESSAGE_STORE_LOCATION:rw \
+    -v $LEGACY_CI_BUILD_LOCATION:$LEGACY_CI_BUILD_LOCATION:rw
   "
 }
 
@@ -271,6 +284,18 @@ remove_reqKick() {
   sudo rm -f /etc/systemd/system/shippable-reqKick@.service
 
   sudo systemctl daemon-reload
+}
+
+pull_cexec() {
+  __process_marker "Pulling cexec"
+  if [ -d "$LEGACY_CI_CEXEC_LOCATION_ON_HOST" ]; then
+    exec_cmd "sudo rm -rf $LEGACY_CI_CEXEC_LOCATION_ON_HOST"
+  fi
+  exec_cmd "git clone https://github.com/Shippable/cexec.git $LEGACY_CI_CEXEC_LOCATION_ON_HOST"
+  __process_msg "Checking out tag: $SHIPPABLE_RELEASE_VERSION in $LEGACY_CI_CEXEC_LOCATION_ON_HOST"
+  pushd $LEGACY_CI_CEXEC_LOCATION_ON_HOST
+  exec_cmd "git checkout $SHIPPABLE_RELEASE_VERSION"
+  popd
 }
 
 boot_reqProc() {
@@ -360,6 +385,9 @@ main() {
 
   trap before_exit EXIT
   exec_grp "remove_reqKick"
+
+  trap before_exit EXIT
+  exec_grp "pull_cexec"
 
   trap before_exit EXIT
   exec_grp "boot_reqProc"
