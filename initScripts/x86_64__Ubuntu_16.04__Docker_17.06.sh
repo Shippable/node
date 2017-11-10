@@ -35,6 +35,8 @@ export LEGACY_CI_CEXEC_LOCATION_ON_HOST="/home/shippable/cexec"
 export DEFAULT_TASK_CONTAINER_MOUNTS="-v $BUILD_DIR:$BUILD_DIR \
   -v $REQEXEC_DIR:/reqExec"
 export DEFAULT_TASK_CONTAINER_OPTIONS="-d --rm"
+export LEGACY_CI_DOCKER_CLIENT_LEGACY="/usr/bin/docker"
+export LEGACY_CI_DOCKER_CLIENT_LATEST="/opt/docker/docker"
 
 setup_shippable_user() {
   if id -u 'shippable' >/dev/null 2>&1; then
@@ -235,6 +237,21 @@ setup_mounts() {
 }
 
 setup_envs() {
+  local docker_client_location=$LEGACY_CI_DOCKER_CLIENT_LEGACY
+  local is_docker_legacy=true
+
+  local installed_docker_version=$DOCKER_VERSION
+  if [ -z "$installed_docker_version" ]; then
+    installed_docker_version=$(sudo docker version --format {{.Server.Version}})
+  fi
+
+  if [ -f "$LEGACY_CI_DOCKER_CLIENT_LATEST" ]; then
+    is_docker_legacy=false
+    docker_client_location=$LEGACY_CI_DOCKER_CLIENT_LATEST
+  fi
+
+  __process_msg "Docker client location on host: $docker_client_location"
+
   REQPROC_ENVS="$REQPROC_ENVS \
     -e SHIPPABLE_AMQP_URL=$SHIPPABLE_AMQP_URL \
     -e SHIPPABLE_AMQP_DEFAULT_EXCHANGE=$SHIPPABLE_AMQP_DEFAULT_EXCHANGE \
@@ -252,7 +269,18 @@ setup_envs() {
     -e BUILD_DIR=$BUILD_DIR \
     -e REQPROC_CONTAINER_NAME=$REQPROC_CONTAINER_NAME \
     -e DEFAULT_TASK_CONTAINER_MOUNTS='$DEFAULT_TASK_CONTAINER_MOUNTS' \
-    -e DEFAULT_TASK_CONTAINER_OPTIONS='$DEFAULT_TASK_CONTAINER_OPTIONS'"
+    -e DEFAULT_TASK_CONTAINER_OPTIONS='$DEFAULT_TASK_CONTAINER_OPTIONS' \
+    -e CACHE_STORE_LOCATION=$LEGACY_CI_CACHE_STORE_LOCATION \
+    -e KEY_STORE_LOCATION=$LEGACY_CI_KEY_STORE_LOCATION \
+    -e MESSAGE_STORE_LOCATION=$LEGACY_CI_MESSAGE_STORE_LOCATION \
+    -e BUILD_LOCATION=$LEGACY_CI_BUILD_LOCATION \
+    -e EXEC_IMAGE=$EXEC_IMAGE \
+    -e DOCKER_CLIENT_LEGACY=$LEGACY_CI_DOCKER_CLIENT_LEGACY \
+    -e DOCKER_CLIENT_LATEST=$LEGACY_CI_DOCKER_CLIENT_LATEST \
+    -e SHIPPABLE_DOCKER_VERSION=$installed_docker_version \
+    -e IS_DOCKER_LEGACY=$is_docker_legacy \
+    -e SHIPPABLE_NODE_ARCHITECTURE=$SHIPPABLE_NODE_ARCHITECTURE
+  "
 }
 
 setup_opts() {
