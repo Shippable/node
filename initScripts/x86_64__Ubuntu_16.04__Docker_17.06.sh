@@ -237,21 +237,6 @@ setup_mounts() {
 }
 
 setup_envs() {
-  local docker_client_location=$LEGACY_CI_DOCKER_CLIENT_LEGACY
-  local is_docker_legacy=true
-
-  local installed_docker_version=$DOCKER_VERSION
-  if [ -z "$installed_docker_version" ]; then
-    installed_docker_version=$(sudo docker version --format {{.Server.Version}})
-  fi
-
-  if [ -f "$LEGACY_CI_DOCKER_CLIENT_LATEST" ]; then
-    is_docker_legacy=false
-    docker_client_location=$LEGACY_CI_DOCKER_CLIENT_LATEST
-  fi
-
-  __process_msg "Docker client location on host: $docker_client_location"
-
   REQPROC_ENVS="$REQPROC_ENVS \
     -e SHIPPABLE_AMQP_URL=$SHIPPABLE_AMQP_URL \
     -e SHIPPABLE_AMQP_DEFAULT_EXCHANGE=$SHIPPABLE_AMQP_DEFAULT_EXCHANGE \
@@ -275,10 +260,9 @@ setup_envs() {
     -e MESSAGE_STORE_LOCATION=$LEGACY_CI_MESSAGE_STORE_LOCATION \
     -e BUILD_LOCATION=$LEGACY_CI_BUILD_LOCATION \
     -e EXEC_IMAGE=$EXEC_IMAGE \
-    -e DOCKER_CLIENT_LEGACY=$LEGACY_CI_DOCKER_CLIENT_LEGACY \
     -e DOCKER_CLIENT_LATEST=$LEGACY_CI_DOCKER_CLIENT_LATEST \
-    -e SHIPPABLE_DOCKER_VERSION=$installed_docker_version \
-    -e IS_DOCKER_LEGACY=$is_docker_legacy \
+    -e SHIPPABLE_DOCKER_VERSION=$DOCKER_VERSION \
+    -e IS_DOCKER_LEGACY=false \
     -e SHIPPABLE_NODE_ARCHITECTURE=$SHIPPABLE_NODE_ARCHITECTURE
   "
 }
