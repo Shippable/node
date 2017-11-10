@@ -35,7 +35,7 @@ export LEGACY_CI_CEXEC_LOCATION_ON_HOST="/home/shippable/cexec"
 export LEGACY_CI_DOCKER_CLIENT_LATEST="/opt/docker/docker"
 export DEFAULT_TASK_CONTAINER_MOUNTS="-v $BUILD_DIR:$BUILD_DIR \
   -v $REQEXEC_DIR:/reqExec"
-export DEFAULT_TASK_CONTAINER_OPTIONS="-d --rm"
+export DEFAULT_TASK_CONTAINER_OPTIONS="--rm"
 
 setup_shippable_user() {
   if id -u 'shippable' >/dev/null 2>&1; then
