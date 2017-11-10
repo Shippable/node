@@ -32,6 +32,9 @@ export LEGACY_CI_KEY_STORE_LOCATION="/tmp/ssh"
 export LEGACY_CI_MESSAGE_STORE_LOCATION="/tmp/cexec"
 export LEGACY_CI_BUILD_LOCATION="/build"
 export LEGACY_CI_CEXEC_LOCATION_ON_HOST="/home/shippable/cexec"
+export DEFAULT_TASK_CONTAINER_MOUNTS="-v $BUILD_DIR:$BUILD_DIR \
+  -v $REQEXEC_DIR:/reqExec"
+export DEFAULT_TASK_CONTAINER_OPTIONS="-d --rm"
 
 setup_shippable_user() {
   if id -u 'shippable' >/dev/null 2>&1; then
@@ -224,8 +227,11 @@ setup_mounts() {
     -v $LEGACY_CI_CACHE_STORE_LOCATION:$LEGACY_CI_CACHE_STORE_LOCATION:rw \
     -v $LEGACY_CI_KEY_STORE_LOCATION:$LEGACY_CI_KEY_STORE_LOCATION:rw \
     -v $LEGACY_CI_MESSAGE_STORE_LOCATION:$LEGACY_CI_MESSAGE_STORE_LOCATION:rw \
-    -v $LEGACY_CI_BUILD_LOCATION:$LEGACY_CI_BUILD_LOCATION:rw
-  "
+    -v $LEGACY_CI_BUILD_LOCATION:$LEGACY_CI_BUILD_LOCATION:rw"
+
+  DEFAULT_TASK_CONTAINER_MOUNTS="$DEFAULT_TASK_CONTAINER_MOUNTS \
+    -v /opt/docker/docker:/usr/bin/docker \
+    -v /var/run/docker.sock:/var/run/docker.sock"
 }
 
 setup_envs() {
@@ -244,8 +250,9 @@ setup_envs() {
     -e REQEXEC_BIN_DIR=$REQEXEC_BIN_DIR \
     -e REQKICK_DIR=$REQKICK_DIR \
     -e BUILD_DIR=$BUILD_DIR \
-    -e REQPROC_CONTAINER_NAME=$REQPROC_CONTAINER_NAME
-  "
+    -e REQPROC_CONTAINER_NAME=$REQPROC_CONTAINER_NAME \
+    -e DEFAULT_TASK_CONTAINER_MOUNTS='$DEFAULT_TASK_CONTAINER_MOUNTS' \
+    -e DEFAULT_TASK_CONTAINER_OPTIONS='$DEFAULT_TASK_CONTAINER_OPTIONS'"
 }
 
 setup_opts() {
@@ -301,7 +308,8 @@ pull_cexec() {
 boot_reqProc() {
   __process_marker "Booting up reqProc..."
   sudo docker pull $EXEC_IMAGE
-  sudo docker run $REQPROC_OPTS $REQPROC_MOUNTS $REQPROC_ENVS $EXEC_IMAGE
+  local start_cmd="sudo docker run $REQPROC_OPTS $REQPROC_MOUNTS $REQPROC_ENVS $EXEC_IMAGE"
+  eval "$start_cmd"
 }
 
 boot_reqKick() {
