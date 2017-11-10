@@ -32,10 +32,10 @@ export LEGACY_CI_KEY_STORE_LOCATION="/tmp/ssh"
 export LEGACY_CI_MESSAGE_STORE_LOCATION="/tmp/cexec"
 export LEGACY_CI_BUILD_LOCATION="/build"
 export LEGACY_CI_CEXEC_LOCATION_ON_HOST="/home/shippable/cexec"
+export LEGACY_CI_DOCKER_CLIENT_LATEST="/opt/docker/docker"
 export DEFAULT_TASK_CONTAINER_MOUNTS="-v $BUILD_DIR:$BUILD_DIR \
   -v $REQEXEC_DIR:/reqExec"
 export DEFAULT_TASK_CONTAINER_OPTIONS="-d --rm"
-export LEGACY_CI_DOCKER_CLIENT_LATEST="/opt/docker/docker"
 
 setup_shippable_user() {
   if id -u 'shippable' >/dev/null 2>&1; then
