@@ -45,7 +45,6 @@ setup_shippable_user() {
   exec_cmd "sudo chown -R shippable:shippable /home/shippable/"
 }
 
-
 install_prereqs() {
   echo "Installing prerequisite binaries"
 
@@ -227,8 +226,6 @@ build_docker_binary() {
     build_docker_engine
   fi
 }
-
-
 
 docker_install() {
   echo "Installing docker"
