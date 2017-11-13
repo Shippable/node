@@ -231,6 +231,19 @@ build_docker_binary() {
   fi
 }
 
+upgrade_docker() {
+  mkdir -p /opt/docker
+  pushd $docker_ce_cli_dir/build
+    cp -f $docker_ce_cli_dir/build/docker /usr/bin
+    cp -f $docker_ce_cli_dir/build/docker /opt/docker
+  popd
+
+  pushd $docker_ce_engine_dir/bundles/$DOCKER_VERSION-ce/binary-daemon
+    cp -f docker-containerd docker-containerd-ctr docker-containerd-shim docker-init docker-proxy docker-runc dockerd /usr/bin
+    cp -f docker-containerd docker-containerd-ctr docker-containerd-shim docker-init docker-proxy docker-runc dockerd /opt/docker
+  popd
+}
+
 docker_install() {
   echo "Installing docker"
 
