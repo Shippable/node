@@ -35,6 +35,7 @@ export LEGACY_CI_CEXEC_LOCATION_ON_HOST="/home/shippable/cexec"
 export LEGACY_CI_DOCKER_CLIENT_LATEST="/opt/docker/docker"
 export DEFAULT_TASK_CONTAINER_MOUNTS="-v $BUILD_DIR:$BUILD_DIR \
   -v $REQEXEC_DIR:/reqExec"
+export TASK_CONTAINER_COMMAND="/reqExec/bin/dist/main/main"
 export DEFAULT_TASK_CONTAINER_OPTIONS="--rm"
 
 setup_shippable_user() {
@@ -253,6 +254,7 @@ setup_envs() {
     -e BUILD_DIR=$BUILD_DIR \
     -e REQPROC_CONTAINER_NAME=$REQPROC_CONTAINER_NAME \
     -e DEFAULT_TASK_CONTAINER_MOUNTS='$DEFAULT_TASK_CONTAINER_MOUNTS' \
+    -e TASK_CONTAINER_COMMAND=$TASK_CONTAINER_COMMAND \
     -e DEFAULT_TASK_CONTAINER_OPTIONS='$DEFAULT_TASK_CONTAINER_OPTIONS' \
     -e CACHE_STORE_LOCATION=$LEGACY_CI_CACHE_STORE_LOCATION \
     -e KEY_STORE_LOCATION=$LEGACY_CI_KEY_STORE_LOCATION \
@@ -262,7 +264,9 @@ setup_envs() {
     -e DOCKER_CLIENT_LATEST=$LEGACY_CI_DOCKER_CLIENT_LATEST \
     -e SHIPPABLE_DOCKER_VERSION=$DOCKER_VERSION \
     -e IS_DOCKER_LEGACY=false \
-    -e SHIPPABLE_NODE_ARCHITECTURE=$NODE_ARCHITECTURE"
+    -e SHIPPABLE_NODE_ARCHITECTURE=$NODE_ARCHITECTURE \
+    -e SHIPPABLE_NODE_OPERATING_SYSTEM=$NODE_OPERATING_SYSTEM \
+    -e SHIPPABLE_RELEASE_VERSION=$SHIPPABLE_RELEASE_VERSION"
 }
 
 setup_opts() {
@@ -339,6 +343,7 @@ boot_reqKick() {
   sed "s#{{STATUS_DIR}}#$STATUS_DIR#g" $reqkick_env_template > $reqkick_env_file
   sed -i "s#{{SCRIPTS_DIR}}#$SCRIPTS_DIR#g" $reqkick_env_file
   sed -i "s#{{REQEXEC_BIN_PATH}}#$REQEXEC_BIN_PATH#g" $reqkick_env_file
+  sed -i "s#{{RUN_MODE}}#$RUN_MODE#g" $reqkick_env_file
 
   systemctl daemon-reload
   systemctl enable shippable-reqKick@$BASE_UUID.service
