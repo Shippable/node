@@ -486,6 +486,7 @@ boot_reqKick() {
   sed "s#{{STATUS_DIR}}#$STATUS_DIR#g" $reqkick_env_template > $reqkick_env_file
   sed -i "s#{{SCRIPTS_DIR}}#$SCRIPTS_DIR#g" $reqkick_env_file
   sed -i "s#{{REQEXEC_BIN_PATH}}#$REQEXEC_BIN_PATH#g" $reqkick_env_file
+  sed -i "s#{{RUN_MODE}}#$RUN_MODE#g" $reqkick_env_file
 
   systemctl daemon-reload
   systemctl enable shippable-reqKick@$BASE_UUID.service
