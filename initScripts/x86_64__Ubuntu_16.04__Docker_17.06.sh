@@ -38,16 +38,8 @@ export DEFAULT_TASK_CONTAINER_MOUNTS="-v $BUILD_DIR:$BUILD_DIR \
 export TASK_CONTAINER_COMMAND="/reqExec/bin/dist/main/main"
 export DEFAULT_TASK_CONTAINER_OPTIONS="--rm"
 
-setup_shippable_user() {
-  if id -u 'shippable' >/dev/null 2>&1; then
-    echo "User shippable already exists"
-  else
-    exec_cmd "sudo useradd -d /home/shippable -m -s /bin/bash -p shippablepwd shippable"
-  fi
-
-  exec_cmd "sudo echo 'shippable ALL=(ALL) NOPASSWD:ALL' | sudo tee -a /etc/sudoers"
-  exec_cmd "sudo chown -R $USER:$USER /home/shippable/"
-  exec_cmd "sudo chown -R shippable:shippable /home/shippable/"
+create_shippable_dir() {
+  mkdir -p /home/shippable
 }
 
 install_prereqs() {
@@ -372,7 +364,7 @@ before_exit() {
 
 main() {
   trap before_exit EXIT
-  exec_grp "setup_shippable_user"
+  exec_grp "create_shippable_dir"
 
   trap before_exit EXIT
   exec_grp "install_prereqs"
