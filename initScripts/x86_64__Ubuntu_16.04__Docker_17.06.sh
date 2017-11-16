@@ -39,7 +39,8 @@ export TASK_CONTAINER_COMMAND="/reqExec/bin/dist/main/main"
 export DEFAULT_TASK_CONTAINER_OPTIONS="--rm"
 
 create_shippable_dir() {
-  mkdir -p /home/shippable
+  create_dir_cmd="mkdir -p /home/shippable"
+  exec_cmd "$create_dir_cmd"
 }
 
 install_prereqs() {
