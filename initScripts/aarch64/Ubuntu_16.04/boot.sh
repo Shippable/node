@@ -2,12 +2,7 @@
 set -o pipefail
 
 # Main directories
-readonly NODE_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 readonly SHIPPABLE_DIR="/etc/shippable"
-
-# Node Sub-directories
-readonly NODE_INIT_SCRIPTS_DIR="$NODE_DIR/initScripts"
-readonly NODE_LIB_DIR="$NODE_DIR/lib"
 
 # Logs
 readonly LOGS_DIR="$SHIPPABLE_DIR/logs"
@@ -20,7 +15,8 @@ readonly NODE_ENV="$SHIPPABLE_DIR/_node.env"
 source $NODE_ENV
 
 # Scripts
-readonly NODE_INIT_SCRIPT="$NODE_INIT_SCRIPTS_DIR/$NODE_INIT_SCRIPT"
+readonly NODE_INIT_SCRIPT="$NODE_SCRIPTS_LOCATION/initScripts/$NODE_INIT_SCRIPT"
+readonly NODE_LIB_DIR="$NODE_SCRIPTS_LOCATION/lib"
 
 # Source libraries
 source "$NODE_LIB_DIR/logger.sh"
