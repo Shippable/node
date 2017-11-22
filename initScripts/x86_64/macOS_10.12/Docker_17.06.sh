@@ -20,10 +20,14 @@ export REQPROC_ENVS=""
 export REQPROC_OPTS=""
 export REQPROC_CONTAINER_NAME_PATTERN="reqProc"
 export REQPROC_CONTAINER_NAME="$REQPROC_CONTAINER_NAME_PATTERN-$BASE_UUID"
+export REQKICK_SERVICE_NAME_PATTERN="com.shippable.reqKick"
 export DEFAULT_TASK_CONTAINER_MOUNTS="-v $BUILD_DIR:$BUILD_DIR \
   -v $REQEXEC_DIR:/reqExec"
 export TASK_CONTAINER_COMMAND="/reqExec/$NODE_ARCHITECTURE/$NODE_OPERATING_SYSTEM/dist/main/main"
 export DEFAULT_TASK_CONTAINER_OPTIONS="--rm"
+
+export SERVICE_DIR="/Library/LaunchDaemons"
+export FILE_SUFFIX="plist"
 
 setup_mounts() {
   __process_marker "Setting up mounts..."
@@ -95,6 +99,9 @@ remove_reqProc() {
 
 remove_reqKick() {
   __process_marker "Removing existing reqKick services..."
+
+  sudo launchctl unload $SERVICE_DIR/$REQKICK_SERVICE_NAME_PATTERN.*.$FILE_SUFFIX
+  sudo rm -f $SERVICE_DIR/$REQKICK_SERVICE_NAME_PATTERN.*.$FILE_SUFFIX || true
 }
 
 boot_reqProc() {
@@ -109,6 +116,41 @@ boot_reqProc() {
 
 boot_reqKick() {
   __process_marker "Booting up reqKick service..."
+
+  git clone https://github.com/Shippable/reqKick.git $REQKICK_DIR
+
+  local reqkick_template_dir="$REQKICK_DIR/init/$NODE_ARCHITECTURE/$NODE_OPERATING_SYSTEM"
+  local service_template_location="$reqkick_template_dir/$REQKICK_SERVICE_NAME_PATTERN.$FILE_SUFFIX.template"
+
+  local service_file="$REQKICK_SERVICE_NAME_PATTERN.$BASE_UUID.$FILE_SUFFIX"
+  local service_location="$SERVICE_DIR/$service_file"
+
+  pushd $REQKICK_DIR
+    npm install
+
+    sudo cp $service_template_location $service_location
+    sudo chmod 644 $service_location
+
+    sudo sed -i '' "s#{{STATUS_DIR}}#$STATUS_DIR#g" $service_location
+    sudo sed -i '' "s#{{SCRIPTS_DIR}}#$SCRIPTS_DIR#g" $service_location
+    sudo sed -i '' "s#{{REQEXEC_BIN_PATH}}#$REQEXEC_BIN_PATH#g" $service_location
+    sudo sed -i '' "s#{{RUN_MODE}}#$RUN_MODE#g" $service_location
+    sudo sed -i '' "s#{{UUID}}#$BASE_UUID#g" $service_location
+    sudo sed -i '' "s#{{REQKICK_DIR}}#$REQKICK_DIR#g" $service_location
+    sudo sed -i '' "s#{{NODE_PATH}}#$(which node)#g" $service_location
+
+    sudo launchctl load $service_location
+
+    local running_service_names=$(sudo launchctl list \
+      | grep $REQKICK_SERVICE_NAME_PATTERN | awk '{ print $3 }')
+
+    if [ ! -z "$running_service_names" ]; then
+      echo "$service_location is RUNNING"
+    else
+      echo "$service_location FAILED to start"
+      exit 1
+    fi
+  popd
 }
 
 before_exit() {
