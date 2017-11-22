@@ -128,7 +128,6 @@ boot_reqKick() {
   pushd $REQKICK_DIR
     npm install
 
-    # start service
     sudo cp $service_template_location $service_location
     sudo chmod 644 $service_location
 
