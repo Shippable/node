@@ -1,6 +1,6 @@
 $NODE_DATA_LOCATION="$env:USERPROFILE\node"
 $NODE_ENV="$NODE_DATA_LOCATION\_node.env.ps1"
-$NODE_INIT_SCRIPT="$NODE_SCRIPTS_LOCATION\initScripts\$NODE_INIT_SCRIPT"
+$NODE_INIT_SCRIPT_FULL_PATH="$NODE_SCRIPTS_LOCATION\initScripts\$NODE_INIT_SCRIPT"
 
 Write-Output "Sourcing $NODE_ENV"
 . "$NODE_ENV"
@@ -37,7 +37,7 @@ Function checkRequiredEnvs($requiredEnvs) {
 
 Function initializeNode() {
     Write-Output "Beginning node initialization"
-    & "$NODE_INIT_SCRIPT"
+    & "$NODE_INIT_SCRIPT_FULL_PATH"
     Write-Output "Node initialization complete"
 }
 
