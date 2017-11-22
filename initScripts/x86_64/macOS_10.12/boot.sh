@@ -2,7 +2,7 @@
 set -o pipefail
 
 # Main directories
-readonly SHIPPABLE_DIR="/etc/shippable"
+readonly SHIPPABLE_DIR="$HOME/nodeData"
 
 # Logs
 readonly LOGS_DIR="$SHIPPABLE_DIR/logs"
