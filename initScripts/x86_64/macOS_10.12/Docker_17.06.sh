@@ -4,7 +4,7 @@ set -o pipefail
 # initScript for macOS 10.12 and Docker 17.06
 # ------------------------------------------------------------------------------
 
-export SHIPPABLE_RUNTIME_DIR="/var/lib/shippable"
+export SHIPPABLE_RUNTIME_DIR="$HOME/shippableRuntime"
 export BASE_UUID="$(uuidgen | awk '{print tolower($0)}')"
 export BASE_DIR="$SHIPPABLE_RUNTIME_DIR/$BASE_UUID"
 export REQPROC_DIR="$BASE_DIR/reqProc"
@@ -12,7 +12,6 @@ export REQEXEC_DIR="$BASE_DIR/reqExec"
 export REQEXEC_BIN_PATH="$REQEXEC_DIR/$NODE_ARCHITECTURE/$NODE_OPERATING_SYSTEM/dist/main/main"
 export REQKICK_DIR="$BASE_DIR/reqKick"
 export REQKICK_SERVICE_DIR="$REQKICK_DIR/init/$NODE_ARCHITECTURE/$NODE_OPERATING_SYSTEM"
-export REQKICK_CONFIG_DIR="/etc/shippable/reqKick"
 export BUILD_DIR="$BASE_DIR/build"
 export STATUS_DIR=$BUILD_DIR/status
 export SCRIPTS_DIR=$BUILD_DIR/scripts
@@ -21,15 +20,10 @@ export REQPROC_ENVS=""
 export REQPROC_OPTS=""
 export REQPROC_CONTAINER_NAME_PATTERN="reqProc"
 export REQPROC_CONTAINER_NAME="$REQPROC_CONTAINER_NAME_PATTERN-$BASE_UUID"
-export REQKICK_SERVICE_NAME_PATTERN="shippable-reqKick@"
 export DEFAULT_TASK_CONTAINER_MOUNTS="-v $BUILD_DIR:$BUILD_DIR \
   -v $REQEXEC_DIR:/reqExec"
 export TASK_CONTAINER_COMMAND="/reqExec/$NODE_ARCHITECTURE/$NODE_OPERATING_SYSTEM/dist/main/main"
 export DEFAULT_TASK_CONTAINER_OPTIONS="--rm"
-
-install_prereqs() {
-  __process_marker "Setting up prerequisite binaries..."
-}
 
 setup_mounts() {
   __process_marker "Setting up mounts..."
@@ -43,8 +37,7 @@ setup_mounts() {
 
   REQPROC_MOUNTS="$REQPROC_MOUNTS \
     -v $BASE_DIR:$BASE_DIR \
-    -v /var/run/docker.sock:/var/run/docker.sock
-  "
+    -v /var/run/docker.sock:/var/run/docker.sock"
   DEFAULT_TASK_CONTAINER_MOUNTS="$DEFAULT_TASK_CONTAINER_MOUNTS \
     -v /var/run/docker.sock:/var/run/docker.sock"
 }
@@ -126,9 +119,6 @@ before_exit() {
 }
 
 main() {
-  trap before_exit EXIT
-  exec_grp "install_prereqs"
-
   trap before_exit EXIT
   exec_grp "setup_mounts"
 
