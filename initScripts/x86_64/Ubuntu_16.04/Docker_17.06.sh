@@ -321,6 +321,7 @@ boot_reqKick() {
   __process_marker "Booting up reqKick service..."
   git clone https://github.com/Shippable/reqKick.git $REQKICK_DIR
   pushd $REQKICK_DIR
+  git checkout $SHIPPABLE_RELEASE_VERSION
   npm install
 
   mkdir -p $REQKICK_CONFIG_DIR
