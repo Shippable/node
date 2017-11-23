@@ -118,15 +118,15 @@ boot_reqKick() {
   __process_marker "Booting up reqKick service..."
 
   git clone https://github.com/Shippable/reqKick.git $REQKICK_DIR
-
-  local reqkick_template_dir="$REQKICK_DIR/init/$NODE_ARCHITECTURE/$NODE_OPERATING_SYSTEM"
-  local service_template_location="$reqkick_template_dir/$REQKICK_SERVICE_NAME_PATTERN.$FILE_SUFFIX.template"
-
-  local service_file="$REQKICK_SERVICE_NAME_PATTERN.$BASE_UUID.$FILE_SUFFIX"
-  local service_location="$SERVICE_DIR/$service_file"
-
   pushd $REQKICK_DIR
+    git checkout $SHIPPABLE_RELEASE_VERSION
     npm install
+
+    local reqkick_template_dir="$REQKICK_DIR/init/$NODE_ARCHITECTURE/$NODE_OPERATING_SYSTEM"
+    local service_template_location="$reqkick_template_dir/$REQKICK_SERVICE_NAME_PATTERN.$FILE_SUFFIX.template"
+
+    local service_file="$REQKICK_SERVICE_NAME_PATTERN.$BASE_UUID.$FILE_SUFFIX"
+    local service_location="$SERVICE_DIR/$service_file"
 
     sudo cp $service_template_location $service_location
     sudo chmod 644 $service_location
