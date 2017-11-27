@@ -139,6 +139,7 @@ boot_reqKick() {
     sudo sed -i '' "s#{{REQKICK_DIR}}#$REQKICK_DIR#g" $service_location
     sudo sed -i '' "s#{{NODE_PATH}}#$(which node)#g" $service_location
     sudo sed -i '' "s#{{USER_NAME}}#$USER#g" $service_location
+    sudo sed -i '' "s#{{PATH}}#$PATH#g" $service_location
 
     sudo launchctl load $service_location
 
