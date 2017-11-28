@@ -17,6 +17,7 @@ source $NODE_ENV
 # Scripts
 readonly NODE_INIT_SCRIPT="$NODE_SCRIPTS_LOCATION/initScripts/$NODE_INIT_SCRIPT"
 readonly NODE_LIB_DIR="$NODE_SCRIPTS_LOCATION/lib"
+readonly NODE_SHIPCTL_LOCATION="$NODE_SCRIPTS_LOCATION/shipctl"
 
 # Helper methods
 source "$NODE_LIB_DIR/logger.sh"

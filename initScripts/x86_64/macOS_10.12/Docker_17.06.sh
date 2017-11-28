@@ -29,6 +29,13 @@ export DEFAULT_TASK_CONTAINER_OPTIONS="--rm"
 export SERVICE_DIR="/Library/LaunchDaemons"
 export FILE_SUFFIX="plist"
 
+install_prereqs() {
+  echo "Installing prerequisite binaries"
+
+  echo "Installing shipctl components"
+  exec_cmd "$NODE_SHIPCTL_LOCATION/$NODE_OPERATING_SYSTEM/install.sh"
+}
+
 setup_mounts() {
   __process_marker "Setting up mounts..."
 
@@ -163,6 +170,9 @@ before_exit() {
 }
 
 main() {
+  trap before_exit EXIT
+  exec_grp "install_prereqs"
+
   trap before_exit EXIT
   exec_grp "setup_mounts"
 
