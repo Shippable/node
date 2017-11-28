@@ -73,6 +73,9 @@ install_prereqs() {
   exec_cmd "$check_node_version_cmd"
   popd
 
+  echo "Installing shipctl components"
+  exec_cmd "$NODE_SHIPCTL_LOCATION/$NODE_OPERATING_SYSTEM/install.sh"
+
   exec_cmd "$update_cmd"
 }
 
