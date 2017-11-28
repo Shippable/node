@@ -8,4 +8,9 @@ Please do **not** run the script as sudo. Instead, input the password if the scr
 - [git](https://git-scm.com/download/mac) (latest)
 - [Node.js](https://nodejs.org/en/download/) (v4.8.6)
 - [Docker](https://docs.docker.com/docker-for-mac/install/) (v17.x.x)
+
+  If you need Docker login during builds, disable "Securely store docker logins in macOS keychain" in Docker preferences. Login will fail with `Error saving credentials: error storing credentials - err: exit status 1, out: write permissions error` otherwise.
+  
+  ![disable-macOS-docker-login-keychain](https://user-images.githubusercontent.com/40004/33305360-d3e8cf28-d433-11e7-9b37-d29ab142ddd9.png)
+
 - [ntp](http://www.ntp.org/) (Optional. Install this if the build logs in Shippable UI don't appear in the correct order.)
