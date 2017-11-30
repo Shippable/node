@@ -107,6 +107,12 @@ Function check_docker_opts() {
   Write-Output "!!! TODO: Update docker configuration !!!"
 }
 
+Function remove_reqKick() {
+  Write-Output "Remove existing reqKick"
+
+  pm2 delete all /shippable-reqKick*/
+}
+
 Function setup_mounts() {
   if (Test-Path $SHIPPABLE_RUNTIME_DIR) {
     Write-Output "Deleting Shippable runtime directory"
@@ -179,15 +185,6 @@ Function remove_reqProc() {
   Write-Output "!!! TODO: Remove existing reqProc !!!"
 }
 
-Function remove_reqKick() {
-  Write-Output "Remove existing reqKick"
-
-  pm2 delete all
-  if (Test-Path $REQKICK_CONFIG_DIR) {
-    Remove-Item -Path $REQKICK_CONFIG_DIR -Force -Recurse
-  }
-}
-
 Function boot_reqProc() {
   Write-Output "!!! TODO: Boot reqProc !!!"
 }
@@ -214,6 +211,7 @@ Function boot_reqKick() {
   $template=$template.replace("{{UUID}}", $BASE_UUID)
   $template=$template.replace("{{STATUS_DIR}}", $STATUS_DIR)
   $template=$template.replace("{{SCRIPTS_DIR}}", $SCRIPTS_DIR)
+  $template=$template.replace("{{RUN_MODE}}", $RUN_MODE)
   $template=$template.replace("{{REQEXEC_BIN_PATH}}", $REQEXEC_BIN_PATH)
   $template=$template.replace("{{REQKICK_DIR}}", $REQKICK_DIR) | Set-Content $reqkick_env
 
@@ -228,11 +226,11 @@ check_win_containers_enabled
 install_prereqs
 docker_install
 check_docker_opts
+remove_reqKick
 setup_mounts
 setup_envs
 setup_opts
 remove_reqProc
-remove_reqKick
 boot_reqProc
 boot_reqKick
 
