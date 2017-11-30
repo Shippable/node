@@ -113,6 +113,10 @@ Function remove_reqKick() {
   pm2 delete all /shippable-reqKick*/
 }
 
+Function remove_reqProc() {
+  Write-Output "!!! TODO: Remove existing reqProc !!!"
+}
+
 Function setup_mounts() {
   if (Test-Path $SHIPPABLE_RUNTIME_DIR) {
     Write-Output "Deleting Shippable runtime directory"
@@ -181,10 +185,6 @@ Function setup_opts() {
     "--name=$REQPROC_CONTAINER_NAME "
 }
 
-Function remove_reqProc() {
-  Write-Output "!!! TODO: Remove existing reqProc !!!"
-}
-
 Function boot_reqProc() {
   Write-Output "!!! TODO: Boot reqProc !!!"
 }
@@ -227,10 +227,10 @@ install_prereqs
 docker_install
 check_docker_opts
 remove_reqKick
+remove_reqProc
 setup_mounts
 setup_envs
 setup_opts
-remove_reqProc
 boot_reqProc
 boot_reqKick
 
