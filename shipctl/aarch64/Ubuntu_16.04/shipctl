@@ -1,0 +1,34 @@
+#!/bin/bash -e
+shipctl_command=$1
+shift
+arguments=$@
+source utility.sh
+
+if [ "$shipctl_command" == "" ] || [ "$shipctl_command" == "" ]; then
+  echo "Usage: shipctl COMMAND ARGUMENTS"
+  exit 1
+fi
+
+execute_shipctl_command() {
+  if type $1 &> /dev/null; then
+    $@
+  else
+    echo "The command $1 is not supported on this image."
+    exit 99
+  fi
+}
+
+if [ "$shipctl_command" == "retry" ]; then
+  execute_shipctl_command shippable_retry $arguments
+elif [ "$shipctl_command" == "decrypt" ]; then
+  execute_shipctl_command shippable_decrypt $arguments
+elif [ "$shipctl_command" == "service" ]; then
+  execute_shipctl_command shippable_service $arguments
+elif [ "$shipctl_command" == "replace" ]; then
+  execute_shipctl_command shippable_replace $arguments
+elif [ -n "$(type -t $shipctl_command)" ] && [ "$(type -t $shipctl_command)" = function ]; then
+  execute_shipctl_command $shipctl_command $arguments
+else
+  echo "The command $shipctl_command is not supported"
+  exit 99
+fi
