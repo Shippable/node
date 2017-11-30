@@ -33,7 +33,7 @@ install_prereqs() {
   echo "Installing prerequisite binaries"
 
   echo "Installing shipctl components"
-  exec_cmd "$NODE_SHIPCTL_LOCATION/$NODE_OPERATING_SYSTEM/install.sh"
+  exec_cmd "$NODE_SHIPCTL_LOCATION/$NODE_ARCHITECTURE/$NODE_OPERATING_SYSTEM/install.sh"
 }
 
 setup_mounts() {
