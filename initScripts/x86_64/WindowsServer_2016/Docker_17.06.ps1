@@ -186,7 +186,10 @@ Function setup_opts() {
 }
 
 Function boot_reqProc() {
-  Write-Output "!!! TODO: Boot reqProc !!!"
+  Write-Output "Boot reqProc..."
+  docker pull $EXEC_IMAGE
+  $start_cmd = "docker run $REQPROC_OPTS $REQPROC_MOUNTS $REQPROC_ENVS $EXEC_IMAGE"
+  iex "$start_cmd"
 }
 
 Function boot_reqKick() {
