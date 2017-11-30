@@ -180,7 +180,12 @@ Function remove_reqProc() {
 }
 
 Function remove_reqKick() {
-  Write-Output "!!! TODO: Remove existing reqKick !!!"
+  Write-Output "Remove existing reqKick"
+
+  pm2 delete all
+  if (Test-Path $REQKICK_CONFIG_DIR) {
+    Remove-Item -Path $REQKICK_CONFIG_DIR -Force -Recurse
+  }
 }
 
 Function boot_reqProc() {
@@ -188,7 +193,33 @@ Function boot_reqProc() {
 }
 
 Function boot_reqKick() {
-  Write-Output "!!! TODO: Boot reqKick !!!"
+  echo "Booting up reqKick service..."
+
+  git clone https://github.com/Shippable/reqKick.git $REQKICK_DIR
+  pushd $REQKICK_DIR
+  git checkout $SHIPPABLE_RELEASE_VERSION
+  npm install
+
+  $reqkick_env_template = "$REQKICK_SERVICE_DIR/shippable-reqKick@.yml.template"
+  New-Item -ItemType Directory -Force -Path $REQKICK_CONFIG_DIR
+  $reqkick_env = "$REQKICK_CONFIG_DIR/shippable-reqKick.yml"
+
+  if (!(Test-Path "$reqkick_env_template")) {
+    Write-Error "Reqkick env template file not found: $reqkick_env_template"
+    exit -1
+  }
+
+  Write-Output "Writing reqKick specific envs to $reqkick_env"
+  $template=(Get-Content $reqkick_env_template)
+  $template=$template.replace("{{UUID}}", $BASE_UUID)
+  $template=$template.replace("{{STATUS_DIR}}", $STATUS_DIR)
+  $template=$template.replace("{{SCRIPTS_DIR}}", $SCRIPTS_DIR)
+  $template=$template.replace("{{REQEXEC_BIN_PATH}}", $REQEXEC_BIN_PATH)
+  $template=$template.replace("{{REQKICK_DIR}}", $REQKICK_DIR) | Set-Content $reqkick_env
+
+  pm2 start $REQKICK_CONFIG_DIR/shippable-reqKick.yml
+  pm2 save
+  popd
 }
 
 
