@@ -121,7 +121,8 @@ Function remove_reqKick() {
 }
 
 Function remove_reqProc() {
-  Write-Output "!!! TODO: Remove existing reqProc !!!"
+  Write-Output "Remove existing reqProc containers"
+  docker ps -a --filter "NAME=reqProc*" --format '{{.Names}}' | %{ docker rm -f $_ }
 }
 
 Function setup_mounts() {
