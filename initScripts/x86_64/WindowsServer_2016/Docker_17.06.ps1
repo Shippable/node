@@ -85,6 +85,7 @@ Function install_prereqs() {
 
   Write-Output "Installing global node packages"
   npm install pm2 pm2-windows-startup -g
+  pm2-startup install
 }
 
 Function docker_install() {
