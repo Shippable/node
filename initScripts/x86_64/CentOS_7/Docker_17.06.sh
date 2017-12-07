@@ -57,7 +57,7 @@ install_prereqs() {
   add_docker_repo_keys='rpm --import https://download.docker.com/linux/centos/gpg'
   exec_cmd "$add_docker_repo_keys"
 
-  add_docker_repo='sudo yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo'
+  add_docker_repo='yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo'
   exec_cmd "$add_docker_repo"
 
   pushd /tmp
@@ -145,7 +145,7 @@ initialize_swap() {
 docker_install() {
   echo "Installing docker"
 
-  install_docker="sudo yum install docker-ce-$DOCKER_VERSION.ce"
+  install_docker="yum install docker-ce-$DOCKER_VERSION.ce"
   exec_cmd "$install_docker"
 
   get_static_docker_binary="wget https://download.docker.com/linux/static/stable/x86_64/docker-$DOCKER_VERSION-ce.tgz -P /tmp/docker"
@@ -188,7 +188,7 @@ restart_docker_service() {
   echo "checking if docker restart is necessary"
   if [ $docker_restart == true ]; then
     echo "restarting docker service on reset"
-    exec_cmd "sudo systemctl restart docker"
+    exec_cmd "systemctl restart docker"
   else
     echo "docker_restart set to false, not restarting docker daemon"
   fi
@@ -206,7 +206,7 @@ install_ntp() {
   else
     echo "Installing NTP"
     exec_cmd "yum install -y ntp"
-    exec_cmd "sudo systemctl restart ntpd"
+    exec_cmd "systemctl restart ntpd"
   fi
 }
 
