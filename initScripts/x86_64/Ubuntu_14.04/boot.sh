@@ -175,19 +175,15 @@ remove_reqProc() {
 remove_reqKick() {
   __process_marker "Removing existing reqKick services..."
 
-  local running_service_names=$(systemctl list-units -a \
-    | grep $REQKICK_SERVICE_NAME_PATTERN \
-    | awk '{ print $1 }')
+  local reqKick_name_pattern="shippable-reqKick"
 
-  if [ ! -z "$running_service_names" ]; then
-    systemctl stop $running_service_names || true
-    systemctl disable $running_service_names || true
-  fi
+  sudo initctl list | ( grep -o "^$reqKick_name_pattern[a-zA-Z0-9-]*" || true ) | while read -r service; do
+    sudo service $service stop
+    sudo rm -rf /var/log/upstart/$service.log
+    sudo rm -rf /etc/init/$service.conf
+  done
 
-  rm -rf $REQKICK_CONFIG_DIR
-  rm -f /etc/systemd/system/shippable-reqKick@.service
-
-  systemctl daemon-reload
+  sudo initctl reload-configuration
 }
 
 boot_reqProc() {
@@ -199,31 +195,31 @@ boot_reqProc() {
 boot_reqKick() {
   __process_marker "Booting up reqKick service..."
 
-  mkdir -p $REQKICK_CONFIG_DIR
+  if [ ! -z $BASE_UUID ]; then
+    local reqKick_service_name=shippable-reqKick-$BASE_UUID
+  else
+    local reqKick_service_name=shippable-reqKick
+  fi
+  local reqKick_config_file=/etc/init/$reqKick_service_name.conf
 
-  cp $REQKICK_SERVICE_DIR/shippable-reqKick@.service.template /etc/systemd/system/shippable-reqKick@.service
-  chmod 644 /etc/systemd/system/shippable-reqKick@.service
+  cp $REQKICK_SERVICE_DIR/shippable-reqKick.conf.template $reqKick_config_file
 
-  local reqkick_env_template=$REQKICK_SERVICE_DIR/shippable-reqKick.env.template
-  local reqkick_env_file=$REQKICK_CONFIG_DIR/$BASE_UUID.env
-  touch $reqkick_env_file
-  sed "s#{{STATUS_DIR}}#$STATUS_DIR#g" $reqkick_env_template > $reqkick_env_file
-  sed -i "s#{{SCRIPTS_DIR}}#$SCRIPTS_DIR#g" $reqkick_env_file
-  sed -i "s#{{REQEXEC_BIN_PATH}}#$REQEXEC_BIN_PATH#g" $reqkick_env_file
-  sed -i "s#{{RUN_MODE}}#$RUN_MODE#g" $reqkick_env_file
+  sed -i "s#{{STATUS_DIR}}#$STATUS_DIR#g" $reqKick_config_file
+  sed -i "s#{{SCRIPTS_DIR}}#$SCRIPTS_DIR#g" $reqKick_config_file
+  sed -i "s#{{REQEXEC_BIN_PATH}}#$REQEXEC_BIN_PATH#g" $reqKick_config_file
+  sed -i "s#{{RUN_MODE}}#$RUN_MODE#g" $reqKick_config_file
+  sed -i "s#{{UUID}}#$BASE_UUID#g" $reqKick_config_file
 
-  systemctl daemon-reload
-  systemctl enable shippable-reqKick@$BASE_UUID.service
-  systemctl start shippable-reqKick@$BASE_UUID.service
+  sudo service $reqKick_service_name start
 
   {
-    echo "Checking if shippable-reqKick@$BASE_UUID.service is active"
-    local check_reqKick_is_active=$(systemctl is-active shippable-reqKick@$BASE_UUID.service)
-    echo "shippable-reqKick@$BASE_UUID.service is $check_reqKick_is_active"
+    echo "Checking if $reqKick_service_name is active"
+    local check_reqKick_is_active=$(sudo initctl status $reqKick_service_name)
+    echo $check_reqKick_is_active
   } ||
   {
-    echo "shippable-reqKick@$BASE_UUID.service failed to start"
-    journalctl -n 100 -u shippable-reqKick@$BASE_UUID.service
+    echo "$reqKick_service_name failed to start"
+    sudo tail -n 100 /var/log/upstart/$reqKick_service_name.log || true
     popd
     exit 1
   }
@@ -249,14 +245,14 @@ main() {
   trap before_exit EXIT
   exec_grp "remove_reqProc"
 
-  # trap before_exit EXIT
-  # exec_grp "remove_reqKick"
+  trap before_exit EXIT
+  exec_grp "remove_reqKick"
 
   trap before_exit EXIT
   exec_grp "boot_reqProc"
 
-  # trap before_exit EXIT
-  # exec_grp "boot_reqKick"
+  trap before_exit EXIT
+  exec_grp "boot_reqKick"
 }
 
 main
