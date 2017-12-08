@@ -2,6 +2,7 @@ $ErrorActionPreference = "Stop"
 
 $NODE_JS_VERSION = "4.8.5"
 $DOCKER_VERSION = "17.06.2-ee-5"
+$DOCKER_CONFIG_FILE="C:\ProgramData\Docker\config\daemon.json"
 
 $SHIPPABLE_RUNTIME_DIR = "$env:USERPROFILE\Shippable\Runtime"
 $BASE_UUID = New-Guid
@@ -106,6 +107,13 @@ Function docker_install() {
     Start-Service docker
   }
 
+  wait_for_docker
+
+  # Output docker version
+  & "docker" -v
+}
+
+Function wait_for_docker() {
   # wait for a few seconds for Docker to Start
   Do {
     Write-Progress -Activity "Waiting for Docker to respond"
@@ -114,13 +122,22 @@ Function docker_install() {
   }	While ($LastExitCode -eq 1)
 
   Write-Output "Docker is running"
-
-  # Output docker version
-  & "docker" -v
 }
-
 Function check_docker_opts() {
-  Write-Output "!!! TODO: Update docker configuration !!!"
+  Write-Output "Enforcing docker daemon config"
+  $script_dir = Split-Path -Path $MyInvocation.ScriptName
+  Copy-Item $script_dir\daemon.json $DOCKER_CONFIG_FILE -Force
+
+  Write-Output "Restarting docker service"
+  Restart-Service docker
+
+  wait_for_docker
+
+  # Output docker info
+  & "docker" info
+
+  # Get docker NAT gateway ip address
+  $global:DOCKER_NAT_IP=(Get-NetIPConfiguration | Where-Object InterfaceAlias -eq "vEthernet (HNS Internal NIC)").IPv4Address.IPAddress
 }
 
 Function remove_reqKick() {
@@ -189,7 +206,8 @@ Function setup_envs() {
     "-e SHIPPABLE_NODE_OPERATING_SYSTEM=$NODE_OPERATING_SYSTEM " + `
     "-e SHIPPABLE_RELEASE_VERSION=$SHIPPABLE_RELEASE_VERSION " + `
     "-e IMAGE_EXEC_TEMPLATES_DIR='$IMAGE_EXEC_TEMPLATES_DIR' " + `
-    "-e IMAGE_REQEXEC_DIR='$IMAGE_REQEXEC_DIR' "
+    "-e IMAGE_REQEXEC_DIR='$IMAGE_REQEXEC_DIR' " + `
+    "-e DOCKER_HOST=${DOCKER_NAT_IP}:2375"
 }
 
 Function setup_opts() {
