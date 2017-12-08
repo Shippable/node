@@ -53,10 +53,10 @@ initialize() {
 
 export_envs() {
   export SHIPPABLE_RUNTIME_DIR="/var/lib/shippable"
-  export BASE_UUID="$(cat /proc/sys/kernel/random/uuid)"
   if [ "$NODE_TYPE_CODE" -eq 7001 ]; then
     export BASE_DIR="$SHIPPABLE_RUNTIME_DIR"
   else
+    export BASE_UUID="$(cat /proc/sys/kernel/random/uuid)"
     export BASE_DIR="$SHIPPABLE_RUNTIME_DIR/$BASE_UUID"
   fi
   export REQPROC_DIR="$BASE_DIR/reqProc"
@@ -78,7 +78,7 @@ export_envs() {
   else
     export REQPROC_CONTAINER_NAME="$REQPROC_CONTAINER_NAME_PATTERN-$BASE_UUID"
   fi
-  export REQKICK_SERVICE_NAME_PATTERN="shippable-reqKick@"
+  export REQKICK_SERVICE_NAME_PATTERN="shippable-reqKick"
   export LEGACY_CI_CACHE_STORE_LOCATION="/home/shippable/cache"
   export LEGACY_CI_KEY_STORE_LOCATION="/tmp/ssh"
   export LEGACY_CI_MESSAGE_STORE_LOCATION="/tmp/cexec"
@@ -91,7 +91,7 @@ export_envs() {
   export DEFAULT_TASK_CONTAINER_OPTIONS="--rm"
 }
 
-setup_mounts() {
+setup_dirs() {
   if [ "$NODE_TYPE_CODE" -ne 7001 ]; then
     rm -rf $SHIPPABLE_RUNTIME_DIR
   fi
@@ -104,7 +104,9 @@ setup_mounts() {
   mkdir -p $LEGACY_CI_KEY_STORE_LOCATION
   mkdir -p $LEGACY_CI_MESSAGE_STORE_LOCATION
   mkdir -p $LEGACY_CI_BUILD_LOCATION
+}
 
+setup_mounts() {
   REQPROC_MOUNTS="$REQPROC_MOUNTS \
     -v $BASE_DIR:$BASE_DIR \
     -v /opt/docker/docker:/usr/bin/docker \
@@ -175,19 +177,13 @@ remove_reqProc() {
 remove_reqKick() {
   __process_marker "Removing existing reqKick services..."
 
-  local running_service_names=$(systemctl list-units -a \
-    | grep $REQKICK_SERVICE_NAME_PATTERN \
-    | awk '{ print $1 }')
+  sudo initctl list | ( grep -o "^$REQKICK_SERVICE_NAME_PATTERN[a-zA-Z0-9-]*" || true ) | while read -r service; do
+    sudo service $service stop || true
+    sudo rm -rf /var/log/upstart/$service.log
+    sudo rm -rf /etc/init/$service.conf
+  done
 
-  if [ ! -z "$running_service_names" ]; then
-    systemctl stop $running_service_names || true
-    systemctl disable $running_service_names || true
-  fi
-
-  rm -rf $REQKICK_CONFIG_DIR
-  rm -f /etc/systemd/system/shippable-reqKick@.service
-
-  systemctl daemon-reload
+  sudo initctl reload-configuration
 }
 
 boot_reqProc() {
@@ -199,40 +195,52 @@ boot_reqProc() {
 boot_reqKick() {
   __process_marker "Booting up reqKick service..."
 
-  mkdir -p $REQKICK_CONFIG_DIR
+  if [ ! -z $BASE_UUID ]; then
+    local reqKick_service_name=$REQKICK_SERVICE_NAME_PATTERN-$BASE_UUID
+  else
+    local reqKick_service_name=$REQKICK_SERVICE_NAME_PATTERN
+  fi
+  local reqKick_config_file=/etc/init/$reqKick_service_name.conf
 
-  cp $REQKICK_SERVICE_DIR/shippable-reqKick@.service.template /etc/systemd/system/shippable-reqKick@.service
-  chmod 644 /etc/systemd/system/shippable-reqKick@.service
+  cp $REQKICK_SERVICE_DIR/shippable-reqKick.conf.template $reqKick_config_file
 
-  local reqkick_env_template=$REQKICK_SERVICE_DIR/shippable-reqKick.env.template
-  local reqkick_env_file=$REQKICK_CONFIG_DIR/$BASE_UUID.env
-  touch $reqkick_env_file
-  sed "s#{{STATUS_DIR}}#$STATUS_DIR#g" $reqkick_env_template > $reqkick_env_file
-  sed -i "s#{{SCRIPTS_DIR}}#$SCRIPTS_DIR#g" $reqkick_env_file
-  sed -i "s#{{REQEXEC_BIN_PATH}}#$REQEXEC_BIN_PATH#g" $reqkick_env_file
-  sed -i "s#{{RUN_MODE}}#$RUN_MODE#g" $reqkick_env_file
+  sed -i "s#{{STATUS_DIR}}#$STATUS_DIR#g" $reqKick_config_file
+  sed -i "s#{{SCRIPTS_DIR}}#$SCRIPTS_DIR#g" $reqKick_config_file
+  sed -i "s#{{REQEXEC_BIN_PATH}}#$REQEXEC_BIN_PATH#g" $reqKick_config_file
+  sed -i "s#{{RUN_MODE}}#$RUN_MODE#g" $reqKick_config_file
+  sed -i "s#{{UUID}}#$BASE_UUID#g" $reqKick_config_file
 
-  systemctl daemon-reload
-  systemctl enable shippable-reqKick@$BASE_UUID.service
-  systemctl start shippable-reqKick@$BASE_UUID.service
+  sudo service $reqKick_service_name start
 
   {
-    echo "Checking if shippable-reqKick@$BASE_UUID.service is active"
-    local check_reqKick_is_active=$(systemctl is-active shippable-reqKick@$BASE_UUID.service)
-    echo "shippable-reqKick@$BASE_UUID.service is $check_reqKick_is_active"
+    echo "Checking if $reqKick_service_name is active"
+    local check_reqKick_is_active=$(sudo initctl status $reqKick_service_name)
+    echo $check_reqKick_is_active
   } ||
   {
-    echo "shippable-reqKick@$BASE_UUID.service failed to start"
-    journalctl -n 100 -u shippable-reqKick@$BASE_UUID.service
-    popd
+    echo "$reqKick_service_name failed to start"
+    sudo tail -n 100 /var/log/upstart/$reqKick_service_name.log || true
     exit 1
   }
-  popd
+}
+
+before_exit() {
+  echo $1
+  echo $2
+
+  echo "Boot script completed"
 }
 
 main() {
-  check_input
-  export_envs
+  trap before_exit EXIT
+  exec_grp "check_input"
+
+  trap before_exit EXIT
+  exec_grp "export_envs"
+
+  trap before_exit EXIT
+  exec_grp "setup_dirs"
+
   if [ "$NODE_TYPE_CODE" -ne 7001 ]; then
     initialize
   fi
@@ -249,14 +257,14 @@ main() {
   trap before_exit EXIT
   exec_grp "remove_reqProc"
 
-  # trap before_exit EXIT
-  # exec_grp "remove_reqKick"
+  trap before_exit EXIT
+  exec_grp "remove_reqKick"
 
   trap before_exit EXIT
   exec_grp "boot_reqProc"
 
-  # trap before_exit EXIT
-  # exec_grp "boot_reqKick"
+  trap before_exit EXIT
+  exec_grp "boot_reqKick"
 }
 
 main
