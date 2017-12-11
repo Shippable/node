@@ -17,6 +17,7 @@ check_init_input() {
     'SHIPPABLE_RELEASE_VERSION'
     'EXEC_IMAGE'
     'REQKICK_DIR'
+    'IS_SWAP_ENABLED'
   )
 
   check_envs "${expected_envs[@]}"
@@ -211,8 +212,9 @@ clone_reqKick() {
   rm -rf $REQKICK_DIR
   git clone https://github.com/Shippable/reqKick.git $REQKICK_DIR
   pushd $REQKICK_DIR
-  git checkout $SHIPPABLE_RELEASE_VERSION
-  npm install
+    git checkout $SHIPPABLE_RELEASE_VERSION
+    npm install
+  popd
 }
 
 before_exit() {

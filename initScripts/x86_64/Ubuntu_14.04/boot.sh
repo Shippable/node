@@ -27,12 +27,9 @@ source "$NODE_LIB_DIR/helpers.sh"
 check_input() {
   local expected_envs=(
     'EXEC_IMAGE'
-    'IS_SWAP_ENABLED'
     'LISTEN_QUEUE'
     'NODE_ARCHITECTURE'
-    'NODE_DOCKER_VERSION'
     'NODE_ID'
-    'NODE_INIT_SCRIPT'
     'NODE_OPERATING_SYSTEM'
     'NODE_TYPE_CODE'
     'RUN_MODE'
@@ -40,7 +37,7 @@ check_input() {
     'SHIPPABLE_AMQP_URL'
     'SHIPPABLE_API_URL'
     'SHIPPABLE_RELEASE_VERSION'
-    'SUBSCRIPTION_ID',
+    'SUBSCRIPTION_ID'
   )
 
   check_envs "${expected_envs[@]}"
@@ -85,10 +82,13 @@ export_envs() {
   export LEGACY_CI_BUILD_LOCATION="/build"
   export LEGACY_CI_CEXEC_LOCATION_ON_HOST="/home/shippable/cexec"
   export LEGACY_CI_DOCKER_CLIENT_LATEST="/opt/docker/docker"
+  export LEGACY_CI_DOCKER_CLIENT="/usr/bin/docker"
+  export IS_DOCKER_LEGACY=false
   export DEFAULT_TASK_CONTAINER_MOUNTS="-v $BUILD_DIR:$BUILD_DIR \
     -v $REQEXEC_DIR:/reqExec"
   export TASK_CONTAINER_COMMAND="/reqExec/$NODE_ARCHITECTURE/$NODE_OPERATING_SYSTEM/dist/main/main"
   export DEFAULT_TASK_CONTAINER_OPTIONS="--rm"
+  export DOCKER_VERSION="$(sudo docker version --format {{.Server.Version}})"
 }
 
 setup_dirs() {
@@ -107,9 +107,17 @@ setup_dirs() {
 }
 
 setup_mounts() {
+  local docker_client_location=$LEGACY_CI_DOCKER_CLIENT_LATEST
+  if [ ! -f "$LEGACY_CI_DOCKER_CLIENT_LATEST" ]; then
+    IS_DOCKER_LEGACY=true
+    docker_client_location=$LEGACY_CI_DOCKER_CLIENT
+  fi
+
   REQPROC_MOUNTS="$REQPROC_MOUNTS \
     -v $BASE_DIR:$BASE_DIR \
-    -v /opt/docker/docker:/usr/bin/docker \
+    -v /usr/lib/x86_64-linux-gnu/libapparmor.so.1.1.0:/lib/x86_64-linux-gnu/libapparmor.so.1:rw \
+    -v /var/run:/var/run:rw \
+    -v $docker_client_location:/usr/bin/docker \
     -v /var/run/docker.sock:/var/run/docker.sock \
     -v $LEGACY_CI_CACHE_STORE_LOCATION:$LEGACY_CI_CACHE_STORE_LOCATION:rw \
     -v $LEGACY_CI_KEY_STORE_LOCATION:$LEGACY_CI_KEY_STORE_LOCATION:rw \
@@ -117,7 +125,7 @@ setup_mounts() {
     -v $LEGACY_CI_BUILD_LOCATION:$LEGACY_CI_BUILD_LOCATION:rw"
 
   DEFAULT_TASK_CONTAINER_MOUNTS="$DEFAULT_TASK_CONTAINER_MOUNTS \
-    -v /opt/docker/docker:/usr/bin/docker \
+    -v $docker_client_location:/usr/bin/docker \
     -v /var/run/docker.sock:/var/run/docker.sock"
 }
 
@@ -147,8 +155,9 @@ setup_envs() {
     -e BUILD_LOCATION=$LEGACY_CI_BUILD_LOCATION \
     -e EXEC_IMAGE=$EXEC_IMAGE \
     -e DOCKER_CLIENT_LATEST=$LEGACY_CI_DOCKER_CLIENT_LATEST \
+    -e DOCKER_CLIENT_LEGACY=$LEGACY_CI_DOCKER_CLIENT \
     -e SHIPPABLE_DOCKER_VERSION=$DOCKER_VERSION \
-    -e IS_DOCKER_LEGACY=false \
+    -e IS_DOCKER_LEGACY=$IS_DOCKER_LEGACY \
     -e SHIPPABLE_NODE_ARCHITECTURE=$NODE_ARCHITECTURE \
     -e SHIPPABLE_NODE_OPERATING_SYSTEM=$NODE_OPERATING_SYSTEM \
     -e SHIPPABLE_RELEASE_VERSION=$SHIPPABLE_RELEASE_VERSION"
