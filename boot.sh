@@ -49,7 +49,9 @@ info() {
     cat $NODE_ENV
     source $NODE_ENV
   fi
+}
 
+initialize() {
   readonly NODE_INIT_SCRIPT="$SCRIPTS_DIR/$SHIPPABLE_NODE_INIT_SCRIPT"
   __process_msg "Init script location: $NODE_INIT_SCRIPT"
   if [ ! -f "$NODE_INIT_SCRIPT" ]; then
@@ -59,9 +61,6 @@ info() {
     __process_msg "Found init script at: $NODE_INIT_SCRIPT"
   fi
 
-}
-
-initialize() {
   __process_marker "Executing node init script: $NODE_INIT_SCRIPT"
   source $NODE_INIT_SCRIPT
 
