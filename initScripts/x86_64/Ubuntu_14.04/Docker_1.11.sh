@@ -2,11 +2,10 @@
 set -e
 set -o pipefail
 
-
 # initScript for Ubuntu 16.04 and Docker 1.9
 # ------------------------------------------------------------------------------
 
-readonly DOCKER_VERSION="1.9.1"
+readonly DOCKER_VERSION="1.11.1"
 readonly SWAP_FILE_PATH="/root/.__sh_swap__"
 
 # Indicates if docker service should be restarted
@@ -51,7 +50,7 @@ install_prereqs() {
   echo "Installing prerequisite binaries"
   _run_update
 
-  install_prereqs_cmd="apt-get -yy install git python-pip"
+  install_prereqs_cmd="sudo apt-get -yy install git python-pip"
   exec_cmd "$install_prereqs_cmd"
 
   pushd /tmp
@@ -135,7 +134,6 @@ initialize_swap() {
   check_fstab_entry
 }
 
-
 docker_install() {
   echo "Installing docker"
 
@@ -178,17 +176,11 @@ docker_install() {
   install_docker="sudo -E apt-get install -q --force-yes -y -o Dpkg::Options::='--force-confnew' docker-engine=$docker_version"
   exec_cmd "$install_docker"
 
-  get_static_docker_binary="wget https://get.docker.com/builds/Linux/x86_64/docker-$DOCKER_VERSION -P /tmp/docker"
+  get_static_docker_binary="wget https://get.docker.com/builds/Linux/x86_64/docker-$DOCKER_VERSION.tgz -P /tmp/docker"
   exec_cmd "$get_static_docker_binary"
 
-  create_docker_directory="mkdir -p /opt/docker"
-  exec_cmd "$create_docker_directory"
-
-  move_docker_binary="mv /tmp/docker/docker-$DOCKER_VERSION /opt/docker/docker"
-  exec_cmd "$move_docker_binary"
-
-  make_docker_executable="chmod +x /opt/docker/docker"
-  exec_cmd "$make_docker_executable"
+  extract_static_docker_binary="sudo tar -xzf /tmp/docker/docker-$DOCKER_VERSION.tgz --directory /opt"
+  exec_cmd "$extract_static_docker_binary"
 
   remove_static_docker_binary='rm -rf /tmp/docker'
   exec_cmd "$remove_static_docker_binary"
@@ -198,6 +190,16 @@ docker_install() {
 check_docker_opts() {
   # SHIPPABLE docker options required for every node
   echo "Checking docker options"
+
+  OLD_SHIPPABLE_DOCKER_OPTS='DOCKER_OPTS="$DOCKER_OPTS -H unix:///var/run/docker.sock -g=/data --storage-driver aufs"'
+  old_opts_exist=$(sudo sh -c "grep '$OLD_SHIPPABLE_DOCKER_OPTS' /etc/default/docker || echo ''")
+
+  if [ ! -z "$old_opts_exist" ]; then
+    ## old docker opts exist
+    echo "removing old DOCKER_OPTS from /etc/default/docker"
+    sudo sh -c "sed -e s/\"DOCKER_OPTS=\\\"\\\$DOCKER_OPTS -H unix:\\\/\\\/\\\/var\\\/run\\\/docker.sock -g=\\\/data --storage-driver aufs\\\"\"//g -i /etc/default/docker"
+    docker_restart=true
+  fi
 
   SHIPPABLE_DOCKER_OPTS='DOCKER_OPTS="$DOCKER_OPTS -H unix:///var/run/docker.sock -g=/data --storage-driver aufs --dns 8.8.8.8 --dns 8.8.4.4"'
   opts_exist=$(sudo sh -c "grep '$SHIPPABLE_DOCKER_OPTS' /etc/default/docker || echo ''")
@@ -278,8 +280,6 @@ before_exit() {
 }
 
 main() {
-  check_init_input
-
   trap before_exit EXIT
   exec_grp "create_shippable_dir"
 
