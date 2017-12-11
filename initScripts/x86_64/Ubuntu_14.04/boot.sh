@@ -65,9 +65,10 @@ export_envs() {
   export BUILD_DIR="$BASE_DIR/build"
   export STATUS_DIR=$BUILD_DIR/status
   export SCRIPTS_DIR=$BUILD_DIR/scripts
-  export REQPROC_MOUNTS=""
-  export REQPROC_ENVS=""
-  export REQPROC_OPTS=""
+  # This is set while booting dynamic nodes
+  export REQPROC_MOUNTS="$REQPROC_MOUNTS"
+  export REQPROC_ENVS="$REQPROC_ENVS"
+  export REQPROC_OPTS="$REQPROC_OPTS"
   export REQPROC_CONTAINER_NAME_PATTERN="reqProc"
 
   if [ "$NODE_TYPE_CODE" -eq 7001 ]; then
