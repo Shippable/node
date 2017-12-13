@@ -78,6 +78,16 @@ get_resource_type() {
   eval echo "$""$UP"_TYPE
 }
 
+get_resource_env() {
+  if [ "$1" == "" ] || [ "$2" == "" ]; then
+    echo "Usage: shipctl get_resource_env RESOURCE_NAME ENV_NAME"
+    exit 99
+  fi
+  UP_RES=$(get_resource_name "$1")
+  UP_ENV=$(to_uppercase "$2")
+  eval echo "$""$UP_RES"_"$UP_ENV"
+}
+
 get_params_resource() {
   if [ "$1" == "" ] || [ "$2" == "" ]; then
     echo "Usage: shipctl get_params_resource RESOURCE_NAME PARAM_NAME"
@@ -274,15 +284,16 @@ copy_resource_file_from_state() {
   fi
   RES_NAME=$1
   FILE_NAME=$2
+  RES_TYPE=$(get_resource_type $RES_NAME)
   PATH_TO_COPY_INTO=$3
-  FULL_PATH="/build/IN/$RES_NAME/state/$FILE_NAME"
+  FULL_PATH="/build/IN/$RES_NAME/$RES_TYPE/$FILE_NAME"
 
   echo "---------------- Restoring file from state -------------------"
   if [ -f "$FULL_PATH" ]; then
-    echo "------  File exists, copying -----"
+    echo "----------------  File exists, copying -----------------------"
     cp -vr "$FULL_PATH" "$PATH_TO_COPY_INTO"
   else
-    echo "------  File does not exist in previous state, skipping -----"
+    echo "------  File does not exist in $RES_NAME state, skipping -----"
   fi
 }
 
