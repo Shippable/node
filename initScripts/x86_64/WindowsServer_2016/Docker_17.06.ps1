@@ -33,7 +33,6 @@ $EXEC_IMAGE = "drydock/w16reqproc:$SHIPPABLE_RELEASE_VERSION"
 
 # TODO: move these to reqproc image
 $IMAGE_REQEXEC_DIR = "$CONTAINER_BASE_DIR\reqExec"
-$IMAGE_EXEC_TEMPLATES_DIR = "$CONTAINER_BASE_DIR\execTemplates"
 
 $REQPROC_MOUNTS = ""
 $REQPROC_ENVS = ""
@@ -102,7 +101,7 @@ Function docker_install() {
 
   Write-Output "Verifying Docker service has started"
   $dockerService = Get-Service docker
-  
+
   if ($dockerService.Status -ne "Running") {
     Start-Service docker
   }
@@ -205,7 +204,6 @@ Function setup_envs() {
     "-e SHIPPABLE_NODE_ARCHITECTURE=$NODE_ARCHITECTURE " + `
     "-e SHIPPABLE_NODE_OPERATING_SYSTEM=$NODE_OPERATING_SYSTEM " + `
     "-e SHIPPABLE_RELEASE_VERSION=$SHIPPABLE_RELEASE_VERSION " + `
-    "-e IMAGE_EXEC_TEMPLATES_DIR='$IMAGE_EXEC_TEMPLATES_DIR' " + `
     "-e IMAGE_REQEXEC_DIR='$IMAGE_REQEXEC_DIR' " + `
     "-e DOCKER_HOST=${DOCKER_NAT_IP}:2375"
 }
