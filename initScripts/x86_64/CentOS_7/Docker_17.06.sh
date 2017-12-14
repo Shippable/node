@@ -79,6 +79,9 @@ install_prereqs() {
   popd
 
   echo "Installing shipctl components"
+
+  install_epel_release_cmd="yum -y install epel-release"
+  exec_cmd "$install_epel_release_cmd"
   exec_cmd "$NODE_SHIPCTL_LOCATION/$NODE_ARCHITECTURE/$NODE_OPERATING_SYSTEM/install.sh"
 
 }
@@ -145,7 +148,7 @@ initialize_swap() {
 docker_install() {
   echo "Installing docker"
 
-  install_docker="yum install docker-ce-$DOCKER_VERSION.ce"
+  install_docker="yum -y install docker-ce-$DOCKER_VERSION.ce"
   exec_cmd "$install_docker"
 
   get_static_docker_binary="wget https://download.docker.com/linux/static/stable/x86_64/docker-$DOCKER_VERSION-ce.tgz -P /tmp/docker"
