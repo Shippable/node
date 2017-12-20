@@ -7,7 +7,7 @@ if ($len -eq 0) {
 }
 $copy = $args[1..$len]
 
-. ./utility.ps1
+. $PSScriptRoot/utility.ps1
 
 
 function execute_shiptctl_command() {
