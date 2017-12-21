@@ -91,6 +91,17 @@ function get_resource_type([string] $resource) {
     return _get_env_value $key
 }
 
+function get_resource_env([string] $resource, [string] $envName) {
+    if (-not $resource -or -not $envName) {
+        throw "Usage: shipctl get_resource_env RESOURCE ENV_NAME"
+    }
+
+    $resourceName = get_resource_name $resource
+    $envUp = to_uppercase $envName
+    $key = $resourceName + "_" + $envUp
+    return _get_env_value $key
+}
+
 function get_params_resource([string] $resource, [string] $param) {
     if (-not $resource -or -not $param) {
         throw "Usage: shipctl get_params_resource RESOURCE PARAM"
