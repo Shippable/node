@@ -83,6 +83,9 @@ Function install_prereqs() {
   Write-Output "Installing global node packages"
   npm install pm2 pm2-windows-startup -g
   pm2-startup install
+
+  Write-Output "Installing shipctl"
+  & "$NODE_SHIPCTL_LOCATION/$NODE_ARCHITECTURE/$NODE_OPERATING_SYSTEM/install.ps1"
 }
 
 Function docker_install() {
