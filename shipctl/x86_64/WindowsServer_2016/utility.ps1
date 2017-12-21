@@ -303,7 +303,7 @@ function copy_file_to_resource_state([string] $fileName, [string] $resourceName)
     if (-not $fileName -or -not $resourceName) {
         throw "Usage: shipctl copy_file_to_resource_state FILE RESOURCE"
     }
-    return refresh_file_to_out_path $fileName, $resourceName
+    return refresh_file_to_out_path $fileName $resourceName
 }
 
 function get_resource_pointer_key([string] $resource, [string] $pointerKey) {
