@@ -262,7 +262,7 @@ function copy_resource_file_from_state([string] $resourceName, [string] $fileNam
         Write-Output "----------------  File exists, copying -----------------------"
         Copy-Item -Recurse -Verbose "$fullPath" "$destinationPath"
     } else {
-        Write-Item "------  File does not exist in $resourceName state, skipping -----"
+        Write-Output "------  File does not exist in $resourceName state, skipping -----"
     }
 }
 
