@@ -176,7 +176,7 @@ function get_json_value([string] $jsonFilePath, [string] $field) {
     if (-not $jsonFilePath) {
         throw "Usage: shipctl get_json_value FILE [FIELD]"
     }
-    if (!(Test-Path $jsonFilePath)) {
+    if (!(Test-Path "$jsonFilePath")) {
         throw "${jsonFilePath}: No such file present in this directory"
     }
 
