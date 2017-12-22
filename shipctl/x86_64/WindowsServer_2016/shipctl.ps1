@@ -37,7 +37,7 @@ if ($shipctl_command -eq "jdk") {
 } elseif ($shipctl_command -eq "service") {
     Write-Error "shipctl service is not yet supported on this image"
 } elseif ($shipctl_command -eq "replace") {
-    Write-Error "shipctl replace is not yet supported on this image"
+    execute_command shippable_replace @copy
 } elseif ($shipctl_command -eq "retry") {
     execute_command shippable_retry @copy
 } else {
