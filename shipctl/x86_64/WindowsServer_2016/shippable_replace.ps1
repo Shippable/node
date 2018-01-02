@@ -7,7 +7,7 @@ function replace() {
         $fileContent = Get-Content "$fileName"
         foreach ($env in $allEnvs) {
             $fileContent = $fileContent.Replace("$" + $env.Key, $env.Value)
-            $fileContent | Out-File -FilePath "$fileName"
+            $fileContent | Out-File -Encoding utf8 -FilePath "$fileName"
         }
     }
 }
