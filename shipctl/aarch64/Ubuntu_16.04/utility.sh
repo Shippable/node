@@ -51,6 +51,15 @@ get_resource_state() {
   eval echo "$""$UP"_STATE
 }
 
+# a reflection of get_resource_state
+get_resource_path() {
+  if [ "$1" == "" ]; then
+    echo "Usage: shipctl get_resource_path RESOURCE_NAME"
+    exit 99
+  fi
+  get_resource_state $1
+}
+
 get_resource_operation() {
   if [ "$1" == "" ]; then
     echo "Usage: shipctl get_resource_operation RESOURCE_NAME"
@@ -152,9 +161,9 @@ get_resource_version_key() {
     fi
   done
   if [ "$FETCH_FROM_PROPERTYBAG" = true ]; then
-    VERSION_KEY_CMD="cat $RESOURCE_VERSION_FILE | jq '.version.propertyBag.$2'"
+    VERSION_KEY_CMD="cat $RESOURCE_VERSION_FILE | jq -r '.version.propertyBag.$2'"
   else
-    VERSION_KEY_CMD="cat $RESOURCE_VERSION_FILE | jq '.version.$2'"
+    VERSION_KEY_CMD="cat $RESOURCE_VERSION_FILE | jq -r '.version.$2'"
   fi
   eval $VERSION_KEY_CMD
 }
@@ -288,6 +297,15 @@ copy_resource_file_from_state() {
   fi
 }
 
+#reflection of copy_resource_file_from_state
+copy_file_from_resource_state() {
+  if [ "$1" == "" ] || [ "$2" == "" ] || [ "$3" == "" ]; then
+    echo "Usage: shipctl copy_file_from_resource_state RESOURCE_NAME FILE_NAME PATH_TO_COPY_INTO"
+    exit 99
+  fi
+  copy_resource_file_from_state $1 $2 $3
+}
+
 refresh_file_to_out_path() {
   if [ "$1" == "" ] || [ "$2" == "" ]; then
     echo "Usage: shipctl refresh_file_to_out_path FILE_NAME RES_NAME"
@@ -317,4 +335,59 @@ refresh_file_to_out_path() {
       echo "------  File does not exist in previous state, skipping -----"
     fi
   fi
+}
+
+#reflection of refresh_file_to_out_path
+copy_file_to_resource_state() {
+  if [ "$1" == "" ] || [ "$2" == "" ]; then
+    echo "Usage: shipctl copy_file_to_resource_state FILE_NAME RES_NAME"
+    exit 99
+  fi
+  refresh_file_to_out_path $1 $2
+}
+
+get_resource_pointer_key() {
+  if [ "$1" == "" ] || [ "$2" == "" ]; then
+    echo "Usage: shipctl get_resource_pointer RESOURCE_NAME POINTER_KEY"
+    exit 99
+  fi
+  UP=$(get_resource_name "$1")
+  RESOURCE_META=$(get_resource_meta $UP)
+  if [ ! -d $RESOURCE_META ]; then
+    echo "IN directory not present for resource: $1"
+    exit 99
+  fi
+  RESOURCE_VERSION_FILE=$RESOURCE_META/version.json
+  if [ ! -f $RESOURCE_VERSION_FILE ]; then
+    echo "version.json not present for resource: $1"
+    exit 99
+  fi
+  VERSION_KEY_CMD="cat $RESOURCE_VERSION_FILE | jq -r '.propertyBag.yml.pointer.$2'"
+  eval $VERSION_KEY_CMD
+}
+
+post_resource_state_multi() {
+  if [ "$1" == "" ] || [ "$2" == "" ]; then
+    echo "Usage: shipctl post_resource_state_multi RESOURCE_NAME STATE_ARRAY"
+    exit 99
+  fi
+
+  RES=$1; shift
+  STATE_ARRAY=("$@")
+  rm -rf "$JOB_STATE/$RES.env"
+  for a in ${STATE_ARRAY[@]}; do
+    echo $a >> "$JOB_STATE/$RES.env"
+  done
+}
+
+put_resource_state_multi() {
+  if [ "$1" == "" ] || [ "$2" == "" ]; then
+    echo "Usage: shipctl put_resource_state_multi RESOURCE_NAME STATE_ARRAY"
+    exit 99
+  fi
+  RES=$1; shift
+  STATE_ARRAY=("$@")
+  for a in ${STATE_ARRAY[@]}; do
+    echo $a >> "$JOB_STATE/$RES.env"
+  done
 }
