@@ -202,14 +202,14 @@ function post_resource_state([string] $resource, [string] $stateName, [string] $
     if (-not $resource -or -not $stateName -or -not $stateValue) {
         throw "Usage: shipctl post_resource_state RESOURCE KEY VALUE"
     }
-    """$stateName""=""$stateValue""" | Out-File -File "$env:JOB_STATE/$resource.env"
+    "$stateName=$stateValue" | Out-File -Encoding utf8 -NoNewLine -File "$env:JOB_STATE/$resource.env"
 }
 
 function put_resource_state([string] $resource, [string] $stateName, [string] $stateValue) {
     if (-not $resource -or -not $stateName -or -not $stateValue) {
         throw "Usage: shipctl put_resource_stat RESOURCE KEY VALUE"
     }
-    """$stateName""=""$stateValue""" | Out-File -Append -File "$env:JOB_STATE/$resource.env"
+    "$stateName=$stateValue" | Out-File -Encoding utf8 -NoNewLine -Append -File "$env:JOB_STATE/$resource.env"
 }
 
 function copy_file_to_state([string] $fileName) {
@@ -264,7 +264,7 @@ function copy_resource_file_from_state([string] $resourceName, [string] $fileNam
         throw "Usage: shipctl copy_resource_file_from_state RESOURCE FILE DESTINATION"
     }
     $resourceType = get_resource_type $resourceName
-    
+
     # Todo: Shouldn't this use get_resource_path?
     $fullPath = Join-Path "$env:JOB_PATH" "IN\$resourceName\$resourceType\$fileName"
 
@@ -345,7 +345,7 @@ function post_resource_state_multi([string] $resourceName) {
     Remove-Item -Force -Recurse "$resourceEnvFile" -ErrorAction SilentlyContinue
 
     foreach ($state in $stateArray) {
-        "$state" | Out-File -Append -FilePath "$resourceEnvFile"
+        "$state`n" | Out-File -Encoding utf8 -NoNewLine -Append -FilePath "$resourceEnvFile"
     }
 }
 
@@ -357,6 +357,6 @@ function put_resource_state_multi([string] $resourceName) {
     $resourceEnvFile = Join-Path "$env:JOB_STATE" "$resourceName.env"
 
     foreach ($state in $stateArray) {
-        "$state" | Out-File -Append -FilePath "$resourceEnvFile"
+        "$state`n" | Out-File -Encoding utf8 -NoNewLine -Append -FilePath "$resourceEnvFile"
     }
 }
