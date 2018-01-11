@@ -277,7 +277,8 @@ main() {
   trap before_exit EXIT
   exec_grp "setup_opts"
 
-  remove_genexec
+  trap before_exit EXIT
+  exec_grp "remove_genexec"
 
   trap before_exit EXIT
   exec_grp "remove_reqProc"
