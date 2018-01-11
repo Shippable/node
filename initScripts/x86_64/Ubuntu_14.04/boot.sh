@@ -70,6 +70,7 @@ export_envs() {
   export REQPROC_ENVS="$REQPROC_ENVS"
   export REQPROC_OPTS="$REQPROC_OPTS"
   export REQPROC_CONTAINER_NAME_PATTERN="reqProc"
+  export EXEC_CONTAINER_NAME_PATTERN="shippable-exec"
 
   if [ "$NODE_TYPE_CODE" -eq 7001 ]; then
     export REQPROC_CONTAINER_NAME="$REQPROC_CONTAINER_NAME_PATTERN-$NODE_ID"
@@ -172,6 +173,18 @@ setup_opts() {
     "
 }
 
+remove_genexec() {
+  __process_marker "Removing exisiting genexec containers..."
+
+  local running_container_ids=$(docker ps -a \
+    | grep $EXEC_CONTAINER_NAME_PATTERN \
+    | awk '{print $1}')
+
+  if [ ! -z "$running_container_ids" ]; then
+    docker rm -f -v $running_container_ids || true
+  fi
+}
+
 remove_reqProc() {
   __process_marker "Removing exisiting reqProc containers..."
 
@@ -263,6 +276,8 @@ main() {
 
   trap before_exit EXIT
   exec_grp "setup_opts"
+
+  remove_genexec
 
   trap before_exit EXIT
   exec_grp "remove_reqProc"
