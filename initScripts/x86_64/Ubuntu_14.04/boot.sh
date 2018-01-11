@@ -189,7 +189,7 @@ remove_reqKick() {
 
   sudo initctl list | ( grep -o "^$REQKICK_SERVICE_NAME_PATTERN[a-zA-Z0-9-]*" || true ) | while read -r service; do
     sudo service $service stop || true
-    sudo rm -rf /var/log/upstart/$service.log
+    sudo rm -rf /var/log/upstart/$REQKICK_SERVICE_NAME_PATTERN*
     sudo rm -rf /etc/init/$service.conf
   done
 
