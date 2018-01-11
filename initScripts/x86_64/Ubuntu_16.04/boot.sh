@@ -61,6 +61,7 @@ export_envs() {
   export REQPROC_ENVS=""
   export REQPROC_OPTS=""
   export REQPROC_CONTAINER_NAME_PATTERN="reqProc"
+  export EXEC_CONTAINER_NAME_PATTERN="shippable-exec"
   export REQPROC_CONTAINER_NAME="$REQPROC_CONTAINER_NAME_PATTERN-$BASE_UUID"
   export REQKICK_SERVICE_NAME_PATTERN="shippable-reqKick@"
   export LEGACY_CI_CACHE_STORE_LOCATION="/home/shippable/cache"
@@ -147,6 +148,18 @@ setup_opts() {
     --restart=always \
     --name=$REQPROC_CONTAINER_NAME \
     "
+}
+
+remove_genexec() {
+  __process_marker "Removing exisiting genexec containers..."
+
+  local running_container_ids=$(docker ps -a \
+    | grep $EXEC_CONTAINER_NAME_PATTERN \
+    | awk '{print $1}')
+
+  if [ ! -z "$running_container_ids" ]; then
+    docker rm -f -v $running_container_ids || true
+  fi
 }
 
 remove_reqProc() {
@@ -239,6 +252,9 @@ main() {
 
   trap before_exit EXIT
   exec_grp "setup_opts"
+
+  trap before_exit EXIT
+  exec_grp "remove_genexec"
 
   trap before_exit EXIT
   exec_grp "remove_reqProc"
