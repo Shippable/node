@@ -89,7 +89,7 @@ export_envs() {
   export DEFAULT_TASK_CONTAINER_MOUNTS="-v $BUILD_DIR:$BUILD_DIR \
     -v $REQEXEC_DIR:/reqExec"
   export TASK_CONTAINER_COMMAND="/reqExec/$NODE_ARCHITECTURE/$NODE_OPERATING_SYSTEM/dist/main/main"
-  export DEFAULT_TASK_CONTAINER_OPTIONS="--rm"
+  export DEFAULT_TASK_CONTAINER_OPTIONS="-d"
   export DOCKER_VERSION="$(sudo docker version --format {{.Server.Version}})"
 }
 

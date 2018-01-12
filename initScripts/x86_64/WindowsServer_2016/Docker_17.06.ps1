@@ -41,7 +41,7 @@ $REQKICK_SERVICE_NAME_PATTERN = "shippable-reqKick@"
 # TODO: update container directories while mounting
 $DEFAULT_TASK_CONTAINER_MOUNTS = "-v ${BUILD_DIR}:${CONTAINER_BUILD_DIR} -v ${REQEXEC_DIR}:${CONTAINER_REQEXEC_DIR}"
 $TASK_CONTAINER_COMMAND = "$CONTAINER_REQEXEC_DIR\$NODE_ARCHITECTURE\$NODE_OPERATING_SYSTEM\dist\main\main.exe"
-$DEFAULT_TASK_CONTAINER_OPTIONS = "--rm"
+$DEFAULT_TASK_CONTAINER_OPTIONS = "-d --rm"
 $DOCKER_CLIENT_LATEST = "C:\Program Files\Docker\docker.exe"
 
 Function create_shippable_dir() {

@@ -24,7 +24,7 @@ export REQKICK_SERVICE_NAME_PATTERN="com.shippable.reqKick"
 export DEFAULT_TASK_CONTAINER_MOUNTS="-v $BUILD_DIR:$BUILD_DIR \
   -v $REQEXEC_DIR:/reqExec"
 export TASK_CONTAINER_COMMAND="/reqExec/$NODE_ARCHITECTURE/$NODE_OPERATING_SYSTEM/dist/main/main"
-export DEFAULT_TASK_CONTAINER_OPTIONS="--rm"
+export DEFAULT_TASK_CONTAINER_OPTIONS="-d --rm"
 
 export SERVICE_DIR="/Library/LaunchDaemons"
 export FILE_SUFFIX="plist"
