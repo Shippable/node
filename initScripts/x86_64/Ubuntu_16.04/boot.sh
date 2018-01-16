@@ -233,6 +233,13 @@ boot_reqKick() {
   }
 }
 
+before_exit() {
+  echo $1
+  echo $2
+
+  echo "Boot script completed"
+}
+
 main() {
   trap before_exit EXIT
   exec_grp "check_input"
