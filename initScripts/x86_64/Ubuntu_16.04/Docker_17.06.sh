@@ -1,4 +1,5 @@
-#!/bin/bash -e
+#!/bin/bash
+set -e
 set -o pipefail
 
 # initScript for Ubuntu 16.04 and Docker 17.06

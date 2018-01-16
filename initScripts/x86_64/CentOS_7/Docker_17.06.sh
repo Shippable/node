@@ -1,4 +1,5 @@
-#!/bin/bash -e
+#!/bin/bash
+set -e
 set -o pipefail
 
 # initScript for CentOS_7 and Docker 17.06
