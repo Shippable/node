@@ -166,7 +166,7 @@ check_docker_opts() {
   # SHIPPABLE docker options required for every node
   echo "Checking docker options 434"
 
-  SHIPPABLE_DOCKER_OPTS='DOCKER_OPTS="$DOCKER_OPTS -H unix:///var/run/docker.sock -g=/data --dns 8.8.8.8 --dns 8.8.4.4"'
+  SHIPPABLE_DOCKER_OPTS='DOCKER_OPTS="$DOCKER_OPTS -H unix:///var/run/docker.sock -g=/data"'
   opts_exist=$(sh -c "grep '$SHIPPABLE_DOCKER_OPTS' /etc/sysconfig/docker || echo ''")
 
   # DOCKER_OPTS do not exist or match.

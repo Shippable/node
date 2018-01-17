@@ -260,7 +260,7 @@ check_docker_opts() {
   # SHIPPABLE docker options required for every node
   echo "Checking docker options"
 
-  SHIPPABLE_DOCKER_CONFIGURATION='{"dns":["8.8.8.8","8.8.4.4"],"data-root":"/data"}'
+  SHIPPABLE_DOCKER_CONFIGURATION='{"data-root":"/data"}'
 
   # daemon.json is not present
   if [ ! -f /etc/docker/daemon.json ]; then
