@@ -10,6 +10,11 @@ readonly SWAP_FILE_PATH="/root/.__sh_swap__"
 
 # Indicates if docker service should be restarted
 export docker_restart=false
+export install_docker_only="$install_docker_only"
+
+if [ -z "$install_docker_only" ]; then
+  install_docker_only="false"
+fi
 
 _run_update() {
   update_cmd="sudo apt-get update"
@@ -280,42 +285,56 @@ before_exit() {
 }
 
 main() {
-  check_init_input
-
-  trap before_exit EXIT
-  exec_grp "create_shippable_dir"
-
-  trap before_exit EXIT
-  exec_grp "upgrade_kernel"
-
-  trap before_exit EXIT
-  exec_grp "install_prereqs"
-
-  if [ "$IS_SWAP_ENABLED" == "true" ]; then
+  if [ "$install_docker_only" == "true" ]; then
     trap before_exit EXIT
-    exec_grp "initialize_swap"
+    exec_grp "upgrade_kernel"
+
+    trap before_exit EXIT
+    exec_grp "docker_install"
+
+    trap before_exit EXIT
+    exec_grp "check_docker_opts"
+
+    trap before_exit EXIT
+    exec_grp "restart_docker_service"
+  else
+    check_init_input
+
+    trap before_exit EXIT
+    exec_grp "create_shippable_dir"
+
+    trap before_exit EXIT
+    exec_grp "upgrade_kernel"
+
+    trap before_exit EXIT
+    exec_grp "install_prereqs"
+
+    if [ "$IS_SWAP_ENABLED" == "true" ]; then
+      trap before_exit EXIT
+      exec_grp "initialize_swap"
+    fi
+
+    trap before_exit EXIT
+    exec_grp "docker_install"
+
+    trap before_exit EXIT
+    exec_grp "check_docker_opts"
+
+    trap before_exit EXIT
+    exec_grp "restart_docker_service"
+
+    trap before_exit EXIT
+    exec_grp "install_ntp"
+
+    trap before_exit EXIT
+    exec_grp "pull_cexec"
+
+    trap before_exit EXIT
+    exec_grp "pull_reqProc"
+
+    trap before_exit EXIT
+    exec_grp "clone_reqKick"
   fi
-
-  trap before_exit EXIT
-  exec_grp "docker_install"
-
-  trap before_exit EXIT
-  exec_grp "check_docker_opts"
-
-  trap before_exit EXIT
-  exec_grp "restart_docker_service"
-
-  trap before_exit EXIT
-  exec_grp "install_ntp"
-
-  trap before_exit EXIT
-  exec_grp "pull_cexec"
-
-  trap before_exit EXIT
-  exec_grp "pull_reqProc"
-
-  trap before_exit EXIT
-  exec_grp "clone_reqKick"
 }
 
 main
