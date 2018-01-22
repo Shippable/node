@@ -115,8 +115,6 @@ remove_reqKick() {
 boot_reqProc() {
   __process_marker "Booting up reqProc..."
 
-  # TODO: This is hardcoded until we have a way to specifiy it in API.
-  EXEC_IMAGE="drydock/m10reqproc:$SHIPPABLE_RELEASE_VERSION"
   docker pull $EXEC_IMAGE
   local start_cmd="docker run $REQPROC_OPTS $REQPROC_MOUNTS $REQPROC_ENVS $EXEC_IMAGE"
   eval "$start_cmd"

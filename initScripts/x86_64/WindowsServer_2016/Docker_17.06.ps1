@@ -28,9 +28,6 @@ $CONTAINER_BUILD_DIR = "$CONTAINER_BASE_DIR\build"
 $STATUS_DIR = "$BUILD_DIR\status"
 $SCRIPTS_DIR = "$BUILD_DIR\scripts"
 
-# TODO: this needs to be hardcoded until we have a way to specify it in the API
-$EXEC_IMAGE = "drydock/w16reqproc:$SHIPPABLE_RELEASE_VERSION"
-
 $REQPROC_MOUNTS = ""
 $REQPROC_ENVS = ""
 $REQPROC_OPTS = ""
