@@ -112,6 +112,22 @@ function get_params_resource([string] $resource, [string] $param) {
     return _get_env_value $key;
 }
 
+function get_integration_resource_keys([string] $resource) {
+    if (-not $resource) {
+        throw "Usage: shipctl get_integration_resource_keys RESOURCE"
+    }
+    $up = get_resource_name $resource
+    $resMetaDirectory = get_resource_meta $resource
+    if (!(Test-Path "$resMetaDirectory")) {
+        throw "IN directory not present for resource: $resource"
+    }
+    $resIntegrationEnvFile = Join-Path "$resMetaDirectory" "integration.env"
+    if (!(Test-Path "$resIntegrationEnvFile")) {
+        throw "integration.env not present for resource: $resource"
+    }
+    Get-Content $resIntegrationEnvFile | %{ $_.Split('=')[0] }
+}
+
 function get_integration_resource_field([string] $resource, [string] $field) {
     if (-not $resource -or -not $field) {
         throw "Usage: shipctl get_integration_resource_field RESOURCE FIELD"
