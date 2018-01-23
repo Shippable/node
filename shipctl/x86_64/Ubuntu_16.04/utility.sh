@@ -98,6 +98,25 @@ get_params_resource() {
   eval echo "$""$UP"_PARAMS_"$PARAMNAME"
 }
 
+get_integration_resource_keys() {
+  if [ "$1" == "" ]; then
+    echo "Usage: shipctl get_integration_resource_keys RESOURCE_NAME"
+    exit 99
+  fi
+  UP=$(get_resource_name "$1")
+  RESOURCE_META=$(get_resource_meta $UP)
+  if [ ! -d $RESOURCE_META ]; then
+    echo "IN directory not present for resource: $1"
+    exit 99
+  fi
+  RESOURCE_INTEGRATION_ENV_FILE=$RESOURCE_META/integration.env
+  if [ ! -f $RESOURCE_INTEGRATION_ENV_FILE ]; then
+    echo "integration.env not present for resource: $1"
+    exit 99
+  fi
+  cat $RESOURCE_INTEGRATION_ENV_FILE | awk -F "=" '{print $1}'
+}
+
 get_integration_resource_field() {
   if [ "$1" == "" ] || [ "$2" == "" ]; then
     echo "Usage: shipctl get_integration_resource_field RESOURCE_NAME KEY_NAME"
