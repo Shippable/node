@@ -41,7 +41,6 @@ check_input() {
     'SHIPPABLE_AMQP_URL'
     'SHIPPABLE_API_URL'
     'SHIPPABLE_RELEASE_VERSION'
-    'SUBSCRIPTION_ID',
   )
 
   check_envs "${expected_envs[@]}"
