@@ -201,9 +201,6 @@ check_docker_opts() {
 
   if [ ! -z "$old_opts_exist" ]; then
     ## old docker opts exist
-    echo "Removing existing DOCKER_OPTS in /etc/default/docker, if any"
-    sudo sed -i '/^DOCKER_OPTS/d' "/etc/default/docker"
-
     echo "removing old DOCKER_OPTS from /etc/default/docker"
     sudo sh -c "sed -e s/\"DOCKER_OPTS=\\\"\\\$DOCKER_OPTS -H unix:\\\/\\\/\\\/var\\\/run\\\/docker.sock -g=\\\/data --storage-driver aufs\\\"\"//g -i /etc/default/docker"
     docker_restart=true
@@ -214,6 +211,9 @@ check_docker_opts() {
 
   if [ -z "$opts_exist" ]; then
     ## docker opts do not exist
+    echo "Removing existing DOCKER_OPTS in /etc/default/docker, if any"
+    sudo sed -i '/^DOCKER_OPTS/d' "/etc/default/docker"
+
     echo "appending DOCKER_OPTS to /etc/default/docker"
     sudo sh -c "echo '$SHIPPABLE_DOCKER_OPTS' >> /etc/default/docker"
     docker_restart=true
