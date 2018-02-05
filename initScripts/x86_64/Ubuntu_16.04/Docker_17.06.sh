@@ -143,26 +143,10 @@ docker_install() {
 
 check_docker_opts() {
   # SHIPPABLE docker options required for every node
-  echo "Checking docker options"
+  echo "Adding docker options"
 
-  SHIPPABLE_DOCKER_OPTS='DOCKER_OPTS="$DOCKER_OPTS -H unix:///var/run/docker.sock -g=/data"'
-  opts_exist=$(sh -c "grep '$SHIPPABLE_DOCKER_OPTS' /etc/default/docker || echo ''")
-
-  # DOCKER_OPTS do not exist or match.
-  if [ -z "$opts_exist" ]; then
-    echo "Removing existing DOCKER_OPTS in /etc/default/docker, if any"
-    sed -i '/^DOCKER_OPTS/d' "/etc/default/docker"
-
-    echo "Appending DOCKER_OPTS to /etc/default/docker"
-    sh -c "echo '$SHIPPABLE_DOCKER_OPTS' >> /etc/default/docker"
-    docker_restart=true
-  else
-    echo "Shippable docker options already present in /etc/default/docker"
-  fi
-
-  ## remove the docker option to listen on all ports
-  echo "Disabling docker tcp listener"
-  sh -c "sed -e s/\"-H tcp:\/\/0.0.0.0:4243\"//g -i /etc/default/docker"
+  echo '{"graph": "/data", "storage-driver": "aufs"}' > /etc/docker/daemon.json
+  docker_restart=true
 }
 
 restart_docker_service() {
