@@ -142,7 +142,7 @@ function get_resource_version_name([string] $resource) {
     if (-not $resource) {
         throw "Usage: shipctl get_resource_version_name RESOURCE"
     }
-    $key = _get_key_name $resource "_VERSIONNAME"
+    $key = _get_key_name $resource "VERSIONNAME"
     return _get_env_value $key
 }
 
@@ -150,7 +150,7 @@ function get_resource_version_id([string] $resource) {
     if (-not $resource) {
         throw "Usage: shipctl get_resource_version_id RESOURCE"
     }
-    $key = _get_key_name $resource "_VERSIONID"
+    $key = _get_key_name $resource "VERSIONID"
     return _get_env_value $key
 }
 
@@ -158,7 +158,7 @@ function get_resource_version_number([string] $resource) {
     if (-not $resource) {
         throw "Usage: shipctl get_resource_version_number RESOURCE"
     }
-    $key = _get_key_name $resource "_VERSIONNUMBER"
+    $key = _get_key_name $resource "VERSIONNUMBER"
     return _get_env_value $key
 }
 
