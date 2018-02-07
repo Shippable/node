@@ -24,6 +24,8 @@ check_init_input() {
     'EXEC_IMAGE'
     'REQKICK_DIR'
     'IS_SWAP_ENABLED'
+    'REQKICK_DOWNLOAD_URL'
+    'CEXEC_DOWNLOAD_URL'
   )
 
   check_envs "${expected_envs[@]}"
@@ -204,7 +206,7 @@ install_ntp() {
 }
 
 fetch_cexec() {
-  __process_marker "Pulling cexec"
+  __process_marker "Fetching cexec..."
   local cexec_tar_file="cexec.tar.gz"
 
   if [ -d "$LEGACY_CI_CEXEC_LOCATION_ON_HOST" ]; then
@@ -225,7 +227,7 @@ pull_reqProc() {
 }
 
 fetch_reqKick() {
-  __process_marker "Cloning reqKick..."
+  __process_marker "Fetching reqKick..."
   local reqKick_tar_file="reqKick.tar.gz"
 
   rm -rf $REQKICK_DIR
