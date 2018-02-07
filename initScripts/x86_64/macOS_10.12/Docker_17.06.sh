@@ -123,9 +123,17 @@ boot_reqProc() {
 boot_reqKick() {
   __process_marker "Booting up reqKick service..."
 
-  git clone https://github.com/Shippable/reqKick.git $REQKICK_DIR
+  local reqKick_tar_file="reqKick.tar.gz"
+
+  rm -rf $REQKICK_DIR
+  rm -rf $reqKick_tar_file
+  pushd /tmp
+    curl -LkSsv $REQKICK_DOWNLOAD_URL -o $reqKick_tar_file
+    mkdir -p $REQKICK_DIR
+    tar -xzf $reqKick_tar_file -C $REQKICK_DIR --strip-components=1
+    rm -rf $reqKick_tar_file
+  popd
   pushd $REQKICK_DIR
-    git checkout $SHIPPABLE_RELEASE_VERSION
     npm install
 
     local reqkick_template_dir="$REQKICK_DIR/init/$NODE_ARCHITECTURE/$NODE_OPERATING_SYSTEM"
