@@ -354,15 +354,19 @@ remove_reqKick() {
   systemctl daemon-reload
 }
 
-pull_cexec() {
-  __process_marker "Pulling cexec"
+fetch_cexec() {
+  __process_marker "Fetching cexec..."
+  local cexec_tar_file="cexec.tar.gz"
+
   if [ -d "$LEGACY_CI_CEXEC_LOCATION_ON_HOST" ]; then
     exec_cmd "rm -rf $LEGACY_CI_CEXEC_LOCATION_ON_HOST"
   fi
-  exec_cmd "git clone https://github.com/Shippable/cexec.git $LEGACY_CI_CEXEC_LOCATION_ON_HOST"
-  __process_msg "Checking out tag: $SHIPPABLE_RELEASE_VERSION in $LEGACY_CI_CEXEC_LOCATION_ON_HOST"
-  pushd $LEGACY_CI_CEXEC_LOCATION_ON_HOST
-  exec_cmd "git checkout $SHIPPABLE_RELEASE_VERSION"
+  rm -rf $cexec_tar_file
+  pushd /tmp
+    wget $CEXEC_DOWNLOAD_URL -O $cexec_tar_file
+    mkdir -p $LEGACY_CI_CEXEC_LOCATION_ON_HOST
+    tar -xzf $cexec_tar_file -C $LEGACY_CI_CEXEC_LOCATION_ON_HOST --strip-components=1
+    rm -rf $cexec_tar_file
   popd
 }
 
@@ -375,9 +379,17 @@ boot_reqProc() {
 
 boot_reqKick() {
   __process_marker "Booting up reqKick service..."
-  git clone https://github.com/Shippable/reqKick.git $REQKICK_DIR
+  local reqKick_tar_file="reqKick.tar.gz"
+
+  rm -rf $REQKICK_DIR
+  rm -rf $reqKick_tar_file
+  pushd /tmp
+    wget $REQKICK_DOWNLOAD_URL -O $reqKick_tar_file
+    mkdir -p $REQKICK_DIR
+    tar -xzf $reqKick_tar_file -C $REQKICK_DIR --strip-components=1
+    rm -rf $reqKick_tar_file
+  popd
   pushd $REQKICK_DIR
-  git checkout $SHIPPABLE_RELEASE_VERSION
   npm install
 
   mkdir -p $REQKICK_CONFIG_DIR
@@ -461,7 +473,7 @@ main() {
   exec_grp "remove_reqKick"
 
   trap before_exit EXIT
-  exec_grp "pull_cexec"
+  exec_grp "fetch_cexec"
 
   trap before_exit EXIT
   exec_grp "boot_reqProc"
