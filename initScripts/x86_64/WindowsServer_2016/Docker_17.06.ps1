@@ -222,9 +222,21 @@ Function boot_reqProc() {
 Function boot_reqKick() {
   echo "Booting up reqKick service..."
 
-  git clone https://github.com/Shippable/reqKick.git $REQKICK_DIR
+  $reqKick_tar_download_location="$env:TEMP/reqKick.tar.gz"
+  Invoke-RestMethod "$REQKICK_DOWNLOAD_URL" `
+    -OutFile $reqKick_tar_download_location
+
+  gzip -df $reqKick_tar_download_location
+  $reqKick_tar=($reqKick_tar_download_location).replace(".gz", "").replace("\", "/")
+  pushd "$env:TEMP/"
+  tar -xf "$reqKick_tar" --force-local
+  mv reqKick-$SHIPPABLE_RELEASE_VERSION/* $REQKICK_DIR
+  Remove-Item -recur -force reqKick-$SHIPPABLE_RELEASE_VERSION
+  Remove-Item -recur -force $reqKick_tar_download_location -ErrorAction SilentlyContinue
+  Remove-Item -recur -force $reqKick_tar -ErrorAction SilentlyContinue
+  popd
+
   pushd $REQKICK_DIR
-  git checkout $SHIPPABLE_RELEASE_VERSION
   npm install
 
   $reqkick_env_template = "$REQKICK_SERVICE_DIR/shippable-reqKick@.yml.template"
