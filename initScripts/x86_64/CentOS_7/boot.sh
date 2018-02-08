@@ -41,6 +41,8 @@ check_input() {
     'SHIPPABLE_AMQP_URL'
     'SHIPPABLE_API_URL'
     'SHIPPABLE_RELEASE_VERSION'
+    'REQKICK_DOWNLOAD_URL'
+    'CEXEC_DOWNLOAD_URL'
   )
 
   check_envs "${expected_envs[@]}"
