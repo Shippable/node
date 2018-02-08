@@ -230,7 +230,7 @@ Function boot_reqKick() {
   $reqKick_tar=($reqKick_tar_download_location).replace(".gz", "").replace("\", "/")
   pushd "$env:TEMP/"
   tar -xf "$reqKick_tar" --force-local
-  mv reqKick-$SHIPPABLE_RELEASE_VERSION/* $REQKICK_DIR
+  mv reqKick-master/* $REQKICK_DIR
   Remove-Item -recur -force reqKick-master
   Remove-Item -recur -force $reqKick_tar_download_location -ErrorAction SilentlyContinue
   Remove-Item -recur -force $reqKick_tar -ErrorAction SilentlyContinue
