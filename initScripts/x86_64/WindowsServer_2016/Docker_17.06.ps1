@@ -231,7 +231,7 @@ Function boot_reqKick() {
   pushd "$env:TEMP/"
   tar -xf "$reqKick_tar" --force-local
   mv reqKick-$SHIPPABLE_RELEASE_VERSION/* $REQKICK_DIR
-  Remove-Item -recur -force reqKick-$SHIPPABLE_RELEASE_VERSION
+  Remove-Item -recur -force reqKick-master
   Remove-Item -recur -force $reqKick_tar_download_location -ErrorAction SilentlyContinue
   Remove-Item -recur -force $reqKick_tar -ErrorAction SilentlyContinue
   popd
