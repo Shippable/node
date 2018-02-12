@@ -74,12 +74,15 @@ Function install_prereqs() {
     Install-Package -ProviderName ChocolateyGet -Name git -Force
   }
 
+  Write-Output "Checking for nssm"
+  $nssm_package = Get-Package nssm -provider ChocolateyGet -ErrorAction SilentlyContinue
+  if (!$nssm_package) {
+    Write-Output "Installing nssm"
+    Install-Package -ProviderName ChocolateyGet -Name nssm -Force
+  }
+
   Write-Output "Refreshing PATH"
   $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "User")
-
-  Write-Output "Installing global node packages"
-  npm install pm2 pm2-windows-startup -g
-  pm2-startup install
 
   Write-Output "Installing shipctl"
   & "$NODE_SHIPCTL_LOCATION/$NODE_ARCHITECTURE/$NODE_OPERATING_SYSTEM/install.ps1"
@@ -139,7 +142,17 @@ Function check_docker_opts() {
 Function remove_reqKick() {
   Write-Output "Remove existing reqKick"
 
-  pm2 delete all /shippable-reqKick*/
+  # remove pm2 managed reqkick services
+  if (Get-Command "pm2" -ErrorAction SilentlyContinue)
+  {
+    pm2 delete all /shippable-reqKick*/
+  }
+
+  # remove nssm managed reqkick services
+  Get-Service shippable-reqkick-* | %{
+    nssm stop $_.Name
+    nssm remove $_.Name confirm
+  }
 }
 
 Function remove_reqProc() {
@@ -240,26 +253,22 @@ Function boot_reqKick() {
   pushd $REQKICK_DIR
   npm install
 
-  $reqkick_env_template = "$REQKICK_SERVICE_DIR/shippable-reqKick@.yml.template"
-  New-Item -ItemType Directory -Force -Path $REQKICK_CONFIG_DIR
-  $reqkick_env = "$REQKICK_CONFIG_DIR/shippable-reqKick.yml"
+  $service_name = "shippable-reqkick-$BASE_UUID"
 
-  if (!(Test-Path "$reqkick_env_template")) {
-    Write-Error "Reqkick env template file not found: $reqkick_env_template"
-    exit -1
-  }
+  # Create stdout and stderr files for reqkick service
+  $stdout_file = "$REQKICK_DIR\$service_name.out"
+  $stderr_file = "$REQKICK_DIR\$service_name.err"
+  echo "" | Out-File -Encoding utf8 $stdout_file
+  echo "" | Out-File -Encoding utf8 $stderr_file
 
-  Write-Output "Writing reqKick specific envs to $reqkick_env"
-  $template=(Get-Content $reqkick_env_template)
-  $template=$template.replace("{{UUID}}", $BASE_UUID)
-  $template=$template.replace("{{STATUS_DIR}}", $STATUS_DIR)
-  $template=$template.replace("{{SCRIPTS_DIR}}", $SCRIPTS_DIR)
-  $template=$template.replace("{{RUN_MODE}}", $RUN_MODE)
-  $template=$template.replace("{{REQEXEC_BIN_PATH}}", $REQEXEC_BIN_PATH)
-  $template=$template.replace("{{REQKICK_DIR}}", $REQKICK_DIR) | Set-Content $reqkick_env
+  $nodejs_exe_path =  Get-Command "node" | Select-Object -ExpandProperty Definition
 
-  pm2 start $REQKICK_CONFIG_DIR/shippable-reqKick.yml
-  pm2 save
+  nssm install $service_name $nodejs_exe_path "$REQKICK_DIR\reqKick.app.js"
+  nssm set $service_name AppEnvironmentExtra STATUS_DIR="$STATUS_DIR" SCRIPTS_DIR="$SCRIPTS_DIR" RUN_MODE="$RUN_MODE" REQEXEC_BIN_PATH="$REQEXEC_BIN_PATH"
+  nssm set $service_name AppStdout $stdout_file
+  nssm set $service_name AppStderr $stderr_file
+  nssm start $service_name
+
   popd
 }
 
