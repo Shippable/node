@@ -179,6 +179,68 @@ check_docker_opts() {
   sh -c "sed -e s/\"-H tcp:\/\/0.0.0.0:4243\"//g -i /etc/default/docker"
 }
 
+check_proxy_envs() {
+  if [ ! -z "$SHIPPABLE_HTTP_PROXY" ]; then
+    http_proxy_env="export http_proxy=\"$SHIPPABLE_HTTP_PROXY\""
+    http_proxy_exists=$(grep "^$http_proxy_env$" /etc/default/docker || echo "")
+    if [ -z "$http_proxy_exists" ]; then
+      __process_msg "Configuring docker http_proxy"
+      sed -i '/^export http_proxy/d' /etc/default/docker
+      echo "$http_proxy_env" >> /etc/default/docker
+      docker_restart=true
+    fi
+  else
+    # Clean up any env configured already if we do not find it in our
+    # environment
+    http_proxy_exists=$(grep "^export http_proxy=" /etc/default/docker || echo "")
+    if [ ! -z "$http_proxy_exists" ]; then
+      __process_msg "Removing docker http_proxy"
+      sed -i '/^export http_proxy/d' /etc/default/docker
+      docker_restart=true
+    fi
+  fi
+
+  if [ ! -z "$SHIPPABLE_HTTPS_PROXY" ]; then
+    https_proxy_env="export https_proxy=\"$SHIPPABLE_HTTPS_PROXY\""
+    https_proxy_exists=$(grep "^$https_proxy_env$" /etc/default/docker || echo "")
+    if [ -z "$https_proxy_exists" ]; then
+      __process_msg "Configuring docker https_proxy"
+      sed -i '/^export https_proxy/d' /etc/default/docker
+      echo "$https_proxy_env" >> /etc/default/docker
+      docker_restart=true
+    fi
+  else
+    # Clean up any env configured already if we do not find it in our
+    # environment
+    https_proxy_exists=$(grep "^export https_proxy=" /etc/default/docker || echo "")
+    if [ ! -z "$https_proxy_exists" ]; then
+      __process_msg "Removing docker https_proxy"
+      sed -i '/^export https_proxy/d' /etc/default/docker
+      docker_restart=true
+    fi
+  fi
+
+  if [ ! -z "$SHIPPABLE_NO_PROXY" ]; then
+    no_proxy_env="export no_proxy=\"$SHIPPABLE_NO_PROXY\""
+    no_proxy_exists=$(grep "^$no_proxy_env$" /etc/default/docker || echo "")
+    if [ -z "$no_proxy_exists" ]; then
+      __process_msg "Configuring docker no_proxy"
+      sed -i '/^export no_proxy/d' /etc/default/docker
+      echo "$no_proxy_env" >> /etc/default/docker
+      docker_restart=true
+    fi
+  else
+    # Clean up any env configured already if we do not find it in our
+    # environment
+    no_proxy_exists=$(grep "^export no_proxy=" /etc/default/docker || echo "")
+    if [ ! -z "$no_proxy_exists" ]; then
+      __process_msg "Removing docker no_proxy"
+      sed -i '/^export no_proxy/d' /etc/default/docker
+      docker_restart=true
+    fi
+  fi
+}
+
 restart_docker_service() {
   echo "checking if docker restart is necessary"
   if [ $docker_restart == true ]; then
@@ -285,6 +347,9 @@ main() {
 
     trap before_exit EXIT
     exec_grp "check_docker_opts"
+
+    trap before_exit EXIT
+    exec_grp "check_proxy_envs"
 
     trap before_exit EXIT
     exec_grp "restart_docker_service"
