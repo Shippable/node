@@ -140,6 +140,21 @@ setup_envs() {
     -e SHIPPABLE_NODE_ARCHITECTURE=$NODE_ARCHITECTURE \
     -e SHIPPABLE_NODE_OPERATING_SYSTEM=$NODE_OPERATING_SYSTEM \
     -e SHIPPABLE_RELEASE_VERSION=$SHIPPABLE_RELEASE_VERSION"
+
+    if [ ! -z "$SHIPPABLE_HTTP_PROXY" ]; then
+      REQPROC_ENVS="$REQPROC_ENVS \
+        -e http_proxy=$SHIPPABLE_HTTP_PROXY"
+    fi
+
+    if [ ! -z "$SHIPPABLE_HTTPS_PROXY" ]; then
+      REQPROC_ENVS="$REQPROC_ENVS \
+        -e https_proxy=$SHIPPABLE_HTTPS_PROXY"
+    fi
+
+    if [ ! -z "$SHIPPABLE_NO_PROXY" ]; then
+      REQPROC_ENVS="$REQPROC_ENVS \
+        -e no_proxy=$SHIPPABLE_NO_PROXY"
+    fi
 }
 
 setup_opts() {
