@@ -153,62 +153,31 @@ docker_install() {
 }
 
 check_docker_opts() {
-  # SHIPPABLE docker options required for every node
-  echo "Checking docker options"
+  echo "Adding docker options"
+  mkdir -p /etc/docker
+  echo '{"graph": "/data"}' > /etc/docker/daemon.json
+  docker_restart=true
+}
 
-  SHIPPABLE_DOCKER_CONFIGURATION='{"data-root":"/data"}'
+add_docker_proxy_envs() {
+  mkdir -p /etc/systemd/system/docker.service.d
+  proxy_envs="[Service]\nEnvironment="
 
-  # daemon.json is not present
-  if [ ! -f /etc/docker/daemon.json ]; then
-    touch /etc/docker/daemon.json
+  if [ ! -z "$SHIPPABLE_HTTP_PROXY" ]; then
+    proxy_envs="$proxy_envs \"HTTP_PROXY=$SHIPPABLE_HTTP_PROXY\""
   fi
 
-  touch temp_ship_docker_config
-  echo $SHIPPABLE_DOCKER_CONFIGURATION > temp_ship_docker_config
-  local write_daemon_config=false
-  {
-    diff temp_ship_docker_config /etc/docker/daemon.json > /dev/null
-  } ||
-  {
-    write_daemon_config=true
-  }
-  if [ "$write_daemon_config" = true ]; then
-    echo $SHIPPABLE_DOCKER_CONFIGURATION > /etc/docker/daemon.json
-    docker_restart=true
+  if [ ! -z "$SHIPPABLE_HTTPS_PROXY" ]; then
+    proxy_envs="$proxy_envs \"HTTPS_PROXY=$SHIPPABLE_HTTPS_PROXY\""
   fi
 
-  rm temp_ship_docker_config
-
-  SHIPPABLE_DOCKER_OPTS='DOCKER_OPTS="--config-file /etc/docker/daemon.json"'
-  opts_exist=$(grep "$SHIPPABLE_DOCKER_OPTS" /etc/default/docker || echo '')
-
-  # DOCKER_OPTS do not exist or match.
-  if [ -z "$opts_exist" ]; then
-    echo "Removing existing DOCKER_OPTS in /etc/default/docker, if any"
-    sed -i '/^DOCKER_OPTS/d' "/etc/default/docker"
-
-    echo "Appending DOCKER_OPTS to /etc/default/docker"
-    sh -c "echo '$SHIPPABLE_DOCKER_OPTS' >> /etc/default/docker"
-    docker_restart=true
-  else
-    echo "Shippable docker options already present in /etc/default/docker"
+  if [ ! -z "$SHIPPABLE_NO_PROXY" ]; then
+    proxy_envs="$proxy_envs \"NO_PROXY=$SHIPPABLE_NO_PROXY\""
   fi
 
-  if [ ! -f /etc/systemd/system/docker.service ]; then
-    touch /etc/systemd/system/docker.service
-    curl https://raw.githubusercontent.com/moby/moby/master/contrib/init/systemd/docker.service > /etc/systemd/system/docker.service
-    docker_restart=true
-  fi
-
-  if [ ! -f /etc/systemd/system/docker.socket ]; then
-    touch /etc/systemd/system/docker.socket
-    curl https://raw.githubusercontent.com/moby/moby/master/contrib/init/systemd/docker.socket > /etc/systemd/system/docker.socket
-    docker_restart=true
-  fi
-
-  ## remove the docker option to listen on all ports
-  echo "Disabling docker tcp listener"
-  sh -c "sed -e s/\"-H tcp:\/\/0.0.0.0:4243\"//g -i /etc/default/docker"
+  echo -e "$proxy_envs" > /etc/systemd/system/docker.service.d/proxy.conf
+  # Maybe don't restart always. We seem to restart in check_docker_opts always anyway, so leaving this is a future enhancement.
+  docker_restart=true
 }
 
 restart_docker_service() {
@@ -303,6 +272,21 @@ setup_envs() {
     -e SHIPPABLE_NODE_OPERATING_SYSTEM=$NODE_OPERATING_SYSTEM \
     -e SHIPPABLE_RELEASE_VERSION=$SHIPPABLE_RELEASE_VERSION \
     -e SHIPPABLE_NODE_SCRIPTS_LOCATION=$NODE_SCRIPTS_LOCATION"
+
+  if [ ! -z "$SHIPPABLE_HTTP_PROXY" ]; then
+    REQPROC_ENVS="$REQPROC_ENVS \
+      -e http_proxy=$SHIPPABLE_HTTP_PROXY"
+  fi
+
+  if [ ! -z "$SHIPPABLE_HTTPS_PROXY" ]; then
+    REQPROC_ENVS="$REQPROC_ENVS \
+      -e https_proxy=$SHIPPABLE_HTTPS_PROXY"
+  fi
+
+  if [ ! -z "$SHIPPABLE_NO_PROXY" ]; then
+    REQPROC_ENVS="$REQPROC_ENVS \
+      -e no_proxy=$SHIPPABLE_NO_PROXY"
+  fi
 }
 
 setup_opts() {
@@ -448,6 +432,11 @@ main() {
 
   trap before_exit EXIT
   exec_grp "check_docker_opts"
+
+  if [ ! -z "$SHIPPABLE_HTTP_PROXY" ] || [ ! -z "$SHIPPABLE_HTTPS_PROXY" ] || [ ! -z "$SHIPPABLE_NO_PROXY" ]; then
+    trap before_exit EXIT
+    exec_grp "add_docker_proxy_envs"
+  fi
 
   trap before_exit EXIT
   exec_grp "restart_docker_service"
