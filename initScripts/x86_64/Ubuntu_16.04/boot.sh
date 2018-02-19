@@ -106,7 +106,8 @@ setup_mounts() {
 
   DEFAULT_TASK_CONTAINER_MOUNTS="$DEFAULT_TASK_CONTAINER_MOUNTS \
     -v /opt/docker/docker:/usr/bin/docker \
-    -v /var/run/docker.sock:/var/run/docker.sock"
+    -v /var/run/docker.sock:/var/run/docker.sock \
+    -v $NODE_SCRIPTS_LOCATION:/var/lib/shippable/node"
 }
 
 setup_envs() {
