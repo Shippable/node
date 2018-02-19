@@ -34,14 +34,14 @@ Function install_prereqs() {
   $git_package = Get-Package git -provider ChocolateyGet -ErrorAction SilentlyContinue
   if (!$git_package) {
     Write-Output "Installing git"
-    Install-Package -ProviderName ChocolateyGet -Name git -Force
+    choco install -y git
   }
 
   Write-Output "Checking for nssm"
   $nssm_package = Get-Package nssm -provider ChocolateyGet -ErrorAction SilentlyContinue
   if (!$nssm_package) {
     Write-Output "Installing nssm"
-    Install-Package -ProviderName ChocolateyGet -Name nssm -Force
+    choco install -y nssm
   }
 
   Write-Output "Refreshing PATH"
