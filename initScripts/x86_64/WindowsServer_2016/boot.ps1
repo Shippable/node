@@ -85,15 +85,21 @@ Function remove_reqKick() {
   }
 
   # remove nssm managed reqkick services
-  Get-Service shippable-reqkick-* | %{
-    nssm stop $_.Name
-    nssm remove $_.Name confirm
+  if (Get-Command "nssm" -ErrorAction SilentlyContinue)
+  {
+    Get-Service shippable-reqkick-* | %{
+      nssm stop $_.Name
+      nssm remove $_.Name confirm
+    }
   }
 }
 
 Function remove_reqProc() {
   Write-Output "Remove existing reqProc containers"
-  docker ps -a --filter "NAME=$REQPROC_CONTAINER_NAME_PATTERN" --format '{{.Names}}' | %{ docker rm -f $_ }
+  if (Get-Command "docker" -ErrorAction SilentlyContinue)
+  {
+    docker ps -a --filter "NAME=$REQPROC_CONTAINER_NAME_PATTERN" --format '{{.Names}}' | %{ docker rm -f $_ }
+  }
 }
 
 Function setup_dirs() {
