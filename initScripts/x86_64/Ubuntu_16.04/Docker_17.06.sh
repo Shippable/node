@@ -8,6 +8,11 @@ set -o pipefail
 readonly DOCKER_VERSION="17.06.0"
 readonly SWAP_FILE_PATH="/root/.__sh_swap__"
 export docker_restart=false
+export install_docker_only="$install_docker_only"
+
+if [ -z "$install_docker_only" ]; then
+  install_docker_only="false"
+fi
 
 check_init_input() {
   local expected_envs=(
@@ -31,8 +36,8 @@ create_shippable_dir() {
   exec_cmd "$create_dir_cmd"
 }
 
-install_prereqs() {
-  echo "Installing prerequisite binaries"
+install_docker_prereqs() {
+  echo "Installing docker prerequisites"
 
   update_cmd="apt-get update"
   exec_cmd "$update_cmd"
@@ -45,6 +50,13 @@ install_prereqs() {
 
   add_docker_repo='add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"'
   exec_cmd "$add_docker_repo"
+
+  update_cmd="apt-get update"
+  exec_cmd "$update_cmd"
+}
+
+install_prereqs() {
+  echo "Installing prerequisite binaries"
 
   pushd /tmp
   echo "Installing node 4.8.5"
@@ -245,44 +257,61 @@ before_exit() {
 }
 
 main() {
-  check_init_input
-
-  trap before_exit EXIT
-  exec_grp "create_shippable_dir"
-
-  trap before_exit EXIT
-  exec_grp "install_prereqs"
-
-  if [ "$IS_SWAP_ENABLED" == "true" ]; then
+  if [ "$install_docker_only" == "true" ]; then
     trap before_exit EXIT
-    exec_grp "initialize_swap"
-  fi
+    exec_grp "install_docker_prereqs"
 
-  trap before_exit EXIT
-  exec_grp "docker_install"
-
-  trap before_exit EXIT
-  exec_grp "check_docker_opts"
-
-  if [ ! -z "$SHIPPABLE_HTTP_PROXY" ] || [ ! -z "$SHIPPABLE_HTTPS_PROXY" ] || [ ! -z "$SHIPPABLE_NO_PROXY" ]; then
     trap before_exit EXIT
-    exec_grp "add_docker_proxy_envs"
+    exec_grp "docker_install"
+
+    trap before_exit EXIT
+    exec_grp "check_docker_opts"
+
+    trap before_exit EXIT
+    exec_grp "restart_docker_service"
+  else
+    check_init_input
+
+    trap before_exit EXIT
+    exec_grp "create_shippable_dir"
+
+    trap before_exit EXIT
+    exec_grp "install_docker_prereqs"
+
+    trap before_exit EXIT
+    exec_grp "install_prereqs"
+
+    if [ "$IS_SWAP_ENABLED" == "true" ]; then
+      trap before_exit EXIT
+      exec_grp "initialize_swap"
+    fi
+
+    trap before_exit EXIT
+    exec_grp "docker_install"
+
+    trap before_exit EXIT
+    exec_grp "check_docker_opts"
+
+    if [ ! -z "$SHIPPABLE_HTTP_PROXY" ] || [ ! -z "$SHIPPABLE_HTTPS_PROXY" ] || [ ! -z "$SHIPPABLE_NO_PROXY" ]; then
+      trap before_exit EXIT
+      exec_grp "add_docker_proxy_envs"
+    fi
+
+    trap before_exit EXIT
+    exec_grp "restart_docker_service"
+
+    trap before_exit EXIT
+    exec_grp "install_ntp"
+
+    trap before_exit EXIT
+    exec_grp "fetch_cexec"
+
+    trap before_exit EXIT
+    exec_grp "pull_reqProc"
+
+    trap before_exit EXIT
+    exec_grp "fetch_reqKick"
   fi
-
-  trap before_exit EXIT
-  exec_grp "restart_docker_service"
-
-  trap before_exit EXIT
-  exec_grp "install_ntp"
-
-  trap before_exit EXIT
-  exec_grp "fetch_cexec"
-
-  trap before_exit EXIT
-  exec_grp "pull_reqProc"
-
-  trap before_exit EXIT
-  exec_grp "fetch_reqKick"
 }
 
 main
