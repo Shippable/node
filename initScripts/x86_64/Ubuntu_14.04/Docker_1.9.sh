@@ -34,6 +34,7 @@ check_init_input() {
     'IS_SWAP_ENABLED'
     'REQKICK_DOWNLOAD_URL'
     'CEXEC_DOWNLOAD_URL'
+    'REPORTS_DOWNLOAD_URL'
   )
 
   check_envs "${expected_envs[@]}"
@@ -327,6 +328,17 @@ fetch_cexec() {
     mkdir -p $LEGACY_CI_CEXEC_LOCATION_ON_HOST
     tar -xzf $cexec_tar_file -C $LEGACY_CI_CEXEC_LOCATION_ON_HOST --strip-components=1
     rm -rf $cexec_tar_file
+  popd
+
+  # Download and extract reports bin file into a path that cexec expects it in
+  local reports_dir="$LEGACY_CI_CEXEC_LOCATION_ON_HOST/bin"
+  local reports_tar_file="reports.tar.gz"
+  rm -rf $reports_dir
+  mkdir -p $reports_dir
+  pushd $reports_dir
+    wget $REPORTS_DOWNLOAD_URL -O $reports_tar_file
+    tar -xf $reports_tar_file
+    rm -rf $reports_tar_file
   popd
 }
 
