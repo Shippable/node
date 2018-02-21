@@ -43,6 +43,7 @@ check_input() {
     'SHIPPABLE_RELEASE_VERSION'
     'REQKICK_DOWNLOAD_URL'
     'CEXEC_DOWNLOAD_URL'
+    'REPORTS_DOWNLOAD_URL'
   )
 
   check_envs "${expected_envs[@]}"
