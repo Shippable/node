@@ -179,9 +179,9 @@ function get_resource_version_key([string] $resource, [string] $versionKey) {
 
     $native_properties = "versionName", "versionId", "versionNumber"
     if ($native_properties.Contains($versionKey)) {
-        return get_json_value "$resVersionFile" "$versionKey"
+        return get_json_value "$resVersionFile" "version.$versionKey"
     } else {
-        return get_json_value "$resVersionFile" "propertyBag.$versionKey"
+        return get_json_value "$resVersionFile" "version.propertyBag.$versionKey"
     }
 }
 
