@@ -4,11 +4,14 @@ JDK_VERSION=$2
 
 export_java_path() {
   directory=$1;
+  echo "hello printing directory: $directory"
   if [ -d "$directory" ]; then
     export JAVA_HOME="$directory";
     export PATH="$PATH:$directory/bin";
+    echo "java home $JAVA_HOME"
+    echo "path $PATH"
   else
-    echo "$JDK_VERSION is not supported on this image"
+    echo "$JDK_VERSION is not supported on this image 1"
     exit 99
   fi
 }
@@ -18,7 +21,7 @@ set_java_path() {
   if [ -f $java_path ]; then
     sudo update-alternatives --set java $java_path
   else
-    echo "$JDK_VERSION is not supported on this image"
+    echo "$JDK_VERSION is not supported on this image 2"
     exit 99
   fi
 }
@@ -28,7 +31,7 @@ set_javac_path() {
   if [ -f $javac_path ]; then
     sudo update-alternatives --set javac $javac_path
   else
-    echo "$JDK_VERSION is not supported on this image"
+    echo "$JDK_VERSION is not supported on this image 3"
     exit 99
   fi
 }
