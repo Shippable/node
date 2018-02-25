@@ -44,7 +44,7 @@ shippable_jdk() {
   elif [ "$JDK_VERSION" == "openjdk8" ]; then
     export_java_path "/usr/lib/jvm/java-1.8.0-openjdk-1.8.0.161-0.b14.el7_4.x86_64";
     set_java_path "/usr/lib/jvm/java-1.8.0-openjdk-1.8.0.161-0.b14.el7_4.x86_64/jre/bin/java";
-    set_javac_path "/usr/lib/jvm/java-1.8.0-openjdk-1.8.0.161-0.b14.el7_4.x86_64/bin/javac";
+    set_javac_path "/usr/java/jdk1.8.0_161/bin/javac";
   elif [ "$JDK_VERSION" == "openjdk9" ]; then
     export_java_path "/usr/lib/jvm/java-9-openjdk-9.0.0.163-1.el7.centos.x86_64";
     set_java_path "/usr/lib/jvm/java-9-openjdk-9.0.0.163-1.el7.centos.x86_64/bin/java";
