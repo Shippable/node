@@ -16,6 +16,9 @@ cp $SRC_DIR/shippable_retry /usr/local/bin/shippable_retry
 echo "Installing shippable_replace"
 cp $SRC_DIR/shippable_replace /usr/local/bin/shippable_replace
 
+echo "Installing shippable_jdk"
+cp $SRC_DIR/shippable_jdk /usr/local/bin/shippable_jdk
+
 echo "Installing shipctl"
 cp $SRC_DIR/shipctl /usr/local/bin/shipctl
 
