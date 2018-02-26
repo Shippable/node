@@ -18,7 +18,9 @@ execute_shipctl_command() {
   fi
 }
 
-if [ "$shipctl_command" == "retry" ]; then
+if [ "$shipctl_command" == "jdk" ]; then
+  execute_shipctl_command shippable_jdk $arguments
+elif [ "$shipctl_command" == "retry" ]; then
   execute_shipctl_command shippable_retry $arguments
 elif [ "$shipctl_command" == "decrypt" ]; then
   execute_shipctl_command shippable_decrypt $arguments
