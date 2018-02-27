@@ -51,6 +51,14 @@ Function install_prereqs() {
   & "$NODE_SHIPCTL_LOCATION/$NODE_ARCHITECTURE/$NODE_OPERATING_SYSTEM/install.ps1"
 }
 
+Function add_firewall_rule() {
+  $existingFWRule = Get-NetFirewallRule -DisplayName shippable-docker -ErrorAction SilentlyContinue
+
+  if (!($ExistingFWRule)) {
+    New-NetFirewallRule -DisplayName shippable-docker -Action allow -Direction Inbound -LocalPort 2375 -Protocol TCP
+  }
+}
+
 Function docker_install() {
   Write-Output "Installing DockerProvider module"
   Install-Module DockerProvider -Force
@@ -127,6 +135,7 @@ Function fetch_reqKick() {
 create_shippable_dir
 check_win_containers_enabled
 install_prereqs
+add_firewall_rule
 docker_install
 check_docker_opts
 pull_reqProc
