@@ -55,11 +55,15 @@ Function install_prereqs() {
 }
 
 Function add_firewall_rule() {
-  $existingFWRule = Get-NetFirewallRule -DisplayName shippable-docker -ErrorAction SilentlyContinue
+  $existingFWRule = Get-NetFirewallRule -DisplayName $SHIPPABLE_FIREWALL_RULE_NAME -ErrorAction SilentlyContinue
 
-  if (!($ExistingFWRule)) {
-    New-NetFirewallRule -DisplayName shippable-docker -Action allow -Direction Inbound -LocalPort 2375 -Protocol TCP
+  if ($ExistingFWRule) {
+    Write-Output "Removing Windows Firewall rule: ${SHIPPABLE_FIREWALL_RULE_NAME}"
+    Remove-NetFirewallRule -DisplayName $SHIPPABLE_FIREWALL_RULE_NAME
   }
+
+  Write-Output "Adding new Windows Firewall rule: ${SHIPPABLE_FIREWALL_RULE_NAME}"
+  New-NetFirewallRule -DisplayName $SHIPPABLE_FIREWALL_RULE_NAME -Action allow -Direction Inbound -LocalPort 2375 -Protocol TCP
 }
 
 Function docker_install() {
@@ -115,7 +119,7 @@ Function check_docker_opts() {
 
 Function pull_reqProc() {
   Write-Output "Pulling reqProc..."
-  Write-Output "This process might take 10-15 minutes and occupy 15GB of storage space"
+  Write-Output "The docker pull operation may take up to 15 minutes to complete and use 15GB of storage."
   docker pull $EXEC_IMAGE
 }
 

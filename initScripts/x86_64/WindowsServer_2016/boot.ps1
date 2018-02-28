@@ -42,6 +42,7 @@ $REQKICK_DIR = "$BASE_DIR\reqKick"
 $CONTAINER_REQKICK_DIR = "$CONTAINER_BASE_DIR\reqKick"
 $REQKICK_SERVICE_DIR = "$REQKICK_DIR\init\$NODE_ARCHITECTURE\$NODE_OPERATING_SYSTEM"
 $REQKICK_CONFIG_DIR = "$SHIPPABLE_RUNTIME_DIR\config\reqKick"
+$REQKICK_SERVICE_NAME = "shippable-reqkick-$BASE_UUID"
 
 $BUILD_DIR = "$BASE_DIR\build"
 $CONTAINER_BUILD_DIR = "$CONTAINER_BASE_DIR\build"
@@ -63,6 +64,8 @@ $DEFAULT_TASK_CONTAINER_MOUNTS = "-v ${BUILD_DIR}:${CONTAINER_BUILD_DIR} -v ${RE
 $TASK_CONTAINER_COMMAND = "$CONTAINER_REQEXEC_DIR\$NODE_ARCHITECTURE\$NODE_OPERATING_SYSTEM\dist\main\main.exe"
 $DEFAULT_TASK_CONTAINER_OPTIONS = "-d --rm"
 $DOCKER_CLIENT_LATEST = "C:\Program Files\Docker\docker.exe"
+
+$SHIPPABLE_FIREWALL_RULE_NAME = "shippable-docker"
 
 # Helper functions
 
@@ -188,29 +191,28 @@ Function boot_reqKick() {
   echo "Booting up reqKick service..."
 
   pushd $REQKICK_DIR
-  $service_name = "shippable-reqkick-$BASE_UUID"
 
   # Create stdout and stderr files for reqkick service
-  $stdout_file = "$env:TEMP\$service_name.out"
-  $stderr_file = "$env:TEMP\$service_name.err"
+  $stdout_file = "$env:TEMP\$REQKICK_SERVICE_NAME.out"
+  $stderr_file = "$env:TEMP\$REQKICK_SERVICE_NAME.err"
   echo "" | Out-File -Encoding utf8 $stdout_file
   echo "" | Out-File -Encoding utf8 $stderr_file
 
   $nodejs_exe_path =  Get-Command "node" | Select-Object -ExpandProperty Definition
 
-  nssm install $service_name $nodejs_exe_path "$REQKICK_DIR\reqKick.app.js"
-  nssm set $service_name AppEnvironmentExtra STATUS_DIR="$STATUS_DIR" SCRIPTS_DIR="$SCRIPTS_DIR" RUN_MODE="$RUN_MODE" REQEXEC_BIN_PATH="$REQEXEC_BIN_PATH"
-  nssm set $service_name AppStdout $stdout_file
-  nssm set $service_name AppStderr $stderr_file
-  nssm start $service_name
+  nssm install $REQKICK_SERVICE_NAME $nodejs_exe_path "$REQKICK_DIR\reqKick.app.js"
+  nssm set $REQKICK_SERVICE_NAME AppEnvironmentExtra STATUS_DIR="$STATUS_DIR" SCRIPTS_DIR="$SCRIPTS_DIR" RUN_MODE="$RUN_MODE" REQEXEC_BIN_PATH="$REQEXEC_BIN_PATH"
+  nssm set $REQKICK_SERVICE_NAME AppStdout $stdout_file
+  nssm set $REQKICK_SERVICE_NAME AppStderr $stderr_file
+  nssm start $REQKICK_SERVICE_NAME
 
   popd
 }
 
 Function print_summary() {
   Write-Output "==== Summary ===="
-  Write-Output "- A firewall rule to allow connections on port 2375 was added"
-  Write-Output "- A new windows service (shippable-reqkick-*) was created"
+  Write-Output "- A firewall rule (${SHIPPABLE_FIREWALL_RULE_NAME}) to allow connections on port 2375 was added"
+  Write-Output "- A new windows service (${REQKICK_SERVICE_NAME}) was created"
 }
 
 check_required_envs($REQUIRED_ENVS)
