@@ -207,6 +207,12 @@ Function boot_reqKick() {
   popd
 }
 
+Function print_summary() {
+  Write-Output "==== Summary ===="
+  Write-Output "- A firewall rule to allow connections on port 2375 was added"
+  Write-Output "- A new windows service (shippable-reqkick-*) was created"
+}
+
 check_required_envs($REQUIRED_ENVS)
 remove_reqKick
 remove_reqProc
@@ -217,3 +223,4 @@ setup_envs
 setup_opts
 boot_reqProc
 boot_reqKick
+print_summary

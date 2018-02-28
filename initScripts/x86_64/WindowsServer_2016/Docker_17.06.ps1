@@ -115,6 +115,7 @@ Function check_docker_opts() {
 
 Function pull_reqProc() {
   Write-Output "Pulling reqProc..."
+  Write-Output "This process might take 10-15 minutes and occupy 15GB of storage space"
   docker pull $EXEC_IMAGE
 }
 
