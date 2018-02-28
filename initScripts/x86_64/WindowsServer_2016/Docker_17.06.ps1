@@ -20,6 +20,9 @@ Function check_win_containers_enabled() {
 }
 
 Function install_prereqs() {
+  Write-Output "Installing choco"
+  Set-ExecutionPolicy Bypass -Scope Process -Force; iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
+
   Write-Output "Enabling ChocolateyGet"
   Install-PackageProvider ChocolateyGet -Force
 
