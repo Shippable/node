@@ -20,6 +20,9 @@ Function check_win_containers_enabled() {
 }
 
 Function install_prereqs() {
+  Write-Output "Installing choco"
+  Set-ExecutionPolicy Bypass -Scope Process -Force; iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
+
   Write-Output "Enabling ChocolateyGet"
   Install-PackageProvider ChocolateyGet -Force
 
@@ -49,6 +52,18 @@ Function install_prereqs() {
 
   Write-Output "Installing shipctl"
   & "$NODE_SHIPCTL_LOCATION/$NODE_ARCHITECTURE/$NODE_OPERATING_SYSTEM/install.ps1"
+}
+
+Function add_firewall_rule() {
+  $existingFWRule = Get-NetFirewallRule -DisplayName $SHIPPABLE_FIREWALL_RULE_NAME -ErrorAction SilentlyContinue
+
+  if ($ExistingFWRule) {
+    Write-Output "Removing Windows Firewall rule: ${SHIPPABLE_FIREWALL_RULE_NAME}"
+    Remove-NetFirewallRule -DisplayName $SHIPPABLE_FIREWALL_RULE_NAME
+  }
+
+  Write-Output "Adding new Windows Firewall rule: ${SHIPPABLE_FIREWALL_RULE_NAME}"
+  New-NetFirewallRule -DisplayName $SHIPPABLE_FIREWALL_RULE_NAME -Action allow -Direction Inbound -LocalPort 2375 -Protocol TCP
 }
 
 Function docker_install() {
@@ -104,6 +119,7 @@ Function check_docker_opts() {
 
 Function pull_reqProc() {
   Write-Output "Pulling reqProc..."
+  Write-Output "The docker pull operation may take up to 15 minutes to complete and use 15GB of storage."
   docker pull $EXEC_IMAGE
 }
 
@@ -127,6 +143,7 @@ Function fetch_reqKick() {
 create_shippable_dir
 check_win_containers_enabled
 install_prereqs
+add_firewall_rule
 docker_install
 check_docker_opts
 pull_reqProc
