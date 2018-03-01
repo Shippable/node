@@ -160,7 +160,7 @@ check_docker_opts() {
   # SHIPPABLE docker options required for every node
   echo "Adding docker options"
   mkdir -p /etc/docker
-  echo '{"graph": "/data", "storage-driver": "aufs"}' > /etc/docker/daemon.json
+  echo '{"graph": "/data"}' > /etc/docker/daemon.json
   docker_restart=true
 }
 
