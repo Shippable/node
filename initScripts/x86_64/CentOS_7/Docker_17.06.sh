@@ -57,7 +57,7 @@ install_docker_prereqs() {
   update_cmd="yum check-update || true"
   exec_cmd "$update_cmd"
 
-  install_prereqs_cmd="yum -y install apt-transport-https git python-pip software-properties-common ca-certificates curl wget tar"
+  install_prereqs_cmd="yum -y install apt-transport-https git python-pip software-properties-common ca-certificates curl wget tar yum-utils"
   exec_cmd "$install_prereqs_cmd"
 
   add_docker_repo_keys='rpm --import https://download.docker.com/linux/centos/gpg'
