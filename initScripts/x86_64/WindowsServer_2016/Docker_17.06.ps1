@@ -4,12 +4,6 @@ $NODE_JS_VERSION = "4.8.5"
 $DOCKER_VERSION = "17.06.2-ee-5"
 $DOCKER_CONFIG_FILE="C:\ProgramData\Docker\config\daemon.json"
 
-Function create_shippable_dir() {
-  if (!(Test-Path $SHIPPABLE_RUNTIME_DIR)) {
-    mkdir -p "$SHIPPABLE_RUNTIME_DIR"
-  }
-}
-
 Function check_win_containers_enabled() {
   Write-Output "Checking if Windows Containers are enabled"
   $winConInstallState = (Get-WindowsFeature containers).InstallState
@@ -140,7 +134,6 @@ Function fetch_reqKick() {
   popd
 }
 
-create_shippable_dir
 check_win_containers_enabled
 install_prereqs
 add_firewall_rule
