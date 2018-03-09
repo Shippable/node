@@ -46,8 +46,12 @@ check_input() {
 
 export_envs() {
   export SHIPPABLE_RUNTIME_DIR="/var/lib/shippable"
-  export BASE_UUID="$(cat /proc/sys/kernel/random/uuid)"
-  export BASE_DIR="$SHIPPABLE_RUNTIME_DIR/$BASE_UUID"
+  if [ "$NODE_TYPE_CODE" -eq 7001 ]; then
+    export BASE_DIR="$SHIPPABLE_RUNTIME_DIR"
+  else
+    export BASE_UUID="$(cat /proc/sys/kernel/random/uuid)"
+    export BASE_DIR="$SHIPPABLE_RUNTIME_DIR/$BASE_UUID"
+  fi
   export REQPROC_DIR="$BASE_DIR/reqProc"
   export REQEXEC_DIR="$BASE_DIR/reqExec"
   export REQEXEC_BIN_PATH="$REQEXEC_DIR/$NODE_ARCHITECTURE/$NODE_OPERATING_SYSTEM/dist/main/main"
@@ -62,7 +66,11 @@ export_envs() {
   export REQPROC_OPTS=""
   export REQPROC_CONTAINER_NAME_PATTERN="reqProc"
   export EXEC_CONTAINER_NAME_PATTERN="shippable-exec"
-  export REQPROC_CONTAINER_NAME="$REQPROC_CONTAINER_NAME_PATTERN-$BASE_UUID"
+  if [ "$NODE_TYPE_CODE" -eq 7001 ]; then
+    export REQPROC_CONTAINER_NAME="$REQPROC_CONTAINER_NAME_PATTERN-$NODE_ID"
+  else
+    export REQPROC_CONTAINER_NAME="$REQPROC_CONTAINER_NAME_PATTERN-$BASE_UUID"
+  fi
   export REQKICK_SERVICE_NAME_PATTERN="shippable-reqKick@"
   export LEGACY_CI_CACHE_STORE_LOCATION="/home/shippable/cache"
   export LEGACY_CI_KEY_STORE_LOCATION="/tmp/ssh"
@@ -77,7 +85,9 @@ export_envs() {
 }
 
 setup_dirs() {
-  rm -rf $SHIPPABLE_RUNTIME_DIR
+  if [ "$NODE_TYPE_CODE" -ne 7001 ]; then
+    rm -rf $SHIPPABLE_RUNTIME_DIR
+  fi
   mkdir -p $BASE_DIR
   mkdir -p $REQPROC_DIR
   mkdir -p $REQEXEC_DIR
@@ -266,7 +276,9 @@ main() {
   trap before_exit EXIT
   exec_grp "setup_dirs"
 
-  initialize
+  if [ "$NODE_TYPE_CODE" -ne 7001 ]; then
+    initialize
+  fi
 
   trap before_exit EXIT
   exec_grp "setup_mounts"
