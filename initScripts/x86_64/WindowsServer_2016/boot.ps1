@@ -38,8 +38,8 @@ $CONTAINER_REQEXEC_DIR = "$CONTAINER_BASE_DIR\reqExec"
 $REQEXEC_BIN_DIR = "$BASE_DIR\reqExec"
 $REQEXEC_BIN_PATH = "$REQEXEC_BIN_DIR\$NODE_ARCHITECTURE\$NODE_OPERATING_SYSTEM\dist\main\main.exe"
 
-$REQKICK_DIR = "$BASE_DIR\reqKick"
-$CONTAINER_REQKICK_DIR = "$CONTAINER_BASE_DIR\reqKick"
+$REQKICK_DIR = "$env:USERPROFILE\reqKick"
+$CONTAINER_REQKICK_DIR = "$env:USERPROFILE\reqKick"
 $REQKICK_SERVICE_DIR = "$REQKICK_DIR\init\$NODE_ARCHITECTURE\$NODE_OPERATING_SYSTEM"
 $REQKICK_CONFIG_DIR = "$SHIPPABLE_RUNTIME_DIR\config\reqKick"
 $REQKICK_SERVICE_NAME = "shippable-reqkick-$BASE_UUID"
@@ -141,7 +141,8 @@ Function initialize() {
 }
 
 Function setup_mounts() {
-  $global:REQPROC_MOUNTS = " -v ${BASE_DIR}:${CONTAINER_BASE_DIR} "
+  $global:REQPROC_MOUNTS = " -v ${BASE_DIR}:${CONTAINER_BASE_DIR} " + `
+    "-v ${REQKICK_DIR}:${CONTAINER_REQKICK_DIR} "
 }
 
 Function setup_envs() {
@@ -219,7 +220,9 @@ check_required_envs($REQUIRED_ENVS)
 remove_reqKick
 remove_reqProc
 setup_dirs
-initialize
+if ($NODE_TYPE_CODE -ne 7001) {
+  initialize
+}
 setup_mounts
 setup_envs
 setup_opts

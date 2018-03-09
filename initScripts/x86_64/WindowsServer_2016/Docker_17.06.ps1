@@ -124,9 +124,10 @@ Function fetch_reqKick() {
   Invoke-RestMethod "$REQKICK_DOWNLOAD_URL" `
     -OutFile $reqKick_zip_download_location
 
-  if (!(Test-Path $REQKICK_DIR)) {
-    mkdir -p $REQKICK_DIR
+  if (Test-Path $REQKICK_DIR) {
+    Remove-Item -Recurse -Force $REQKICK_DIR
   }
+  mkdir -p $REQKICK_DIR
   Expand-Archive -LiteralPath $reqKick_zip_download_location -DestinationPath $REQKICK_DIR
 
   pushd $REQKICK_DIR
