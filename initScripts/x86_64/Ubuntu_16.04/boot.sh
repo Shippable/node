@@ -47,6 +47,7 @@ check_input() {
 export_envs() {
   export SHIPPABLE_RUNTIME_DIR="/var/lib/shippable"
   if [ "$NODE_TYPE_CODE" -eq 7001 ]; then
+    export BASE_UUID="$NODE_ID"
     export BASE_DIR="$SHIPPABLE_RUNTIME_DIR"
   else
     export BASE_UUID="$(cat /proc/sys/kernel/random/uuid)"
