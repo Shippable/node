@@ -235,6 +235,10 @@ boot_reqKick() {
   cp $REQKICK_SERVICE_DIR/shippable-reqKick@.service.template /etc/systemd/system/shippable-reqKick@.service
   chmod 644 /etc/systemd/system/shippable-reqKick@.service
 
+  if [ "$NODE_TYPE_CODE" -eq 7001 ]; then
+    sed -i "s#/var/lib/shippable/%i/reqKick/reqKick.app.js#/var/lib/shippable/reqKick/reqKick.app.js#g" /etc/systemd/system/shippable-reqKick@.service
+  fi
+
   local reqkick_env_template=$REQKICK_SERVICE_DIR/shippable-reqKick.env.template
   local reqkick_env_file=$REQKICK_CONFIG_DIR/$BASE_UUID.env
   touch $reqkick_env_file
