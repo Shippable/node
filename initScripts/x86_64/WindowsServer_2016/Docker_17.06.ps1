@@ -106,9 +106,6 @@ Function check_docker_opts() {
 
   # Output docker info
   & "docker" info
-
-  # Get docker NAT gateway ip address
-  $global:DOCKER_NAT_IP=(Get-NetIPConfiguration | Where-Object InterfaceAlias -eq "vEthernet (HNS Internal NIC)").IPv4Address.IPAddress
 }
 
 Function pull_reqProc() {
