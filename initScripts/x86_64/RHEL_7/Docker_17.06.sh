@@ -93,7 +93,9 @@ install_prereqs() {
 
   echo "Installing shipctl components"
 
-  install_epel_release_cmd="yum -y install epel-release"
+  get_epel_repo_rpm="curl -O https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm"
+  exec_cmd "$get_epel_repo_rpm"
+  install_epel_release_cmd="yum install -y epel-release-latest-7.noarch.rpm"
   exec_cmd "$install_epel_release_cmd"
   exec_cmd "$NODE_SHIPCTL_LOCATION/$NODE_ARCHITECTURE/$NODE_OPERATING_SYSTEM/install.sh"
 
