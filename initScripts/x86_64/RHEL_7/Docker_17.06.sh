@@ -66,6 +66,9 @@ install_docker_prereqs() {
   add_docker_repo='yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo'
   exec_cmd "$add_docker_repo"
 
+  remove_existing_selinux='yum remove -y container-selinux || true'
+  exec_cmd "$remove_existing_selinux"
+
   install_container_selinux='sudo yum install -y http://mirror.centos.org/centos/7/extras/x86_64/Packages/container-selinux-2.42-1.gitad8f0f7.el7.noarch.rpm'
   exec_cmd "$install_container_selinux"
 }
@@ -92,6 +95,9 @@ install_prereqs() {
   popd
 
   echo "Installing shipctl components"
+
+  remove_existing_epel_release='yum remove -y epel-release-7-11 || true'
+  exec_cmd "$remove_existing_epel_release"
 
   get_epel_repo_rpm="curl -O https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm"
   exec_cmd "$get_epel_repo_rpm"
