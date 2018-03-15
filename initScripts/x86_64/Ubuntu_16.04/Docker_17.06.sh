@@ -154,6 +154,9 @@ docker_install() {
 
   remove_static_docker_binary='rm -rf /tmp/docker'
   exec_cmd "$remove_static_docker_binary"
+
+  enable_docker='systemctl enable docker'
+  exec_cmd "$enable_docker"
 }
 
 check_docker_opts() {
