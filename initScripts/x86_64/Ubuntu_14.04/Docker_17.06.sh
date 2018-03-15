@@ -336,6 +336,9 @@ main() {
     exec_grp "check_docker_opts"
 
     trap before_exit EXIT
+    exec_grp "check_proxy_envs"
+
+    trap before_exit EXIT
     exec_grp "restart_docker_service"
   else
     check_init_input

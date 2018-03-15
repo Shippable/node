@@ -157,17 +157,22 @@ docker_install() {
 }
 
 check_docker_opts() {
-  # SHIPPABLE docker options required for every node
-  echo "Adding docker options"
   mkdir -p /etc/docker
-  echo '{"graph": "/data"}' > /etc/docker/daemon.json
-  docker_restart=true
+  config="{\"graph\": \"/data\"}"
+  config_file="/etc/docker/daemon.json"
+  if [ -f "$config_file" ] && [ "$(echo -e $config)" == "$(cat $config_file)" ]; then
+    echo "Skipping adding config as its already added"
+  else
+    echo "Adding Docker config"
+    echo -e "$config" > "$config_file"
+    docker_restart=true
+  fi
 }
 
 add_docker_proxy_envs() {
   mkdir -p /etc/systemd/system/docker.service.d
-  proxy_envs="[Service]\nEnvironment="
 
+  proxy_envs="[Service]\nEnvironment="
   if [ ! -z "$SHIPPABLE_HTTP_PROXY" ]; then
     proxy_envs="$proxy_envs \"HTTP_PROXY=$SHIPPABLE_HTTP_PROXY\""
   fi
@@ -180,9 +185,15 @@ add_docker_proxy_envs() {
     proxy_envs="$proxy_envs \"NO_PROXY=$SHIPPABLE_NO_PROXY\""
   fi
 
-  echo -e "$proxy_envs" > /etc/systemd/system/docker.service.d/proxy.conf
-  # Maybe don't restart always. We seem to restart in check_docker_opts always anyway, so leaving this is a future enhancement.
-  docker_restart=true
+  local docker_proxy_config_file="/etc/systemd/system/docker.service.d/proxy.conf"
+
+  if [ -f "$docker_proxy_config_file" ] && [ "$(echo -e $proxy_envs)" == "$(cat $docker_proxy_config_file)" ]; then
+    echo "Skipping Docker proxy config, as its already added"
+  else
+    echo "Adding Docker proxy config"
+    echo -e "$proxy_envs" > "$docker_proxy_config_file"
+    docker_restart=true
+  fi
 }
 
 restart_docker_service() {
@@ -278,6 +289,11 @@ main() {
 
     trap before_exit EXIT
     exec_grp "check_docker_opts"
+
+    if [ ! -z "$SHIPPABLE_HTTP_PROXY" ] || [ ! -z "$SHIPPABLE_HTTPS_PROXY" ] || [ ! -z "$SHIPPABLE_NO_PROXY" ]; then
+      trap before_exit EXIT
+      exec_grp "add_docker_proxy_envs"
+    fi
 
     trap before_exit EXIT
     exec_grp "restart_docker_service"
