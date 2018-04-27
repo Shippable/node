@@ -65,6 +65,7 @@ $DEFAULT_TASK_CONTAINER_MOUNTS = "-v ${BUILD_DIR}:${CONTAINER_BUILD_DIR} -v ${RE
 $TASK_CONTAINER_COMMAND = "$CONTAINER_REQEXEC_DIR\$NODE_ARCHITECTURE\$NODE_OPERATING_SYSTEM\dist\main\main.exe"
 $DEFAULT_TASK_CONTAINER_OPTIONS = "-d --rm"
 $DOCKER_CLIENT_LATEST = "C:\Program Files\Docker\docker.exe"
+$DOCKER_VERSION = iex "docker version --format '{{.Server.Version}}'"
 
 $SHIPPABLE_FIREWALL_RULE_NAME = "shippable-docker"
 
