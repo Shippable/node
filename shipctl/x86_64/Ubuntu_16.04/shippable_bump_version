@@ -16,13 +16,7 @@ shippable_bump_verison() {
   if ! [[ $action == "major" || $action == "minor" || $action == "patch" ]]; then
     echo "error: Invalid action given in the argument." >&2; exit 1
   fi
-  if ! [[ $major =~ $numRegex ]] ; then
-	echo "error: Invalid semantics given in the argument." >&2; exit 1
-  fi
-  if ! [[ $minor =~ $numRegex ]] ; then
-	echo "error: Invalid semantics given in the argument." >&2; exit 1
-  fi
-  if ! [[ $patch =~ $numRegex ]] ; then
+  if ! [[ $major =~ $numRegex && $minor =~ $numRegex && $patch =~ $numRegex ]] ; then
 	echo "error: Invalid semantics given in the argument." >&2; exit 1
   fi
 
