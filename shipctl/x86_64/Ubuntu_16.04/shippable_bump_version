@@ -1,5 +1,4 @@
 #!/bin/bash -e
-
 shippable_bump_verison() {
   local version_to_bump=$1
   local action=$2
