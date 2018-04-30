@@ -47,9 +47,9 @@ shippable_jdk() {
     set_java_path "/usr/lib/jvm/java-9-openjdk-9.0.0.163-1.el7.centos.x86_64/bin/java";
     set_javac_path "/usr/lib/jvm/java-9-openjdk-9.0.0.163-1.el7.centos.x86_64/bin/javac";
   elif [ "$JDK_VERSION" == "oraclejdk8" ]; then
-    export_java_path "/usr/java/jre1.8.0_171";
-    set_java_path "/usr/java/jre1.8.0_171/bin/java";
-    set_javac_path "/usr/java/jdk1.8.0_171/bin/javac";
+    export_java_path "/usr/java/jre1.8.0_171-amd64";
+    set_java_path "/usr/java/jre1.8.0_171-amd64/bin/java";
+    set_javac_path "/usr/java/jdk1.8.0_171-amd64/bin/javac";
   elif [ "$JDK_VERSION" == "oraclejdk10" ]; then
     export_java_path "/usr/java/jdk-10.0.1";
     set_java_path "/usr/java/jdk-10.0.1/bin/java";
