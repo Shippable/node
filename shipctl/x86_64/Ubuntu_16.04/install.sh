@@ -19,6 +19,9 @@ cp $SRC_DIR/shippable_replace /usr/local/bin/shippable_replace
 echo "Installing shippable_jdk"
 cp $SRC_DIR/shippable_jdk /usr/local/bin/shippable_jdk
 
+echo "Installing shippable_bump_version"
+cp $SRC_DIR/shippable_bump_version /usr/local/bin/shippable_bump_version
+
 echo "Installing shipctl"
 cp $SRC_DIR/shipctl /usr/local/bin/shipctl
 

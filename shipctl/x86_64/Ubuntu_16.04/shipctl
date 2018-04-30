@@ -10,6 +10,7 @@ if [ "$shipctl_command" == "" ] || [ "$shipctl_command" == "" ]; then
 fi
 
 execute_shipctl_command() {
+
   if type $1 &> /dev/null; then
     $@
   else
@@ -28,6 +29,8 @@ elif [ "$shipctl_command" == "service" ]; then
   execute_shipctl_command shippable_service $arguments
 elif [ "$shipctl_command" == "replace" ]; then
   execute_shipctl_command shippable_replace $arguments
+elif [ "$shipctl_command" == "bump_version" ]; then
+  execute_shipctl_command shippable_bump_version $arguments
 elif [ -n "$(type -t $shipctl_command)" ] && [ "$(type -t $shipctl_command)" = function ]; then
   execute_shipctl_command $shipctl_command $arguments
 else
