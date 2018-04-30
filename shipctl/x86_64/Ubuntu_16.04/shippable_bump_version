@@ -29,7 +29,7 @@ shippable_bump_verison() {
   if [[ ${versionParts[0]} == $major ]]; then
   	appendV=false
   else
-  	appendV=true
+    appendV=true
   fi
 
   if [[ $action == "major" ]]; then
@@ -40,13 +40,13 @@ shippable_bump_verison() {
     minor=$((minor + 1))
     patch=0
   elif [[ $action == "patch" ]]; then
-	  patch=$((patch + 1))
+    patch=$((patch + 1))
   fi
 
   if [[ $appendV == true ]]; then
     newVersion="v$major.$minor.$patch"
   else
-  	newVersion="$major.$minor.$patch"
+    newVersion="$major.$minor.$patch"
   fi
   echo $newVersion
 }
