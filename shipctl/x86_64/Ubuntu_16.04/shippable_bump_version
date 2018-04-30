@@ -36,5 +36,4 @@ shippable_bump_verison() {
   fi
   echo $new_version
 }
-
 shippable_bump_verison "$@"
