@@ -10,7 +10,6 @@ if [ "$shipctl_command" == "" ] || [ "$shipctl_command" == "" ]; then
 fi
 
 execute_shipctl_command() {
-
   if type $1 &> /dev/null; then
     $@
   else
