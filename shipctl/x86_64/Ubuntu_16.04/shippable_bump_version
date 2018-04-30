@@ -2,18 +2,18 @@
 #!/bin/bash -e
 
 shippable_bump_verison() {
-
-  VERSION_TO_BUMP=$1
-  ACTION=$2
-  IFS='.' read -ra versionParts <<< "$VERSION_TO_BUMP"
+  local version_to_bump=$1
+  local action=$2
+  IFS='.' read -ra versionParts <<< "$version_to_bump"
   IFS=' '
-  replace=""
-  numRegex='^[0-9]+$'
-  major=$(echo ${versionParts[0]} | sed "s/v/${replace}/")
-  minor=${versionParts[1]}
-  patch=${versionParts[2]}
+  local replace=""
+  local newVersion
+  local numRegex='^[0-9]+$'
+  local major=$(echo ${versionParts[0]} | sed "s/v/${replace}/")
+  local minor=${versionParts[1]}
+  local patch=${versionParts[2]}
 
-  if ! [[ $ACTION == "major" || $ACTION == "minor" || $ACTION == "patch" ]]; then
+  if ! [[ $action == "major" || $action == "minor" || $action == "patch" ]]; then
     echo "error: Invalid action given in the argument." >&2; exit 1
   fi
   if ! [[ $major =~ $numRegex ]] ; then
@@ -32,14 +32,14 @@ shippable_bump_verison() {
   	appendV=true
   fi
 
-  if [[ $ACTION == "major" ]]; then
+  if [[ $action == "major" ]]; then
     major=$((major + 1))
     minor=0
     patch=0
-  elif [[ $ACTION == "minor" ]]; then 
+  elif [[ $action == "minor" ]]; then 
     minor=$((minor + 1))
     patch=0
-  elif [[ $ACTION == "patch" ]]; then
+  elif [[ $action == "patch" ]]; then
 	  patch=$((patch + 1))
   fi
 
