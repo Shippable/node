@@ -1,4 +1,3 @@
-
 #!/bin/bash -e
 
 shippable_bump_verison() {
@@ -7,7 +6,6 @@ shippable_bump_verison() {
   IFS='.' read -ra versionParts <<< "$version_to_bump"
   IFS=' '
   local replace=""
-  local newVersion
   local numRegex='^[0-9]+$'
   local major=$(echo ${versionParts[0]} | sed "s/v/${replace}/")
   local minor=${versionParts[1]}
@@ -17,11 +15,11 @@ shippable_bump_verison() {
     echo "error: Invalid action given in the argument." >&2; exit 1
   fi
   if ! [[ $major =~ $numRegex && $minor =~ $numRegex && $patch =~ $numRegex ]] ; then
-	echo "error: Invalid semantics given in the argument." >&2; exit 1
+    echo "error: Invalid semantics given in the argument." >&2; exit 1
   fi
 
   if [[ ${versionParts[0]} == $major ]]; then
-  	appendV=false
+    appendV=false
   else
     appendV=true
   fi
@@ -37,12 +35,11 @@ shippable_bump_verison() {
     patch=$((patch + 1))
   fi
 
+  local new_version="$major.$minor.$patch"
   if [[ $appendV == true ]]; then
-    newVersion="v$major.$minor.$patch"
-  else
-    newVersion="$major.$minor.$patch"
+    new_version="v$new_version"
   fi
-  echo $newVersion
+  echo $new_version
 }
 
 shippable_bump_verison "$@"
