@@ -383,7 +383,8 @@ function bump_version([string] $version_to_bump, [string] $action) {
     }
     $versionParts = $version_to_bump.Split("{.}")
     $majorWithoutV = $versionParts[0].Replace("v", "")
-    if (-not ($majorWithoutV -match "^[\d\.]+$" -and $versionParts[1] -match "^[\d\.]+$" -and $versionParts[2] -match "^[\d\.]+$")) {
+    if (-not ($majorWithoutV -match "^[\d\.]+$" -and $versionParts[1] -match "^[\d\.]+$" -and
+        $versionParts[2] -match "^[\d\.]+$")) {
         throw "error: Invalid semantics given in the argument."
     }
     if ($action -ne "major" -and $action -ne "minor" -and $action -ne "patch") {
