@@ -410,3 +410,38 @@ put_resource_state_multi() {
     echo $a >> "$JOB_STATE/$RES.env"
   done
 }
+
+bump_version() {
+  local version_to_bump=$1
+  local action=$2
+  local major=$(echo "$version_to_bump" | cut -d "." -f 1 | sed "s/v//")
+  local minor=$(echo "$version_to_bump" | cut -d "." -f 2)
+  local patch=$(echo "$version_to_bump" | cut -d "." -f 3)
+  if ! [[ $action == "major" || $action == "minor" || $action == "patch" ]]; then
+    echo "error: Invalid action given in the argument." >&2; exit 99
+  fi
+  local numRegex='^[0-9]+$'
+  if ! [[ $major =~ $numRegex && $minor =~ $numRegex && $patch =~ $numRegex ]] ; then
+    echo "error: Invalid semantics given in the argument." >&2; exit 99
+  fi
+  if [[ $(echo "$version_to_bump" | cut -d "." -f 1) == $major ]]; then
+    appendV=false
+  else
+    appendV=true
+  fi
+  if [[ $action == "major" ]]; then
+    major=$((major + 1))
+    minor=0
+    patch=0
+  elif [[ $action == "minor" ]]; then
+    minor=$((minor + 1))
+    patch=0
+  elif [[ $action == "patch" ]]; then
+    patch=$((patch + 1))
+  fi
+  local new_version="$major.$minor.$patch"
+  if [[ $appendV == true ]]; then
+    new_version="v$new_version"
+  fi
+  echo $new_version
+}
