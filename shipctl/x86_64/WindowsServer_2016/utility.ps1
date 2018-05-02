@@ -376,3 +376,44 @@ function put_resource_state_multi([string] $resourceName) {
         "$state`n" | Out-File -Encoding utf8 -NoNewLine -Append -FilePath "$resourceEnvFile"
     }
 }
+
+function bump_version([string] $version_to_bump, [string] $action) {
+    if (-not $version_to_bump -or -not $action) {
+        throw "Usage: shipctl bump_version version_to_bump action"
+    }
+    $versionParts = $version_to_bump.Split("{.}")
+    $majorWithoutV = $versionParts[0].Replace("v", "")
+    if (-not ($majorWithoutV -match "^[\d\.]+$" -and $versionParts[1] -match "^[\d\.]+$" -and
+        $versionParts[2] -match "^[\d\.]+$")) {
+        throw "error: Invalid semantics given in the argument."
+    }
+    if ($action -ne "major" -and $action -ne "minor" -and $action -ne "patch") {
+        throw "error: Invalid action given in the argument."
+    }
+    $major = [int]$majorWithoutV
+    $minor = [int]$versionParts[1]
+    $patch = [int]$versionParts[2]
+    if ( $versionParts[0] -eq $majorWithoutV) {
+        $appendV = $false
+    }
+    else {
+        $appendV = $true
+    }
+    if ($action -eq "major") {
+        $major = $major + 1
+        $minor = 0
+        $patch = 0
+    }
+    ElseIf ($action -eq "minor") {
+        $minor = $minor + 1
+        $patch = 0
+    }
+    ElseIf ($action -eq "patch") {
+        $patch = $patch + 1
+    }
+    $newVersion = [string]$major + "." + [string]$minor + "." + [string]$patch
+    if ($appendV) {
+        $newVersion = "v" + $newVersion
+    }
+    Write-Output $newVersion
+}
