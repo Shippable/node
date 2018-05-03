@@ -21,6 +21,7 @@ check_init_input() {
     'NODE_OPERATING_SYSTEM'
     'LEGACY_CI_CEXEC_LOCATION_ON_HOST'
     'SHIPPABLE_RELEASE_VERSION'
+    'SHIPPABLE_AMI_VERSION'
     'EXEC_IMAGE'
     'REQKICK_DIR'
     'IS_SWAP_ENABLED'
@@ -350,4 +351,3 @@ main() {
 }
 
 main
-
