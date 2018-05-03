@@ -414,32 +414,78 @@ put_resource_state_multi() {
 bump_version() {
   local version_to_bump=$1
   local action=$2
-  local major=$(echo "$version_to_bump" | cut -d "." -f 1 | sed "s/v//")
-  local minor=$(echo "$version_to_bump" | cut -d "." -f 2)
-  local patch=$(echo "$version_to_bump" | cut -d "." -f 3)
-  if ! [[ $action == "major" || $action == "minor" || $action == "patch" ]]; then
+  local versionParts=$(echo "$version_to_bump" | cut -d "-" -f 1 -s)
+  local prerelease=$(echo "$version_to_bump" | cut -d "-" -f 2 -s)
+  if [[ $versionParts == "" && $prerelease == "" ]]; then
+    # when no prerelease is present
+    versionParts=$version_to_bump
+  else
+    local prereleaseText=$(echo "$prerelease" | cut -d "." -f 1 -s)
+    local prereleaseCount=$(echo "$prerelease" | cut -d "." -f 2 -s)
+    if [[ $prereleaseText == "" && $prereleaseCount == "" ]]; then
+      # when no prereleaseCount is present
+      prereleaseText=$prerelease
+    fi
+  fi
+  local major=$(echo "$versionParts" | cut -d "." -f 1 | sed "s/v//")
+  local minor=$(echo "$versionParts" | cut -d "." -f 2)
+  local patch=$(echo "$versionParts" | cut -d "." -f 3)
+  if ! [[ $action == "major" || $action == "minor" || $action == "patch" ||
+    $action == "rc" || $action == "alpha" || $action == "beta" || $action == "final" ]]; then
     echo "error: Invalid action given in the argument." >&2; exit 99
   fi
   local numRegex='^[0-9]+$'
   if ! [[ $major =~ $numRegex && $minor =~ $numRegex && $patch =~ $numRegex ]] ; then
     echo "error: Invalid semantics given in the argument." >&2; exit 99
   fi
-  if [[ $(echo "$version_to_bump" | cut -d "." -f 1) == $major ]]; then
+  if [[ $prereleaseText != "" ]]; then
+    if ! [[ $prereleaseText == "rc" || $prereleaseText == "alpha" || $prereleaseText == "beta" ]]; then
+      echo "error: Invalid semantics given in the argument." >&2; exit 99
+    fi
+  fi
+  if [[ $prereleaseCount != "" ]]; then
+    if ! [[ $prereleaseCount =~ $numRegex ]]; then
+      echo "error: Invalid semantics given in the argument." >&2; exit 99
+    fi
+  fi
+  if [[ $(echo "$versionParts" | cut -d "." -f 1) == $major ]]; then
     appendV=false
   else
     appendV=true
   fi
-  if [[ $action == "major" ]]; then
-    major=$((major + 1))
-    minor=0
-    patch=0
-  elif [[ $action == "minor" ]]; then
-    minor=$((minor + 1))
-    patch=0
-  elif [[ $action == "patch" ]]; then
-    patch=$((patch + 1))
+  if [[ $action == "final" ]];then
+    local new_version="$major.$minor.$patch"
+  else
+    if [[ $action == "major" ]]; then
+      major=$((major + 1))
+      minor=0
+      patch=0
+    elif [[ $action == "minor" ]]; then
+      minor=$((minor + 1))
+      patch=0
+    elif [[ $action == "patch" ]]; then
+      patch=$((patch + 1))
+    elif [[ $action == "rc" || $action == "alpha" || $action == "beta" ]]; then
+      if [[ $prereleaseText == "" ]]; then
+        prereleaseText=$action
+      elif [[ $prereleaseText != $action ]]; then
+        prereleaseText=$action
+        prereleaseCount=""
+      elif [[ $prereleaseCount == "" ]]; then
+        prereleaseCount=1
+      else
+        prereleaseCount=$(($prereleaseCount + 1))
+      fi
+    fi
+    local new_version="$major.$minor.$patch"
+    if [[ $prereleaseText != "" ]]; then
+      if [[ $prereleaseCount != "" ]]; then
+        new_version="$new_version-$prereleaseText.$prereleaseCount"
+      else
+        new_version="$new_version-$prereleaseText"
+      fi
+    fi
   fi
-  local new_version="$major.$minor.$patch"
   if [[ $appendV == true ]]; then
     new_version="v$new_version"
   fi
