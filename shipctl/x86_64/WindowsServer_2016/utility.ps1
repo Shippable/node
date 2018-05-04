@@ -381,13 +381,27 @@ function bump_version([string] $version_to_bump, [string] $action) {
     if (-not $version_to_bump -or -not $action) {
         throw "Usage: shipctl bump_version version_to_bump action"
     }
-    $versionParts = $version_to_bump.Split("{.}")
+    $versionsAndPrerelease = $version_to_bump.Split("{-}")
+    $versionParts = $versionsAndPrerelease[0].Split("{.}")
+    $prerelease = $versionsAndPrerelease[1]
+    if ($prerelease) {
+        $prereleaseParts = $prerelease.Split("{.}")
+        $prereleaseText = $prereleaseParts[0]
+        $prereleaseCount = $prereleaseParts[1]
+        if ($prereleaseText -ne "rc" -and $prereleaseText -ne "alpha" -and $prereleaseText -ne "beta") {
+           throw "error: Invalid semantics given in the argument."
+        }
+        if ($prereleaseCount -and -not ($prereleaseCount -match "^[\d\.]+$")) {
+           throw "error: Invalid semantics given in the argument."
+        }
+    }
     $majorWithoutV = $versionParts[0].Replace("v", "")
     if (-not ($majorWithoutV -match "^[\d\.]+$" -and $versionParts[1] -match "^[\d\.]+$" -and
         $versionParts[2] -match "^[\d\.]+$")) {
         throw "error: Invalid semantics given in the argument."
     }
-    if ($action -ne "major" -and $action -ne "minor" -and $action -ne "patch") {
+    if ($action -ne "major" -and $action -ne "minor" -and $action -ne "patch" -and 
+        $action -ne "rc" -and $action -ne "alpha" -and $action -ne "beta" -and $action -ne "final") {
         throw "error: Invalid action given in the argument."
     }
     $major = [int]$majorWithoutV
@@ -411,7 +425,29 @@ function bump_version([string] $version_to_bump, [string] $action) {
     ElseIf ($action -eq "patch") {
         $patch = $patch + 1
     }
+    ElseIf ($action -eq "alpha" -or $action -eq "beta" -or $action -eq "rc") {
+        if (-not $prereleaseText) {
+           $prereleaseText = $action
+        }
+        ElseIf ($prereleaseText -ne $action) {
+           $prereleaseText = $action
+           $prereleaseCount = $null
+        }
+        ElseIf (-not $prereleaseCount) {
+           $prereleaseCount = [int]1
+        }
+        else {
+           $prereleaseCount = [int]$prereleaseCount + 1 
+        }
+        $prerelease = $prereleaseText
+        if ($prereleaseCount) {
+           $prerelease = [string]$prerelease + "." + [string]$prereleaseCount
+        }
+    }
     $newVersion = [string]$major + "." + [string]$minor + "." + [string]$patch
+    if ($prerelease -and $action -ne "final") {
+        $newVersion = $newVersion + "-" + [string]$prerelease
+    }
     if ($appendV) {
         $newVersion = "v" + $newVersion
     }
