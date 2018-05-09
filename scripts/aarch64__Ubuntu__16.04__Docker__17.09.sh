@@ -5,12 +5,13 @@ set -o pipefail
 ###########################################################
 ###########################################################
 # Initialization script for Shippable node on
+#   - Architecture aarch64
 #   - Ubuntu 16.04
 #   - Docker 17.06
 ###########################################################
 ###########################################################
 
-readonly DOCKER_VERSION="17.06.0"
+readonly DOCKER_VERSION="17.09.1"
 
 # Indicates if docker service should be restarted
 export docker_restart=false
@@ -35,12 +36,6 @@ install_prereqs() {
 
   install_prereqs_cmd="sudo apt-get -yy install apt-transport-https git python-pip software-properties-common ca-certificates curl"
   exec_cmd "$install_prereqs_cmd"
-
-  add_docker_repo_keys='curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -'
-  exec_cmd "$add_docker_repo_keys"
-
-  add_docker_repo='sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"'
-  exec_cmd "$add_docker_repo"
 
   update_cmd="sudo apt-get update"
   exec_cmd "$update_cmd"
@@ -108,13 +103,15 @@ initialize_swap() {
 docker_install() {
   echo "Installing docker"
 
-  install_docker="sudo -E apt-get install -q --force-yes -y -o Dpkg::Options::='--force-confnew' docker-ce=$DOCKER_VERSION~ce-0~ubuntu"
+  add-apt-repository -y "deb [arch=arm64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" && apt-get update
+
+  install_docker="apt-get install -q --force-yes -y -o Dpkg::Options::='--force-confnew' docker-ce=$DOCKER_VERSION~ce-0~ubuntu"
   exec_cmd "$install_docker"
 
-  get_static_docker_binary="wget https://download.docker.com/linux/static/stable/x86_64/docker-$DOCKER_VERSION-ce.tgz -P /tmp/docker"
+  get_static_docker_binary="wget https://download.docker.com/linux/static/stable/aarch64/docker-$DOCKER_VERSION-ce.tgz -P /tmp/docker"
   exec_cmd "$get_static_docker_binary"
 
-  extract_static_docker_binary="sudo tar -xzf /tmp/docker/docker-$DOCKER_VERSION-ce.tgz --directory /opt"
+  extract_static_docker_binary="tar -xzf /tmp/docker/docker-$DOCKER_VERSION-ce.tgz --directory /opt"
   exec_cmd "$extract_static_docker_binary"
 
   remove_static_docker_binary='rm -rf /tmp/docker'
@@ -125,8 +122,31 @@ check_docker_opts() {
   # SHIPPABLE docker options required for every node
   echo "Checking docker options"
 
-  SHIPPABLE_DOCKER_OPTS='DOCKER_OPTS="$DOCKER_OPTS -H unix:///var/run/docker.sock -g=/data --dns 8.8.8.8 --dns 8.8.4.4"'
-  opts_exist=$(sudo sh -c "grep '$SHIPPABLE_DOCKER_OPTS' /etc/default/docker || echo ''")
+  SHIPPABLE_DOCKER_CONFIGURATION='{"dns":["8.8.8.8","8.8.4.4"],"data-root":"/data"}'
+
+  # daemon.json is not present
+  if [ ! -f /etc/docker/daemon.json ]; then
+    touch /etc/docker/daemon.json
+  fi
+
+  touch temp_ship_docker_config
+  echo $SHIPPABLE_DOCKER_CONFIGURATION > temp_ship_docker_config
+  local write_daemon_config=false
+  {
+    diff temp_ship_docker_config /etc/docker/daemon.json > /dev/null
+  } ||
+  {
+    write_daemon_config=true
+  }
+  if [ "$write_daemon_config" = true ]; then
+    echo $SHIPPABLE_DOCKER_CONFIGURATION > /etc/docker/daemon.json
+    docker_restart=true
+  fi
+
+  sudo rm temp_ship_docker_config
+
+  SHIPPABLE_DOCKER_OPTS='DOCKER_OPTS="--config-file /etc/docker/daemon.json"'
+  opts_exist=$(grep "$SHIPPABLE_DOCKER_OPTS" /etc/default/docker || echo '')
 
   # DOCKER_OPTS do not exist or match.
   if [ -z "$opts_exist" ]; then
@@ -140,6 +160,18 @@ check_docker_opts() {
     echo "Shippable docker options already present in /etc/default/docker"
   fi
 
+  if [ ! -f /etc/systemd/system/docker.service ]; then
+    touch /etc/systemd/system/docker.service
+    curl https://raw.githubusercontent.com/moby/moby/master/contrib/init/systemd/docker.service > /etc/systemd/system/docker.service
+    docker_restart=true
+  fi
+
+  if [ ! -f /etc/systemd/system/docker.socket ]; then
+    touch /etc/systemd/system/docker.socket
+    curl https://raw.githubusercontent.com/moby/moby/master/contrib/init/systemd/docker.socket > /etc/systemd/system/docker.socket
+    docker_restart=true
+  fi
+
   ## remove the docker option to listen on all ports
   echo "Disabling docker tcp listener"
   sudo sh -c "sed -e s/\"-H tcp:\/\/0.0.0.0:4243\"//g -i /etc/default/docker"
@@ -147,9 +179,18 @@ check_docker_opts() {
 
 restart_docker_service() {
   echo "checking if docker restart is necessary"
-  if [ $docker_restart == true ]; then
+
+  {
+    sudo systemctl is-active docker
+  } ||
+  {
+    docker_restart=true
+  }
+
+  if [ "$docker_restart" = true ]; then
     echo "restarting docker service on reset"
-    exec_cmd "sudo service docker restart"
+    exec_cmd "sudo systemctl daemon-reload"
+    exec_cmd "sudo systemctl restart docker"
   else
     echo "docker_restart set to false, not restarting docker daemon"
   fi

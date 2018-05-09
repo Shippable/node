@@ -1,20 +1,25 @@
-#!/bin/bash -e
+#!/bin/bash
+set -e
 set -o pipefail
 
-# initScript for Ubuntu 16.04 and Docker 17.06
+# initScript for RHEL_7 and Docker 17.06
 # ------------------------------------------------------------------------------
 
 readonly DOCKER_VERSION="17.06.0"
 readonly SWAP_FILE_PATH="/root/.__sh_swap__"
 export docker_restart=false
+export install_docker_only="$install_docker_only"
+
+if [ -z "$install_docker_only" ]; then
+  install_docker_only="false"
+fi
 
 export SHIPPABLE_RUNTIME_DIR="/var/lib/shippable"
 export BASE_UUID="$(cat /proc/sys/kernel/random/uuid)"
 export BASE_DIR="$SHIPPABLE_RUNTIME_DIR/$BASE_UUID"
 export REQPROC_DIR="$BASE_DIR/reqProc"
 export REQEXEC_DIR="$BASE_DIR/reqExec"
-export REQEXEC_BIN_DIR="$BASE_DIR/reqExec/bin"
-export REQEXEC_BIN_PATH="$REQEXEC_BIN_DIR/dist/main/main"
+export REQEXEC_BIN_PATH="$REQEXEC_DIR/$NODE_ARCHITECTURE/$NODE_OPERATING_SYSTEM/dist/main/main"
 export REQKICK_DIR="$BASE_DIR/reqKick"
 export REQKICK_SERVICE_DIR="$REQKICK_DIR/init/$NODE_ARCHITECTURE/$NODE_OPERATING_SYSTEM"
 export REQKICK_CONFIG_DIR="/etc/shippable/reqKick"
@@ -35,35 +40,41 @@ export LEGACY_CI_CEXEC_LOCATION_ON_HOST="/home/shippable/cexec"
 export LEGACY_CI_DOCKER_CLIENT_LATEST="/opt/docker/docker"
 export DEFAULT_TASK_CONTAINER_MOUNTS="-v $BUILD_DIR:$BUILD_DIR \
   -v $REQEXEC_DIR:/reqExec"
-export TASK_CONTAINER_COMMAND="/reqExec/bin/dist/main/main"
-export DEFAULT_TASK_CONTAINER_OPTIONS="--rm"
+export TASK_CONTAINER_COMMAND="/reqExec/$NODE_ARCHITECTURE/$NODE_OPERATING_SYSTEM/dist/main/main"
+export DEFAULT_TASK_CONTAINER_OPTIONS="-d --rm"
 
-setup_shippable_user() {
-  if id -u 'shippable' >/dev/null 2>&1; then
-    echo "User shippable already exists"
-  else
-    exec_cmd "sudo useradd -d /home/shippable -m -s /bin/bash -p shippablepwd shippable"
+create_shippable_dir() {
+  create_dir_cmd="mkdir -p /home/shippable"
+  exec_cmd "$create_dir_cmd"
+}
+
+install_docker_prereqs() {
+  echo "Installing docker prerequisites"
+
+  expire_cache="yum clean expire-cache"
+  exec_cmd "$expire_cache"
+
+  update_cmd="yum check-update || true"
+  exec_cmd "$update_cmd"
+
+  install_prereqs_cmd="yum -y install apt-transport-https git python-pip software-properties-common ca-certificates curl wget tar yum-utils"
+  exec_cmd "$install_prereqs_cmd"
+
+  add_docker_repo_keys='rpm --import https://download.docker.com/linux/centos/gpg'
+  exec_cmd "$add_docker_repo_keys"
+
+  add_docker_repo='yum-config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo'
+  exec_cmd "$add_docker_repo"
+
+  # Check that package isn't installed by manually checking as if its already installed, rpm package installs fail
+  if [[ $(rpm -q container-selinux) != "container-selinux-2.42-1.gitad8f0f7.el7.noarch" ]]; then
+    install_container_selinux='sudo yum install -y http://mirror.centos.org/centos/7/extras/x86_64/Packages/container-selinux-2.42-1.gitad8f0f7.el7.noarch.rpm'
+    exec_cmd "$install_container_selinux"
   fi
-
-  exec_cmd "sudo echo 'shippable ALL=(ALL) NOPASSWD:ALL' | sudo tee -a /etc/sudoers"
-  exec_cmd "sudo chown -R $USER:$USER /home/shippable/"
-  exec_cmd "sudo chown -R shippable:shippable /home/shippable/"
 }
 
 install_prereqs() {
   echo "Installing prerequisite binaries"
-
-  update_cmd="sudo apt-get update"
-  exec_cmd "$update_cmd"
-
-  install_prereqs_cmd="sudo apt-get -yy install apt-transport-https git python-pip software-properties-common ca-certificates curl wget tar"
-  exec_cmd "$install_prereqs_cmd"
-
-  add_docker_repo_keys='curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -'
-  exec_cmd "$add_docker_repo_keys"
-
-  add_docker_repo='sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"'
-  exec_cmd "$add_docker_repo"
 
   pushd /tmp
   echo "Installing node 4.8.5"
@@ -77,11 +88,23 @@ install_prereqs() {
   node_copy_cmd="cp -Rf node-v4.8.5-linux-x64/{bin,include,lib,share} /usr/local"
   exec_cmd "$node_copy_cmd"
 
+  export PATH="$PATH:/usr/local/bin/"
+
   check_node_version_cmd="node -v"
   exec_cmd "$check_node_version_cmd"
   popd
 
-  exec_cmd "$update_cmd"
+  echo "Installing shipctl components"
+
+  remove_existing_epel_release='yum remove -y epel-release-7-11 || true'
+  exec_cmd "$remove_existing_epel_release"
+
+  get_epel_repo_rpm="curl -O https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm"
+  exec_cmd "$get_epel_repo_rpm"
+  install_epel_release_cmd="yum install -y epel-release-latest-7.noarch.rpm"
+  exec_cmd "$install_epel_release_cmd"
+  exec_cmd "$NODE_SHIPCTL_LOCATION/$NODE_ARCHITECTURE/$NODE_OPERATING_SYSTEM/install.sh"
+
 }
 
 check_swap() {
@@ -99,25 +122,25 @@ check_swap() {
 add_swap() {
   echo "Adding swap file"
   echo "Creating Swap file at: $SWAP_FILE_PATH"
-  add_swap_file="sudo touch $SWAP_FILE_PATH"
+  add_swap_file="touch $SWAP_FILE_PATH"
   exec_cmd "$add_swap_file"
 
   swap_size=$(cat /proc/meminfo | grep MemTotal | awk '{print $2}')
   swap_size=$(($swap_size/1024))
   echo "Allocating swap of: $swap_size MB"
-  initialize_file="sudo dd if=/dev/zero of=$SWAP_FILE_PATH bs=1M count=$swap_size"
+  initialize_file="dd if=/dev/zero of=$SWAP_FILE_PATH bs=1M count=$swap_size"
   exec_cmd "$initialize_file"
 
   echo "Updating Swap file permissions"
-  update_permissions="sudo chmod -c 600 $SWAP_FILE_PATH"
+  update_permissions="chmod -c 600 $SWAP_FILE_PATH"
   exec_cmd "$update_permissions"
 
   echo "Setting up Swap area on the device"
-  initialize_swap="sudo mkswap $SWAP_FILE_PATH"
+  initialize_swap="mkswap $SWAP_FILE_PATH"
   exec_cmd "$initialize_swap"
 
   echo "Turning on Swap"
-  turn_swap_on="sudo swapon $SWAP_FILE_PATH"
+  turn_swap_on="swapon $SWAP_FILE_PATH"
   exec_cmd "$turn_swap_on"
 
 }
@@ -129,7 +152,7 @@ check_fstab_entry() {
     exec_cmd "echo /etc/fstab updated, swap check complete"
   else
     echo "No entry in /etc/fstab, updating ..."
-    add_swap_to_fstab="echo $SWAP_FILE_PATH none swap sw 0 0 | sudo tee -a /etc/fstab"
+    add_swap_to_fstab="echo $SWAP_FILE_PATH none swap sw 0 0 | tee -a /etc/fstab"
     exec_cmd "$add_swap_to_fstab"
     exec_cmd "echo /etc/fstab updated"
   fi
@@ -146,48 +169,68 @@ initialize_swap() {
 docker_install() {
   echo "Installing docker"
 
-  install_docker="sudo -E apt-get install -q --force-yes -y -o Dpkg::Options::='--force-confnew' docker-ce=$DOCKER_VERSION~ce-0~ubuntu"
+  install_docker="yum -y install docker-ce-$DOCKER_VERSION.ce"
   exec_cmd "$install_docker"
 
   get_static_docker_binary="wget https://download.docker.com/linux/static/stable/x86_64/docker-$DOCKER_VERSION-ce.tgz -P /tmp/docker"
   exec_cmd "$get_static_docker_binary"
 
-  extract_static_docker_binary="sudo tar -xzf /tmp/docker/docker-$DOCKER_VERSION-ce.tgz --directory /opt"
+  extract_static_docker_binary="tar -xzf /tmp/docker/docker-$DOCKER_VERSION-ce.tgz --directory /opt"
   exec_cmd "$extract_static_docker_binary"
 
   remove_static_docker_binary='rm -rf /tmp/docker'
   exec_cmd "$remove_static_docker_binary"
+
+  enable_docker='systemctl enable docker'
+  exec_cmd "$enable_docker"
 }
 
 check_docker_opts() {
-  # SHIPPABLE docker options required for every node
-  echo "Checking docker options"
-
-  SHIPPABLE_DOCKER_OPTS='DOCKER_OPTS="$DOCKER_OPTS -H unix:///var/run/docker.sock -g=/data --dns 8.8.8.8 --dns 8.8.4.4"'
-  opts_exist=$(sudo sh -c "grep '$SHIPPABLE_DOCKER_OPTS' /etc/default/docker || echo ''")
-
-  # DOCKER_OPTS do not exist or match.
-  if [ -z "$opts_exist" ]; then
-    echo "Removing existing DOCKER_OPTS in /etc/default/docker, if any"
-    sudo sed -i '/^DOCKER_OPTS/d' "/etc/default/docker"
-
-    echo "Appending DOCKER_OPTS to /etc/default/docker"
-    sudo sh -c "echo '$SHIPPABLE_DOCKER_OPTS' >> /etc/default/docker"
-    docker_restart=true
+  mkdir -p /etc/docker
+  config="{\"graph\": \"/data\"}"
+  config_file="/etc/docker/daemon.json"
+  if [ -f "$config_file" ] && [ "$(echo -e $config)" == "$(cat $config_file)" ]; then
+    echo "Skipping adding config as its already added"
   else
-    echo "Shippable docker options already present in /etc/default/docker"
+    echo "Adding Docker config"
+    echo -e "$config" > "$config_file"
+    docker_restart=true
+  fi
+}
+
+add_docker_proxy_envs() {
+  mkdir -p /etc/systemd/system/docker.service.d
+
+  proxy_envs="[Service]\nEnvironment="
+  if [ ! -z "$SHIPPABLE_HTTP_PROXY" ]; then
+    proxy_envs="$proxy_envs \"HTTP_PROXY=$SHIPPABLE_HTTP_PROXY\""
   fi
 
-  ## remove the docker option to listen on all ports
-  echo "Disabling docker tcp listener"
-  sudo sh -c "sed -e s/\"-H tcp:\/\/0.0.0.0:4243\"//g -i /etc/default/docker"
+  if [ ! -z "$SHIPPABLE_HTTPS_PROXY" ]; then
+    proxy_envs="$proxy_envs \"HTTPS_PROXY=$SHIPPABLE_HTTPS_PROXY\""
+  fi
+
+  if [ ! -z "$SHIPPABLE_NO_PROXY" ]; then
+    proxy_envs="$proxy_envs \"NO_PROXY=$SHIPPABLE_NO_PROXY\""
+  fi
+
+  local docker_proxy_config_file="/etc/systemd/system/docker.service.d/proxy.conf"
+
+  if [ -f "$docker_proxy_config_file" ] && [ "$(echo -e $proxy_envs)" == "$(cat $docker_proxy_config_file)" ]; then
+    echo "Skipping Docker proxy config, as its already added"
+  else
+    echo "Adding Docker proxy config"
+    echo -e "$proxy_envs" > "$docker_proxy_config_file"
+    docker_restart=true
+  fi
 }
 
 restart_docker_service() {
   echo "checking if docker restart is necessary"
   if [ $docker_restart == true ]; then
     echo "restarting docker service on reset"
-    exec_cmd "sudo service docker restart"
+    exec_cmd "systemctl daemon-reload"
+    exec_cmd "systemctl restart docker"
   else
     echo "docker_restart set to false, not restarting docker daemon"
   fi
@@ -195,7 +238,7 @@ restart_docker_service() {
 
 install_ntp() {
   {
-    check_ntp=$(sudo service --status-all 2>&1 | grep ntp)
+    check_ntp=$(systemctl 2>&1 | grep ntp)
   } || {
     true
   }
@@ -204,8 +247,8 @@ install_ntp() {
     echo "NTP already installed, skipping."
   else
     echo "Installing NTP"
-    exec_cmd "sudo apt-get install -y ntp"
-    exec_cmd "sudo service ntp restart"
+    exec_cmd "yum install -y ntp"
+    exec_cmd "systemctl restart ntpd"
   fi
 }
 
@@ -214,7 +257,6 @@ setup_mounts() {
   mkdir -p $BASE_DIR
   mkdir -p $REQPROC_DIR
   mkdir -p $REQEXEC_DIR
-  mkdir -p $REQEXEC_BIN_DIR
   mkdir -p $REQKICK_DIR
   mkdir -p $BUILD_DIR
   mkdir -p $LEGACY_CI_CACHE_STORE_LOCATION
@@ -233,7 +275,8 @@ setup_mounts() {
 
   DEFAULT_TASK_CONTAINER_MOUNTS="$DEFAULT_TASK_CONTAINER_MOUNTS \
     -v /opt/docker/docker:/usr/bin/docker \
-    -v /var/run/docker.sock:/var/run/docker.sock"
+    -v /var/run/docker.sock:/var/run/docker.sock \
+    -v $NODE_SCRIPTS_LOCATION:/var/lib/shippable/node"
 }
 
 setup_envs() {
@@ -266,7 +309,24 @@ setup_envs() {
     -e IS_DOCKER_LEGACY=false \
     -e SHIPPABLE_NODE_ARCHITECTURE=$NODE_ARCHITECTURE \
     -e SHIPPABLE_NODE_OPERATING_SYSTEM=$NODE_OPERATING_SYSTEM \
-    -e SHIPPABLE_RELEASE_VERSION=$SHIPPABLE_RELEASE_VERSION"
+    -e SHIPPABLE_RELEASE_VERSION=$SHIPPABLE_RELEASE_VERSION \
+    -e SHIPPABLE_AMI_VERSION=$SHIPPABLE_AMI_VERSION \
+    -e SHIPPABLE_NODE_SCRIPTS_LOCATION=$NODE_SCRIPTS_LOCATION"
+
+  if [ ! -z "$SHIPPABLE_HTTP_PROXY" ]; then
+    REQPROC_ENVS="$REQPROC_ENVS \
+      -e http_proxy=$SHIPPABLE_HTTP_PROXY"
+  fi
+
+  if [ ! -z "$SHIPPABLE_HTTPS_PROXY" ]; then
+    REQPROC_ENVS="$REQPROC_ENVS \
+      -e https_proxy=$SHIPPABLE_HTTPS_PROXY"
+  fi
+
+  if [ ! -z "$SHIPPABLE_NO_PROXY" ]; then
+    REQPROC_ENVS="$REQPROC_ENVS \
+      -e no_proxy=$SHIPPABLE_NO_PROXY"
+  fi
 }
 
 setup_opts() {
@@ -280,55 +340,79 @@ setup_opts() {
 remove_reqProc() {
   __process_marker "Removing exisiting reqProc containers..."
 
-  local running_container_ids=$(sudo docker ps -a \
+  local running_container_ids=$(docker ps -a \
     | grep $REQPROC_CONTAINER_NAME_PATTERN \
     | awk '{print $1}')
 
   if [ ! -z "$running_container_ids" ]; then
-    sudo docker rm -f -v $running_container_ids || true
+    docker rm -f -v $running_container_ids || true
   fi
 }
 
 remove_reqKick() {
   __process_marker "Removing existing reqKick services..."
 
-  local running_service_names=$(sudo systemctl list-units -a \
+  local running_service_names=$(systemctl list-units -a \
     | grep $REQKICK_SERVICE_NAME_PATTERN \
     | awk '{ print $1 }')
 
   if [ ! -z "$running_service_names" ]; then
-    sudo systemctl stop $running_service_names || true
-    sudo systemctl disable $running_service_names || true
+    systemctl stop $running_service_names || true
+    systemctl disable $running_service_names || true
   fi
 
-  sudo rm -rf $REQKICK_CONFIG_DIR
-  sudo rm -f /etc/systemd/system/shippable-reqKick@.service
+  rm -rf $REQKICK_CONFIG_DIR
+  rm -f /etc/systemd/system/shippable-reqKick@.service
 
-  sudo systemctl daemon-reload
+  systemctl daemon-reload
 }
 
-pull_cexec() {
-  __process_marker "Pulling cexec"
+fetch_cexec() {
+  __process_marker "Fetching cexec..."
+  local cexec_tar_file="cexec.tar.gz"
+
   if [ -d "$LEGACY_CI_CEXEC_LOCATION_ON_HOST" ]; then
-    exec_cmd "sudo rm -rf $LEGACY_CI_CEXEC_LOCATION_ON_HOST"
+    exec_cmd "rm -rf $LEGACY_CI_CEXEC_LOCATION_ON_HOST"
   fi
-  exec_cmd "git clone https://github.com/Shippable/cexec.git $LEGACY_CI_CEXEC_LOCATION_ON_HOST"
-  __process_msg "Checking out tag: $SHIPPABLE_RELEASE_VERSION in $LEGACY_CI_CEXEC_LOCATION_ON_HOST"
-  pushd $LEGACY_CI_CEXEC_LOCATION_ON_HOST
-  exec_cmd "git checkout $SHIPPABLE_RELEASE_VERSION"
+  rm -rf $cexec_tar_file
+  pushd /tmp
+    wget $CEXEC_DOWNLOAD_URL -O $cexec_tar_file
+    mkdir -p $LEGACY_CI_CEXEC_LOCATION_ON_HOST
+    tar -xzf $cexec_tar_file -C $LEGACY_CI_CEXEC_LOCATION_ON_HOST --strip-components=1
+    rm -rf $cexec_tar_file
+  popd
+
+  #Download and extract reports bin file into a path that cexec expects it in
+  local reports_dir="$LEGACY_CI_CEXEC_LOCATION_ON_HOST/bin"
+  local reports_tar_file="reports.tar.gz"
+  rm -rf $reports_dir
+  mkdir -p $reports_dir
+  pushd $reports_dir
+    wget $REPORTS_DOWNLOAD_URL -O $reports_tar_file
+    tar -xf $reports_tar_file
+    rm -rf $reports_tar_file
   popd
 }
 
 boot_reqProc() {
   __process_marker "Booting up reqProc..."
-  sudo docker pull $EXEC_IMAGE
-  local start_cmd="sudo docker run $REQPROC_OPTS $REQPROC_MOUNTS $REQPROC_ENVS $EXEC_IMAGE"
+  docker pull $EXEC_IMAGE
+  local start_cmd="docker run $REQPROC_OPTS $REQPROC_MOUNTS $REQPROC_ENVS $EXEC_IMAGE"
   eval "$start_cmd"
 }
 
 boot_reqKick() {
   __process_marker "Booting up reqKick service..."
-  git clone https://github.com/Shippable/reqKick.git $REQKICK_DIR
+  local reqKick_tar_file="reqKick.tar.gz"
+
+  rm -rf $REQKICK_DIR
+  rm -rf $reqKick_tar_file
+  pushd /tmp
+    wget $REQKICK_DOWNLOAD_URL -O $reqKick_tar_file
+    mkdir -p $REQKICK_DIR
+    tar -xzf $reqKick_tar_file -C $REQKICK_DIR --strip-components=1
+    rm -rf $reqKick_tar_file
+  popd
   pushd $REQKICK_DIR
   npm install
 
@@ -371,52 +455,79 @@ before_exit() {
 }
 
 main() {
-  trap before_exit EXIT
-  exec_grp "setup_shippable_user"
-
-  trap before_exit EXIT
-  exec_grp "install_prereqs"
-
-  if [ "$IS_SWAP_ENABLED" == "true" ]; then
+  if [ "$install_docker_only" == "true" ]; then
     trap before_exit EXIT
-    exec_grp "initialize_swap"
+    exec_grp "install_docker_prereqs"
+
+    trap before_exit EXIT
+    exec_grp "docker_install"
+
+    trap before_exit EXIT
+    exec_grp "check_docker_opts"
+
+    if [ ! -z "$SHIPPABLE_HTTP_PROXY" ] || [ ! -z "$SHIPPABLE_HTTPS_PROXY" ] || [ ! -z "$SHIPPABLE_NO_PROXY" ]; then
+      trap before_exit EXIT
+      exec_grp "add_docker_proxy_envs"
+    fi
+
+    trap before_exit EXIT
+    exec_grp "restart_docker_service"
+  else
+    trap before_exit EXIT
+    exec_grp "create_shippable_dir"
+
+    trap before_exit EXIT
+    exec_grp "install_docker_prereqs"
+
+    trap before_exit EXIT
+    exec_grp "install_prereqs"
+
+    if [ "$IS_SWAP_ENABLED" == "true" ]; then
+      trap before_exit EXIT
+      exec_grp "initialize_swap"
+    fi
+
+    trap before_exit EXIT
+    exec_grp "docker_install"
+
+    trap before_exit EXIT
+    exec_grp "check_docker_opts"
+
+    if [ ! -z "$SHIPPABLE_HTTP_PROXY" ] || [ ! -z "$SHIPPABLE_HTTPS_PROXY" ] || [ ! -z "$SHIPPABLE_NO_PROXY" ]; then
+      trap before_exit EXIT
+      exec_grp "add_docker_proxy_envs"
+    fi
+
+    trap before_exit EXIT
+    exec_grp "restart_docker_service"
+
+    trap before_exit EXIT
+    exec_grp "install_ntp"
+
+    trap before_exit EXIT
+    exec_grp "setup_mounts"
+
+    trap before_exit EXIT
+    exec_grp "setup_envs"
+
+    trap before_exit EXIT
+    exec_grp "setup_opts"
+
+    trap before_exit EXIT
+    exec_grp "remove_reqProc"
+
+    trap before_exit EXIT
+    exec_grp "remove_reqKick"
+
+    trap before_exit EXIT
+    exec_grp "fetch_cexec"
+
+    trap before_exit EXIT
+    exec_grp "boot_reqProc"
+
+    trap before_exit EXIT
+    exec_grp "boot_reqKick"
   fi
-
-  trap before_exit EXIT
-  exec_grp "docker_install"
-
-  trap before_exit EXIT
-  exec_grp "check_docker_opts"
-
-  trap before_exit EXIT
-  exec_grp "restart_docker_service"
-
-  trap before_exit EXIT
-  exec_grp "install_ntp"
-
-  trap before_exit EXIT
-  exec_grp "setup_mounts"
-
-  trap before_exit EXIT
-  exec_grp "setup_envs"
-
-  trap before_exit EXIT
-  exec_grp "setup_opts"
-
-  trap before_exit EXIT
-  exec_grp "remove_reqProc"
-
-  trap before_exit EXIT
-  exec_grp "remove_reqKick"
-
-  trap before_exit EXIT
-  exec_grp "pull_cexec"
-
-  trap before_exit EXIT
-  exec_grp "boot_reqProc"
-
-  trap before_exit EXIT
-  exec_grp "boot_reqKick"
 }
 
 main

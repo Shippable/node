@@ -1,13 +1,9 @@
-#!/bin/bash -e
+#!/bin/bash
+set -e
 set -o pipefail
 
 # Main directories
-readonly NODE_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 readonly SHIPPABLE_DIR="/etc/shippable"
-
-# Node Sub-directories
-readonly NODE_INIT_SCRIPTS_DIR="$NODE_DIR/initScripts"
-readonly NODE_LIB_DIR="$NODE_DIR/lib"
 
 # Logs
 readonly LOGS_DIR="$SHIPPABLE_DIR/logs"
@@ -20,7 +16,9 @@ readonly NODE_ENV="$SHIPPABLE_DIR/_node.env"
 source $NODE_ENV
 
 # Scripts
-readonly NODE_INIT_SCRIPT="$NODE_INIT_SCRIPTS_DIR/$NODE_INIT_SCRIPT"
+readonly NODE_INIT_SCRIPT="$NODE_SCRIPTS_LOCATION/initScripts/$NODE_INIT_SCRIPT"
+readonly NODE_LIB_DIR="$NODE_SCRIPTS_LOCATION/lib"
+readonly NODE_SHIPCTL_LOCATION="$NODE_SCRIPTS_LOCATION/shipctl"
 
 # Source libraries
 source "$NODE_LIB_DIR/logger.sh"
@@ -43,7 +41,10 @@ check_input() {
     'SHIPPABLE_AMQP_URL'
     'SHIPPABLE_API_URL'
     'SHIPPABLE_RELEASE_VERSION'
-    'SUBSCRIPTION_ID',
+    'SHIPPABLE_AMI_VERSION'
+    'REQKICK_DOWNLOAD_URL'
+    'CEXEC_DOWNLOAD_URL'
+    'REPORTS_DOWNLOAD_URL'
   )
 
   check_envs "${expected_envs[@]}"
