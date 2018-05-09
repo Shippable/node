@@ -66,7 +66,6 @@ $DEFAULT_TASK_CONTAINER_MOUNTS = "-v ${BUILD_DIR}:${CONTAINER_BUILD_DIR} -v ${RE
 $TASK_CONTAINER_COMMAND = "$CONTAINER_REQEXEC_DIR\$NODE_ARCHITECTURE\$NODE_OPERATING_SYSTEM\dist\main\main.exe"
 $DEFAULT_TASK_CONTAINER_OPTIONS = "-d --rm"
 $DOCKER_CLIENT_LATEST = "C:\Program Files\Docker\docker.exe"
-$DOCKER_VERSION = iex "docker version --format '{{.Server.Version}}'"
 
 $SHIPPABLE_FIREWALL_RULE_NAME = "shippable-docker"
 
@@ -230,6 +229,9 @@ setup_dirs
 if ($NODE_TYPE_CODE -ne 7001) {
   initialize
 }
+# DOCKER_VERSION needs to be set here because Docker will definitely be available 
+# at this point and we use it it the setup_envs function that's called below
+$DOCKER_VERSION = iex "docker version --format '{{.Server.Version}}'"
 setup_mounts
 setup_envs
 setup_opts
