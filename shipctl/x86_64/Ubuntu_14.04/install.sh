@@ -4,7 +4,7 @@ readonly SRC_DIR=$(dirname "$0")
 
 if ! [ -x "$(command -v jq)" ]; then
   echo "Installing jq"
-  apt-get install -y jq=1.3-1.1ubuntu1
+  apt-get install -y jq=1.3*
 fi
 
 echo "Installing shippable_decrypt"
