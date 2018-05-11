@@ -4,7 +4,7 @@ jobs:
     triggerMode: parallel
     dependencyMode: strict
     steps:
-      - IN: node_sh_repo
+#      - IN: node_sh_repo
       - IN: shipit_bits_access_cli
         switch: off
       - TASK:
@@ -39,8 +39,8 @@ jobs:
       - IN: prod_release
       - IN: node_file_pack
         switch: off
-      - IN: node_sh_repo
-        switch: off
+#      - IN: node_sh_repo
+#        switch: off
       - IN: shipit_bits_access_cli
         switch: off
       - IN: shipit_gh_ssh
