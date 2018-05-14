@@ -30,11 +30,11 @@ jobs:
             - pushd $(shipctl get_resource_state "$RES_REPO")
             - |
                TAR_FILENAME="$CONTEXT-$TAG_VER.tar.gz"
-               git archive --format=tar.gz --output=$FILENAME --prefix=$CONTEXT/ $TAG_VER
+               git archive --format=tar.gz --output="/tmp/$TAR_FILENAME" --prefix=$CONTEXT/ $TAG_VER
                aws s3 cp --acl public-read "/tmp/$TAR_FILENAME" "$S3_URL/$TAG_VER/"
             - |
                ZIP_FILENAME="$CONTEXT-$TAG_VER.zip"
-               git archive --format=zip --output=$FILENAME $TAG_VER
+               git archive --format=zip --output="/tmp/$ZIP_FILENAME" $TAG_VER
                aws s3 cp --acl public-read "/tmp/$ZIP_FILENAME" "$S3_URL/$TAG_VER/"
     on_success:
       script:
