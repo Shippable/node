@@ -64,6 +64,7 @@ jobs:
               env:
                 - RES_VER: "prod_release"
                 - ARTIFACTS_BUCKET: "s3://shippable-artifacts/node"
+                - HTTP_ARTIFACTS_BUCKET: "https://s3.amazonaws.com/shippable-artifacts/node"
                 - CONTEXT: "node"
                 - RES_REPO: "node_sh_repo"
                 - RES_FILE: "node_file_pack"
@@ -76,11 +77,11 @@ jobs:
                ZIP_FILE_NAME=$(shipctl get_resource_version_key "$RES_FILE" "S3_FILENAME_ZIP")
                FILE_BUCKET=$(shipctl get_resource_version_key "$RES_FILE" "S3_BUCKET")
             - |
-               S3_BUCKET_FROM_PATH="$FILE_BUCKET""$TAR_FILE_NAME"
+               S3_BUCKET_FROM_PATH="$FILE_BUCKET/$TAR_FILE_NAME"
                S3_BUCKET_TO_PATH="$ARTIFACTS_BUCKET/$REL_VER/$CONTEXT-$REL_VER.tar.gz"
                aws s3 cp --acl public-read "$S3_BUCKET_FROM_PATH" "$S3_BUCKET_TO_PATH"
             - |
-               ZIP_S3_BUCKET_FROM_PATH="$FILE_BUCKET""$ZIP_FILE_NAME"
+               ZIP_S3_BUCKET_FROM_PATH="$FILE_BUCKET/$ZIP_FILE_NAME"
                ZIP_S3_BUCKET_TO_PATH="$ARTIFACTS_BUCKET/$REL_VER/$CONTEXT-$REL_VER.zip"
                aws s3 cp --acl public-read "$ZIP_S3_BUCKET_FROM_PATH" "$ZIP_S3_BUCKET_TO_PATH"
             - |
@@ -105,4 +106,4 @@ jobs:
                git push up $REL_VER
     on_success:
       script:
-        - shipctl put_resource_state_multi $JOB_NAME "versionName=$REL_VER" "TAG_COMMIT_SHA=$REPO_COMMIT" "S3_FILENAME=$S3_BUCKET_TO_PATH" "S3_FILENAME_ZIP=$ZIP_S3_BUCKET_TO_PATH"
+        - shipctl put_resource_state_multi $JOB_NAME "versionName=$REL_VER" "TAG_COMMIT_SHA=$REPO_COMMIT" "HTTP_ARTIFACTS_BUCKET=$HTTP_ARTIFACTS_BUCKET/$REL_VER" "S3_FILENAME=$S3_BUCKET_TO_PATH" "S3_FILENAME_ZIP=$ZIP_S3_BUCKET_TO_PATH"
