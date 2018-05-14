@@ -21,27 +21,24 @@ jobs:
             options:
               env:
                 - CONTEXT: "node"
-                - REL_VER: "master"
-                - ARTIFACTS_BUCKET: "s3://shippable-artifacts/node"
-                - HTTP_ARTIFACTS_BUCKET: "https://s3.amazonaws.com/shippable-artifacts/node"
+                - TAG_VER: "master"
+                - S3_URL: "s3://shippable-artifacts/node"
+                - WEB_URL: "https://s3.amazonaws.com/shippable-artifacts/node"
                 - RES_REPO: "node_sh_repo"
           script:
             - REPO_COMMIT=$(shipctl get_resource_version_key "$RES_REPO" "shaData.commitSha")
-            - BINARY_TAR="$CONTEXT-$REL_VER-$ARCHITECTURE-$OS.tar.gz"
-            - ARTIFACT_TAR="$CONTEXT-$REL_VER.tar.gz"
-            - ARTIFACT_ZIP="$CONTEXT-$REL_VER.zip"
             - pushd $(shipctl get_resource_state "$RES_REPO")
             - |
-               FILENAME="/tmp/$ARTIFACT_TAR"
-               git archive --format=tar.gz --output=$FILENAME --prefix=$CONTEXT/ $REL_VER
-               aws s3 cp --acl public-read "$FILENAME" "$ARTIFACTS_BUCKET/$REL_VER/"
+               TAR_FILENAME="$CONTEXT-$TAG_VER.tar.gz"
+               git archive --format=tar.gz --output=$FILENAME --prefix=$CONTEXT/ $TAG_VER
+               aws s3 cp --acl public-read "/tmp/$TAR_FILENAME" "$S3_URL/$TAG_VER/"
             - |
-               FILENAME="/tmp/$ARTIFACT_ZIP"
-               git archive --format=zip --output=$FILENAME $REL_VER
-               aws s3 cp --acl public-read "$FILENAME" "$ARTIFACTS_BUCKET/$REL_VER/"
+               ZIP_FILENAME="$CONTEXT-$TAG_VER.zip"
+               git archive --format=zip --output=$FILENAME $TAG_VER
+               aws s3 cp --acl public-read "/tmp/$ZIP_FILENAME" "$S3_URL/$TAG_VER/"
     on_success:
       script:
-        - shipctl put_resource_state_multi $JOB_NAME "versionName=$REPO_COMMIT" "FILE_REPO_COMMIT_SHA=$REPO_COMMIT" "HTTP_ARTIFACTS_BUCKET=$HTTP_ARTIFACTS_BUCKET/$REL_VER" "S3_BUCKET=$ARTIFACTS_BUCKET/$REL_VER" "S3_FILENAME=$ARTIFACT_TAR" "S3_FILENAME_ZIP=$ARTIFACT_ZIP"
+        - shipctl put_resource_state_multi $JOB_NAME "versionName=$REPO_COMMIT" "TAG_VER=$TAG_VER" "FILE_REPO_COMMIT_SHA=$REPO_COMMIT" "WEB_URL=$WEB_URL" "S3_URL=$S3_URL" "TAR_FILENAME=$TAR_FILENAME" "ZIP_FILENAME=$ZIP_FILENAME"
 
   - name: node_repo_file_tag
     type: runSh
@@ -63,27 +60,24 @@ jobs:
             options:
               env:
                 - RES_VER: "prod_release"
-                - ARTIFACTS_BUCKET: "s3://shippable-artifacts/node"
-                - HTTP_ARTIFACTS_BUCKET: "https://s3.amazonaws.com/shippable-artifacts/node"
                 - CONTEXT: "node"
                 - RES_REPO: "node_sh_repo"
                 - RES_FILE: "node_file_pack"
                 - GIT_PATH: "git@github.com:Shippable/node.git"
           script:
-            - REL_VER=$(shipctl get_resource_version_key "$RES_VER" "versionName")
+            - TAG_VER=$(shipctl get_resource_version_key "$RES_VER" "versionName")
             - |
                REPO_COMMIT=$(shipctl get_resource_version_key "$RES_FILE" "FILE_REPO_COMMIT_SHA")
-               TAR_FILE_NAME=$(shipctl get_resource_version_key "$RES_FILE" "S3_FILENAME")
-               ZIP_FILE_NAME=$(shipctl get_resource_version_key "$RES_FILE" "S3_FILENAME_ZIP")
-               FILE_BUCKET=$(shipctl get_resource_version_key "$RES_FILE" "S3_BUCKET")
+               UP_TAR_FILENAME=$(shipctl get_resource_version_key "$RES_FILE" "TAR_FILENAME")
+               UP_ZIP_FILENAME=$(shipctl get_resource_version_key "$RES_FILE" "ZIP_FILENAME")
+               S3_URL=$(shipctl get_resource_version_key "$RES_FILE" "S3_URL")
+               WEB_URL=$(shipctl get_resource_version_key "$RES_FILE" "WEB_URL")
             - |
-               S3_BUCKET_FROM_PATH="$FILE_BUCKET/$TAR_FILE_NAME"
-               S3_BUCKET_TO_PATH="$ARTIFACTS_BUCKET/$REL_VER/$CONTEXT-$REL_VER.tar.gz"
-               aws s3 cp --acl public-read "$S3_BUCKET_FROM_PATH" "$S3_BUCKET_TO_PATH"
+               TAR_FILENAME=$CONTEXT-$TAG_VER.tar.gz
+               aws s3 cp --acl public-read "$S3_URL/$UP_TAR_FILENAME" "$S3_URL/$TAG_VER/$TAR_FILENAME"
             - |
-               ZIP_S3_BUCKET_FROM_PATH="$FILE_BUCKET/$ZIP_FILE_NAME"
-               ZIP_S3_BUCKET_TO_PATH="$ARTIFACTS_BUCKET/$REL_VER/$CONTEXT-$REL_VER.zip"
-               aws s3 cp --acl public-read "$ZIP_S3_BUCKET_FROM_PATH" "$ZIP_S3_BUCKET_TO_PATH"
+               ZIP_FILENAME=$CONTEXT-$TAG_VER.zip
+               aws s3 cp --acl public-read "$S3_URL/$UP_ZIP_FILENAME" "$S3_URL/$TAG_VER/$ZIP_FILENAME"
             - |
                pushd $(shipctl get_resource_meta "shipit_gh_ssh")
                  shipctl get_json_value integration.json 'privateKey' > gh_ssh.key
@@ -97,13 +91,13 @@ jobs:
                git checkout master
             - |
                git pull --tags
-               if git tag -d $REL_VER; then
-                 git push --delete up $REL_VER
+               if git tag -d $TAG_VER; then
+                 git push --delete up $TAG_VER
                fi
             - |
                git checkout $REPO_COMMIT
-               git tag $REL_VER
-               git push up $REL_VER
+               git tag $TAG_VER
+               git push up $TAG_VER
     on_success:
       script:
-        - shipctl put_resource_state_multi $JOB_NAME "versionName=$REL_VER" "TAG_COMMIT_SHA=$REPO_COMMIT" "HTTP_ARTIFACTS_BUCKET=$HTTP_ARTIFACTS_BUCKET/$REL_VER" "S3_FILENAME=$S3_BUCKET_TO_PATH" "S3_FILENAME_ZIP=$ZIP_S3_BUCKET_TO_PATH"
+        - shipctl put_resource_state_multi $JOB_NAME "versionName=$TAG_VER" "TAG_VER=$TAG_VER" "FILE_REPO_COMMIT_SHA=$REPO_COMMIT" "WEB_URL=$WEB_URL" "S3_URL=$S3_URL" "TAR_FILENAME=$TAR_FILENAME" "ZIP_FILENAME=$ZIP_FILENAME"
