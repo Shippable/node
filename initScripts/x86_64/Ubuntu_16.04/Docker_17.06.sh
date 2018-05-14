@@ -284,6 +284,8 @@ before_exit() {
 }
 
 main() {
+  sudo apt-get update
+
   if [ "$install_docker_only" == "true" ]; then
     trap before_exit EXIT
     exec_grp "install_docker_prereqs"
