@@ -38,7 +38,7 @@ jobs:
                aws s3 cp --acl public-read "/tmp/$ZIP_FILENAME" "$S3_URL/$TAG_VER/"
     on_success:
       script:
-        - shipctl put_resource_state_multi $JOB_NAME "versionName=$REPO_COMMIT" "TAG_VER=$TAG_VER" "FILE_REPO_COMMIT_SHA=$REPO_COMMIT" "WEB_URL=$WEB_URL" "S3_URL=$S3_URL" "TAR_FILENAME=$TAR_FILENAME" "ZIP_FILENAME=$ZIP_FILENAME"
+        - shipctl put_resource_state_multi $JOB_NAME "versionName=$REPO_COMMIT" "TAG_VER=$TAG_VER" "FILE_REPO_COMMIT_SHA=$REPO_COMMIT" "WEB_URL=$WEB_URL/$TAG_VER" "S3_URL=$S3_URL/$TAG_VER" "TAR_FILENAME=$TAR_FILENAME" "ZIP_FILENAME=$ZIP_FILENAME"
 
   - name: node_repo_file_tag
     type: runSh
