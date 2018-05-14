@@ -20,28 +20,28 @@ jobs:
           runtime:
             options:
               env:
-                - ARTIFACTS_BUCKET: "s3://shippable-artifacts/node"
-                - REL_VER: "master"
-                - RES_REPO: "node_sh_repo"
                 - CONTEXT: "node"
+                - REL_VER: "master"
+                - ARTIFACTS_BUCKET: "s3://shippable-artifacts/node"
+                - HTTP_ARTIFACTS_BUCKET: "https://s3.amazonaws.com/shippable-artifacts/node"
+                - RES_REPO: "node_sh_repo"
           script:
             - REPO_COMMIT=$(shipctl get_resource_version_key "$RES_REPO" "shaData.commitSha")
             - BINARY_TAR="$CONTEXT-$REL_VER-$ARCHITECTURE-$OS.tar.gz"
             - ARTIFACT_TAR="$CONTEXT-$REL_VER.tar.gz"
             - ARTIFACT_ZIP="$CONTEXT-$REL_VER.zip"
-            - S3_BUCKET_BINARY_DIR="$ARTIFACTS_BUCKET/$REL_VER/"
             - pushd $(shipctl get_resource_state "$RES_REPO")
             - |
                FILENAME="/tmp/$ARTIFACT_TAR"
                git archive --format=tar.gz --output=$FILENAME --prefix=$CONTEXT/ $REL_VER
-               aws s3 cp --acl public-read "$FILENAME" "$S3_BUCKET_BINARY_DIR"
+               aws s3 cp --acl public-read "$FILENAME" "$ARTIFACTS_BUCKET/$REL_VER/"
             - |
                FILENAME="/tmp/$ARTIFACT_ZIP"
                git archive --format=zip --output=$FILENAME $REL_VER
-               aws s3 cp --acl public-read "$FILENAME" "$S3_BUCKET_BINARY_DIR"
+               aws s3 cp --acl public-read "$FILENAME" "$ARTIFACTS_BUCKET/$REL_VER/"
     on_success:
       script:
-        - shipctl put_resource_state_multi $JOB_NAME "versionName=$REPO_COMMIT" "FILE_REPO_COMMIT_SHA=$REPO_COMMIT" "S3_BUCKET=$S3_BUCKET_BINARY_DIR" "S3_FILENAME=$ARTIFACT_TAR" "S3_FILENAME_ZIP=$ARTIFACT_ZIP"
+        - shipctl put_resource_state_multi $JOB_NAME "versionName=$REPO_COMMIT" "FILE_REPO_COMMIT_SHA=$REPO_COMMIT" "HTTP_ARTIFACTS_BUCKET=$HTTP_ARTIFACTS_BUCKET/$REL_VER" "S3_BUCKET=$ARTIFACTS_BUCKET/$REL_VER" "S3_FILENAME=$ARTIFACT_TAR" "S3_FILENAME_ZIP=$ARTIFACT_ZIP"
 
   - name: node_repo_file_tag
     type: runSh
