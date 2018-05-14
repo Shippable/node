@@ -27,14 +27,18 @@ jobs:
           script:
             - REPO_COMMIT=$(shipctl get_resource_version_key "$RES_REPO" "shaData.commitSha")
             - BINARY_TAR="$CONTEXT-$REL_VER-$ARCHITECTURE-$OS.tar.gz"
-            - ARTIFACT_TAR="/tmp/$CONTEXT-$REL_VER.tar.gz"
-            - ARTIFACT_ZIP="/tmp/$CONTEXT-$REL_VER.zip"
+            - ARTIFACT_TAR="$CONTEXT-$REL_VER.tar.gz"
+            - ARTIFACT_ZIP="$CONTEXT-$REL_VER.zip"
             - S3_BUCKET_BINARY_DIR="$ARTIFACTS_BUCKET/$REL_VER/"
             - pushd $(shipctl get_resource_state "$RES_REPO")
-            - git archive --format=tar.gz --output=$ARTIFACT_TAR --prefix=$CONTEXT/ $REL_VER
-            - git archive --format=zip --output=$ARTIFACT_ZIP $REL_VER
-            - aws s3 cp --acl public-read "$ARTIFACT_TAR" "$S3_BUCKET_BINARY_DIR"
-            - aws s3 cp --acl public-read "$ARTIFACT_ZIP" "$S3_BUCKET_BINARY_DIR"
+            - |
+               FILENAME="/tmp/$ARTIFACT_TAR"
+               git archive --format=tar.gz --output=$FILENAME --prefix=$CONTEXT/ $REL_VER
+               aws s3 cp --acl public-read "$FILENAME" "$S3_BUCKET_BINARY_DIR"
+            - |
+               FILENAME="/tmp/$ARTIFACT_ZIP"
+               git archive --format=zip --output=$FILENAME $REL_VER
+               aws s3 cp --acl public-read "$FILENAME" "$S3_BUCKET_BINARY_DIR"
     on_success:
       script:
         - shipctl put_resource_state_multi $JOB_NAME "versionName=$REPO_COMMIT" "FILE_REPO_COMMIT_SHA=$REPO_COMMIT" "S3_BUCKET=$S3_BUCKET_BINARY_DIR" "S3_FILENAME=$ARTIFACT_TAR" "S3_FILENAME_ZIP=$ARTIFACT_ZIP"
