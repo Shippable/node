@@ -4,7 +4,7 @@ $NODE_JS_VERSION = "4.8.5"
 $DOCKER_VERSION = "17.06.2-ee-5"
 $DOCKER_CONFIG_FILE="C:\ProgramData\Docker\config\daemon.json"
 
-if (-not (Test-Path env:install_docker_only)) { $env:install_docker_only = $false }
+if (-not (Test-Path $env:install_docker_only)) { $env:install_docker_only = $false }
 
 Function check_win_containers_enabled() {
   Write-Output "Checking if Windows Containers are enabled"
@@ -140,8 +140,14 @@ add_firewall_rule
 docker_install
 check_docker_opts
 
+if (($env:install_docker_only) ) {
+  Write-Output "Current context will skip Shippable components..."
+  Write-Output "Completed Machine setup"
+}
 
 if (-not ($env:install_docker_only) ) {
+  Write-Output "Fetching Shippable components..."
   pull_reqProc
   fetch_reqKick
+  Write-Output "Completed Machine setup"
 }
