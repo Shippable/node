@@ -4,6 +4,8 @@ $NODE_JS_VERSION = "4.8.5"
 $DOCKER_VERSION = "17.06.2-ee-5"
 $DOCKER_CONFIG_FILE="C:\ProgramData\Docker\config\daemon.json"
 
+if (-not (Test-Path env:install_docker_only)) { $env:install_docker_only = false }
+
 Function check_win_containers_enabled() {
   Write-Output "Checking if Windows Containers are enabled"
   $winConInstallState = (Get-WindowsFeature containers).InstallState
@@ -137,5 +139,9 @@ install_prereqs
 add_firewall_rule
 docker_install
 check_docker_opts
-pull_reqProc
-fetch_reqKick
+
+
+if (-not ($env:install_docker_only) ) {
+  pull_reqProc
+  fetch_reqKick
+}
