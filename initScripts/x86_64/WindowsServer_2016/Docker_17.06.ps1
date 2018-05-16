@@ -139,7 +139,7 @@ docker_install
 check_docker_opts
 
 Write-Output "Completed base installs..."
-if (-not (Test-Path $env:install_docker_only)) { $env:install_docker_only = $false }
+#if (-not (Test-Path $env:install_docker_only)) { $env:install_docker_only = $false }
 
 if (($env:install_docker_only) ) {
   Write-Output "Current context will skip Shippable components..."
