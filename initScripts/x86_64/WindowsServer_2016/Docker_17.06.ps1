@@ -139,16 +139,15 @@ docker_install
 check_docker_opts
 
 Write-Output "Completed base installs..."
-#if (-not (Test-Path $env:install_docker_only)) { $env:install_docker_only = $false }
 
-Write-Output "Is this install only for Docker...$env:install_docker_only"
+Write-Output "Is this install only for Docker...$INSTALL_DOCKER_ONLY"
 
-if (($env:install_docker_only) ) {
+if (($INSTALL_DOCKER_ONLY) ) {
   Write-Output "Current context will skip Shippable components..."
   Write-Output "Completed Machine setup"
 }
 
-if (-not ($env:install_docker_only) ) {
+if (-not ($INSTALL_DOCKER_ONLY) ) {
   Write-Output "Fetching Shippable components..."
   pull_reqProc
   fetch_reqKick
