@@ -38,7 +38,7 @@ jobs:
                aws s3 cp --acl public-read "/tmp/$ZIP_FILENAME" "$S3_URL/$TAG_VER/"
     on_success:
       script:
-        - shipctl put_resource_state_multi $JOB_NAME "versionName=$REPO_COMMIT" "TAG_VER=$TAG_VER" "FILE_REPO_COMMIT_SHA=$REPO_COMMIT" "WEB_URL=$WEB_URL/$TAG_VER" "S3_URL=$S3_URL/$TAG_VER" "TAR_FILENAME=$TAR_FILENAME" "ZIP_FILENAME=$ZIP_FILENAME"
+        - shipctl put_resource_state_multi $JOB_NAME "versionName=$REPO_COMMIT" "TAG_VER=$TAG_VER" "FILE_REPO_COMMIT_SHA=$REPO_COMMIT" "WEB_URL=$WEB_URL" "S3_URL=$S3_URL" "TAR_FILENAME=$TAR_FILENAME" "ZIP_FILENAME=$ZIP_FILENAME"
 
   - name: node_repo_file_tag
     type: runSh
@@ -70,14 +70,15 @@ jobs:
                REPO_COMMIT=$(shipctl get_resource_version_key "$RES_FILE" "FILE_REPO_COMMIT_SHA")
                UP_TAR_FILENAME=$(shipctl get_resource_version_key "$RES_FILE" "TAR_FILENAME")
                UP_ZIP_FILENAME=$(shipctl get_resource_version_key "$RES_FILE" "ZIP_FILENAME")
+               UP_TAG_VER=$(shipctl get_resource_version_key "$RES_FILE" "TAG_VER")
                S3_URL=$(shipctl get_resource_version_key "$RES_FILE" "S3_URL")
                WEB_URL=$(shipctl get_resource_version_key "$RES_FILE" "WEB_URL")
             - |
                TAR_FILENAME=$CONTEXT-$TAG_VER.tar.gz
-               aws s3 cp --acl public-read "$S3_URL/$UP_TAR_FILENAME" "$S3_URL/$TAG_VER/$TAR_FILENAME"
+               aws s3 cp --acl public-read "$S3_URL/$UP_TAG_VER/$UP_TAR_FILENAME" "$S3_URL/$TAG_VER/$TAR_FILENAME"
             - |
                ZIP_FILENAME=$CONTEXT-$TAG_VER.zip
-               aws s3 cp --acl public-read "$S3_URL/$UP_ZIP_FILENAME" "$S3_URL/$TAG_VER/$ZIP_FILENAME"
+               aws s3 cp --acl public-read "$S3_URL/$UP_TAG_VER/$UP_ZIP_FILENAME" "$S3_URL/$TAG_VER/$ZIP_FILENAME"
             - |
                pushd $(shipctl get_resource_meta "shipit_gh_ssh")
                  shipctl get_json_value integration.json 'privateKey' > gh_ssh.key
