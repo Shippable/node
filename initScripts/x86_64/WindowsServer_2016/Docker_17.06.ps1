@@ -141,6 +141,8 @@ check_docker_opts
 Write-Output "Completed base installs..."
 #if (-not (Test-Path $env:install_docker_only)) { $env:install_docker_only = $false }
 
+Write-Output "Is this install only for Docker...$env:install_docker_only"
+
 if (($env:install_docker_only) ) {
   Write-Output "Current context will skip Shippable components..."
   Write-Output "Completed Machine setup"
