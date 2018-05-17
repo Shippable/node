@@ -44,7 +44,7 @@ Function install_prereqs() {
   Write-Output "Refreshing PATH"
   $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "User")
 
-  Write-Output "Installing shipctl"
+  Write-Output "Installing shipctl from $NODE_SHIPCTL_LOCATION"
   & "$NODE_SHIPCTL_LOCATION/$NODE_ARCHITECTURE/$NODE_OPERATING_SYSTEM/install.ps1"
 }
 
@@ -109,13 +109,13 @@ Function check_docker_opts() {
 }
 
 Function pull_reqProc() {
-  Write-Output "Pulling reqProc..."
+  Write-Output "Pulling reqProc... $EXEC_IMAGE"
   Write-Output "The docker pull operation may take up to 15 minutes to complete and use 15GB of storage."
   docker pull $EXEC_IMAGE
 }
 
 Function fetch_reqKick() {
-  Write-Output "Fetching reqKick..."
+  Write-Output "Fetching reqKick from.... $REQKICK_DOWNLOAD_URL"
 
   $reqKick_zip_download_location="$env:TEMP/reqKick.zip"
   Invoke-RestMethod "$REQKICK_DOWNLOAD_URL" `
