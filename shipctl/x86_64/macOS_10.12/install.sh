@@ -16,7 +16,7 @@ readonly shippable_jdk_location="/usr/local/bin/shippable_jdk"
 if [ -f "$shippable_jdk_location" ]; then
   echo "shippable_jdk already installed on the image, skipping"
 else
-  cp $SRC_DIR/shippable_jdk $shippable_jdk_location
+  sudo cp $SRC_DIR/shippable_jdk $shippable_jdk_location
 fi
 
 echo "Installing shipctl"
