@@ -4,7 +4,7 @@ readonly SRC_DIR=$(dirname "$0")
 
 if ! [ -x "$(command -v jq)" ]; then
   echo "Installing jq"
-  apt-get install -y jq=1.5+dfsg-1
+  apt-get install -y jq
 fi
 
 echo "Installing shippable_decrypt"
@@ -17,7 +17,12 @@ echo "Installing shippable_replace"
 cp $SRC_DIR/shippable_replace /usr/local/bin/shippable_replace
 
 echo "Installing shippable_jdk"
-cp $SRC_DIR/shippable_jdk /usr/local/bin/shippable_jdk
+readonly shippable_jdk_location="/usr/local/bin/shippable_jdk"
+if [ -f "$shippable_jdk_location" ]; then
+  echo "shippable_jdk already installed on the image, skipping"
+else
+  cp $SRC_DIR/shippable_jdk $shippable_jdk_location
+fi
 
 echo "Installing shipctl"
 cp $SRC_DIR/shipctl /usr/local/bin/shipctl
