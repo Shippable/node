@@ -18,7 +18,7 @@ cp $SRC_DIR/shippable_replace /usr/local/bin/shippable_replace
 
 echo "Installing shippable_jdk"
 readonly shippable_jdk_location="/usr/local/bin/shippable_jdk"
-if [ if -f "$shippable_jdk_location" ]; then
+if [ -f "$shippable_jdk_location" ]; then
   echo "shippable_jdk already installed on the image, skipping"
 else
   cp $SRC_DIR/shippable_jdk /usr/local/bin/shippable_jdk
