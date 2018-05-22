@@ -384,17 +384,6 @@ function bump_version([string] $version_to_bump, [string] $action) {
     $versionsAndPrerelease = $version_to_bump.Split("{-}")
     $versionParts = $versionsAndPrerelease[0].Split("{.}")
     $prerelease = $versionsAndPrerelease[1]
-    if ($prerelease) {
-        $prereleaseParts = $prerelease.Split("{.}")
-        $prereleaseText = $prereleaseParts[0]
-        $prereleaseCount = $prereleaseParts[1]
-        if ($prereleaseText -ne "rc" -and $prereleaseText -ne "alpha" -and $prereleaseText -ne "beta") {
-           throw "error: Invalid semantics given in the argument."
-        }
-        if ($prereleaseCount -and -not ($prereleaseCount -match "^[\d\.]+$")) {
-           throw "error: Invalid semantics given in the argument."
-        }
-    }
     $majorWithoutV = $versionParts[0].Replace("v", "")
     if (-not ($majorWithoutV -match "^[\d\.]+$" -and $versionParts[1] -match "^[\d\.]+$" -and
         $versionParts[2] -match "^[\d\.]+$")) {
@@ -426,27 +415,30 @@ function bump_version([string] $version_to_bump, [string] $action) {
         $patch = $patch + 1
     }
     ElseIf ($action -eq "alpha" -or $action -eq "beta" -or $action -eq "rc") {
-        if (-not $prereleaseText) {
-           $prereleaseText = $action
-        }
-        ElseIf ($prereleaseText -ne $action) {
-           $prereleaseText = $action
-           $prereleaseCount = $null
-        }
-        ElseIf (-not $prereleaseCount) {
-           $prereleaseCount = [int]1
-        }
-        else {
-           $prereleaseCount = [int]$prereleaseCount + 1 
-        }
-        $prerelease = $prereleaseText
-        if ($prereleaseCount) {
-           $prerelease = [string]$prerelease + "." + [string]$prereleaseCount
-        }
+       if (-not $prerelease) {
+         $prereleaseText = $action
+       }
+       else {
+         $prereleaseParts = $prerelease.Split("{.}")
+         if ($prereleaseParts -Contains $action) {
+           if ([regex]::match("$prerelease", "$action.[0-9]*").Success) {
+             $count =  [regex]::match("$prerelease", "$action.[0-9]*").Value
+             $prereleaseCount = $count.Split("{.}")
+             $prereleaseCount = [int]$prereleaseCount[1] + 1
+           }
+           else {
+             $prereleaseCount = 1
+           }
+           $prereleaseText = [string]$action + "." + [string]$prereleaseCount
+         }
+         else {
+           $prereleaseText = [string]$action
+         }
+       }
     }
     $newVersion = [string]$major + "." + [string]$minor + "." + [string]$patch
-    if ($prerelease -and $action -ne "final") {
-        $newVersion = $newVersion + "-" + [string]$prerelease
+    if ($prereleaseText -and $action -ne "final") {
+        $newVersion = $newVersion + "-" + [string]$prereleaseText
     }
     if ($appendV) {
         $newVersion = "v" + $newVersion
