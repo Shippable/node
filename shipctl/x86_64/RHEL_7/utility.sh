@@ -419,13 +419,6 @@ bump_version() {
   if [[ $versionParts == "" && $prerelease == "" ]]; then
     # when no prerelease is present
     versionParts=$version_to_bump
-  else
-    local prereleaseText=$(echo "$prerelease" | cut -d "." -f 1 -s)
-    local prereleaseCount=$(echo "$prerelease" | cut -d "." -f 2 -s)
-    if [[ $prereleaseText == "" && $prereleaseCount == "" ]]; then
-      # when no prereleaseCount is present
-      prereleaseText=$prerelease
-    fi
   fi
   local major=$(echo "$versionParts" | cut -d "." -f 1 | sed "s/v//")
   local minor=$(echo "$versionParts" | cut -d "." -f 2)
@@ -437,16 +430,6 @@ bump_version() {
   local numRegex='^[0-9]+$'
   if ! [[ $major =~ $numRegex && $minor =~ $numRegex && $patch =~ $numRegex ]] ; then
     echo "error: Invalid semantics given in the argument." >&2; exit 99
-  fi
-  if [[ $prereleaseText != "" ]]; then
-    if ! [[ $prereleaseText == "rc" || $prereleaseText == "alpha" || $prereleaseText == "beta" ]]; then
-      echo "error: Invalid semantics given in the argument." >&2; exit 99
-    fi
-  fi
-  if [[ $prereleaseCount != "" ]]; then
-    if ! [[ $prereleaseCount =~ $numRegex ]]; then
-      echo "error: Invalid semantics given in the argument." >&2; exit 99
-    fi
   fi
   if [[ $(echo "$versionParts" | cut -d "." -f 1) == $major ]]; then
     appendV=false
@@ -466,24 +449,24 @@ bump_version() {
     elif [[ $action == "patch" ]]; then
       patch=$((patch + 1))
     elif [[ $action == "rc" || $action == "alpha" || $action == "beta" ]]; then
-      if [[ $prereleaseText == "" ]]; then
-        prereleaseText=$action
-      elif [[ $prereleaseText != $action ]]; then
-        prereleaseText=$action
-        prereleaseCount=""
-      elif [[ $prereleaseCount == "" ]]; then
-        prereleaseCount=1
+      local prereleaseCount="";
+      local prereleaseText=""; 
+      if [ ! -z $(echo "$prerelease" | grep -oP "$action") ]; then
+        local count=$(echo "$prerelease" | grep -oP "$action.[0-9]*")
+        if [ ! -z $count ]; then
+          prereleaseCount=$(echo "$count" | cut -d "." -f 2 -s)
+          prereleaseCount=$(($prereleaseCount + 1))
+        else
+          prereleaseCount=1
+        fi
+        prereleaseText="$action.$prereleaseCount"
       else
-        prereleaseCount=$(($prereleaseCount + 1))
+        prereleaseText=$action
       fi
     fi
     local new_version="$major.$minor.$patch"
     if [[ $prereleaseText != "" ]]; then
-      if [[ $prereleaseCount != "" ]]; then
-        new_version="$new_version-$prereleaseText.$prereleaseCount"
-      else
-        new_version="$new_version-$prereleaseText"
-      fi
+      new_version="$new_version-$prereleaseText"
     fi
   fi
   if [[ $appendV == true ]]; then
