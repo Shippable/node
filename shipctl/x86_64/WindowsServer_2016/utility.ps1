@@ -305,7 +305,7 @@ function refresh_file_to_out_path([string] $fileName, [string] $resourceName) {
     if (-not $fileName -or -not $resourceName) {
         throw "Usage: shipctl refresh_file_to_out_path FILE RESOURCE"
     }
-    $onlyFileName = Split-Path "$newStateFile" -Leaf
+    $onlyFileName = Split-Path "$fileName" -Leaf
     $resourceOutPath = Join-Path "$env:JOB_PATH" "OUT\$resourceName\state"
     $resourceInPath = Join-Path "$env:JOB_PATH" "IN\$resourceName\state"
 
