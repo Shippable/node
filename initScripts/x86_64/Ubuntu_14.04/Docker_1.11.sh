@@ -56,6 +56,8 @@ upgrade_kernel() {
 }
 
 install_prereqs() {
+  local nodejs_version="8.11.2"
+
   echo "Installing prerequisite binaries"
   _run_update
 
@@ -63,15 +65,15 @@ install_prereqs() {
   exec_cmd "$install_prereqs_cmd"
 
   pushd /tmp
-  echo "Installing node 4.8.5"
+  echo "Installing node $nodejs_version"
 
-  get_node_tar_cmd="wget https://nodejs.org/dist/v4.8.5/node-v4.8.5-linux-x64.tar.xz"
+  get_node_tar_cmd="wget https://nodejs.org/dist/v$nodejs_version/node-v$nodejs_version-linux-x64.tar.xz"
   exec_cmd "$get_node_tar_cmd"
 
-  node_extract_cmd="tar -xf node-v4.8.5-linux-x64.tar.xz"
+  node_extract_cmd="tar -xf node-v$nodejs_version-linux-x64.tar.xz"
   exec_cmd "$node_extract_cmd"
 
-  node_copy_cmd="cp -Rf node-v4.8.5-linux-x64/{bin,include,lib,share} /usr/local"
+  node_copy_cmd="cp -Rf node-v$nodejs_version-linux-x64/{bin,include,lib,share} /usr/local"
   exec_cmd "$node_copy_cmd"
 
   check_node_version_cmd="node -v"
