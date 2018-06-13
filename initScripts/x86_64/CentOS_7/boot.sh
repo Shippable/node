@@ -159,20 +159,25 @@ setup_envs() {
     -e SHIPPABLE_AMI_VERSION=$SHIPPABLE_AMI_VERSION \
     -e SHIPPABLE_NODE_SCRIPTS_LOCATION=$NODE_SCRIPTS_LOCATION"
 
-    if [ ! -z "$SHIPPABLE_HTTP_PROXY" ]; then
-      REQPROC_ENVS="$REQPROC_ENVS \
-        -e http_proxy=$SHIPPABLE_HTTP_PROXY"
-    fi
+  if [ ! -z "$SHIPPABLE_HTTP_PROXY" ]; then
+    REQPROC_ENVS="$REQPROC_ENVS \
+      -e http_proxy=$SHIPPABLE_HTTP_PROXY"
+  fi
 
-    if [ ! -z "$SHIPPABLE_HTTPS_PROXY" ]; then
-      REQPROC_ENVS="$REQPROC_ENVS \
-        -e https_proxy=$SHIPPABLE_HTTPS_PROXY"
-    fi
+  if [ ! -z "$SHIPPABLE_HTTPS_PROXY" ]; then
+    REQPROC_ENVS="$REQPROC_ENVS \
+      -e https_proxy=$SHIPPABLE_HTTPS_PROXY"
+  fi
 
-    if [ ! -z "$SHIPPABLE_NO_PROXY" ]; then
-      REQPROC_ENVS="$REQPROC_ENVS \
-        -e no_proxy=$SHIPPABLE_NO_PROXY"
-    fi
+  if [ ! -z "$SHIPPABLE_NO_PROXY" ]; then
+    REQPROC_ENVS="$REQPROC_ENVS \
+      -e no_proxy=$SHIPPABLE_NO_PROXY"
+  fi
+
+  if [ "$NO_VERIFY_SSL" == "true" ]; then
+    REQPROC_ENVS="$REQPROC_ENVS \
+      -e NODE_TLS_REJECT_UNAUTHORIZED=0"
+  fi
 }
 
 setup_opts() {
