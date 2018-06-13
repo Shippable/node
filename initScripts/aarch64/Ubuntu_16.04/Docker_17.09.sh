@@ -290,6 +290,11 @@ setup_envs() {
     REQPROC_ENVS="$REQPROC_ENVS \
       -e no_proxy=$SHIPPABLE_NO_PROXY"
   fi
+
+  if [ "$NO_VERIFY_SSL" == "true" ]; then
+    REQPROC_ENVS="$REQPROC_ENVS \
+      -e NODE_TLS_REJECT_UNAUTHORIZED=0"
+  fi
 }
 
 setup_opts() {
