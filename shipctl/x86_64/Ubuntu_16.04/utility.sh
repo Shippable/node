@@ -551,11 +551,12 @@ get_git_changes() {
     fi
   fi
 
-  if [[ $commit_range == "" ]]; then
-    commit_range="HEAD~1..HEAD"
-  fi
   if [[ $opt_commit_range != "" ]]; then
     commit_range="$opt_commit_range"
+  fi
+  if [[ $commit_range == "" ]]; then
+    echo "Unknown commit range. use --commit-range."
+    exit 99
   fi
 
   local result=""
