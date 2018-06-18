@@ -389,7 +389,7 @@ function bump_version([string] $version_to_bump, [string] $action) {
         $versionParts[2] -match "^[\d\.]+$")) {
         throw "error: Invalid semantics given in the argument."
     }
-    if ($action -ne "major" -and $action -ne "minor" -and $action -ne "patch" -and 
+    if ($action -ne "major" -and $action -ne "minor" -and $action -ne "patch" -and
         $action -ne "rc" -and $action -ne "alpha" -and $action -ne "beta" -and $action -ne "final") {
         throw "error: Invalid action given in the argument."
     }
@@ -444,4 +444,66 @@ function bump_version([string] $version_to_bump, [string] $action) {
         $newVersion = "v" + $newVersion
     }
     Write-Output $newVersion
+}
+
+function get_git_changes() {
+  param([string]$path, [string]$resource, [int]$depth, [alias("directories-only")][switch]$directories_only, [alias("commit-range")][string]$commit_range)
+
+  if (!($path -or $resource)) {
+    throw "Usage: shipctl get_git_changes [-path|-resource]"
+  }
+
+  $git_repo_path = $path
+  if (!($path)) {
+    $git_repo_path=$(get_resource_state "$resource")
+  }
+
+  if (!(Test-Path "$git_repo_path/.git" -PathType Container)) {
+    throw "git repository not found at path: $git_repo_path"
+  }
+
+  $current_commit_range = ""
+
+  # for runSh with IN: gitRepo
+  if ($resource) {
+    # for runSh with IN: gitRepo commits
+    $current_commit_sha = $(shipctl get_resource_version_key $resource shaData.commitSha)
+    $before_commit_sha = $(shipctl get_resource_version_key $resource shaData.beforeCommitSha)
+    $current_commit_range = "${before_commit_sha}..${current_commit_sha}"
+
+    # for runSh with IN: gitRepo pull requests
+    $is_pull_request = $(shipctl get_resource_env $resource is_pull_request)
+    if($is_pull_request -eq "true") {
+      $current_commit_sha = $(shipctl get_resource_version_key $resource shaData.commitSha)
+      $base_branch = $(shipctl get_resource_env $resource base_branch)
+      $current_commit_range = "origin/${base_branch}...${current_commit_sha}"
+    }
+  }
+
+  # Override commit range if present in options
+  if ($commit_range) {
+    $current_commit_range = $commit_range
+  }
+
+  if (!$current_commit_range) {
+    throw "Unknown commit range. use --commit-range."
+  }
+
+  pushd $git_repo_path
+    $result = @();
+
+    if ($directories_only) {
+      git diff --dirstat $current_commit_range | %{ $arr = $_.Split(" "); $result += $arr[$arr.length - 1]; }
+    } else {
+      git diff --name-only $current_commit_range | %{ $result += $_ ; }
+    }
+
+    if ($depth -gt 0) {
+      if ($result.Count -gt 0) {
+        $result = $result | %{ $_.Split('/')[$depth - 1]; }
+      }
+    }
+
+    $result | select -uniq
+  popd
 }
