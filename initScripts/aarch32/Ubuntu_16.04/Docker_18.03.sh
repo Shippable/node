@@ -2,7 +2,7 @@
 set -e
 set -o pipefail
 
-# initScript for Ubuntu 16.04 and Docker 17.09
+# initScript for Ubuntu 16.04 and Docker 18.03
 # ------------------------------------------------------------------------------
 
 readonly DOCKER_VERSION="18.03.1"
@@ -25,7 +25,6 @@ export REQPROC_MOUNTS=""
 export REQPROC_ENVS=""
 export REQPROC_OPTS=""
 export REQPROC_CONTAINER_NAME_PATTERN="reqProc"
-export EXEC_CONTAINER_NAME_PATTERN="shippable-exec"
 export REQPROC_CONTAINER_NAME="$REQPROC_CONTAINER_NAME_PATTERN-$BASE_UUID"
 export REQKICK_SERVICE_NAME_PATTERN="shippable-reqKick@"
 export LEGACY_CI_CACHE_STORE_LOCATION="/home/shippable/cache"
@@ -153,6 +152,7 @@ docker_install() {
   exec_cmd "$remove_static_docker_binary"
 
   copy_static_binary_usr_bin="cp -rf /opt/docker/* /usr/bin/"
+  exec_cmd "$copy_static_binary_usr_bin"
 }
 
 check_docker_opts() {
@@ -307,18 +307,6 @@ setup_opts() {
     "
 }
 
-remove_genexec() {
-  __process_marker "Removing exisiting genexec containers..."
-
-  local running_container_ids=$(docker ps -a \
-    | grep $EXEC_CONTAINER_NAME_PATTERN \
-    | awk '{print $1}')
-
-  if [ ! -z "$running_container_ids" ]; then
-    docker rm -f -v $running_container_ids || true
-  fi
-}
-
 remove_reqProc() {
   __process_marker "Removing exisiting reqProc containers..."
 
@@ -379,17 +367,19 @@ fetch_cexec() {
 enable_32_bit_builds() {
   __process_marker "Adding files to run 32-bit builds"
 
-  local temp_file="/tmp/copy-file.sh"
+  local temp_folder="/tmp/arm-linux-gnueabihf"
+  local temp_file="$temp_folder/copy-file.sh"
   local base_docker_image="arm32v7/ubuntu:16.04"
 
-  rm -rf /tmp/* || true
+  mkdir -p $temp_folder
+  rm -rf $temp_folder/* || true
   touch "$temp_file"
   chmod +x "$temp_file"
-  echo "cp -r /lib/arm-linux-gnueabihf/* /tmp/ || true" > $temp_file
+  echo "cp -r /lib/arm-linux-gnueabihf/* $temp_folder || true" > $temp_file
 
-  docker run --init --rm -v /tmp:/tmp --entrypoint=".$temp_file" $base_docker_image
+  docker run --init --rm -v $temp_folder:$temp_folder --entrypoint=".$temp_file" $base_docker_image
 
-  cp -rf /tmp/* /lib/
+  cp -rf $temp_folder/* /lib/
 }
 
 boot_reqProc() {
@@ -489,9 +479,6 @@ main() {
 
   trap before_exit EXIT
   exec_grp "setup_opts"
-
-  trap before_exit EXIT
-  exec_grp "remove_genexec"
 
   trap before_exit EXIT
   exec_grp "remove_reqProc"
