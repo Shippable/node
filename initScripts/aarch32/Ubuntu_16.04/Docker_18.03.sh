@@ -5,7 +5,7 @@ set -o pipefail
 # initScript for Ubuntu 16.04 and Docker 17.09
 # ------------------------------------------------------------------------------
 
-readonly DOCKER_VERSION="17.09.1"
+readonly DOCKER_VERSION="18.03.1"
 readonly SWAP_FILE_PATH="/root/.__sh_swap__"
 export docker_restart=false
 
@@ -53,15 +53,15 @@ install_prereqs() {
   exec_cmd "$install_prereqs_cmd"
 
   pushd /tmp
-  echo "Installing node 4.8.5"
+  echo "Installing node 8.11.2"
 
-  get_node_tar_cmd="wget https://nodejs.org/dist/v4.8.5/node-v4.8.5-linux-arm64.tar.xz"
+  get_node_tar_cmd="wget https://nodejs.org/dist/v8.11.2/node-v8.11.2-linux-arm64.tar.xz"
   exec_cmd "$get_node_tar_cmd"
 
-  node_extract_cmd="tar -xf node-v4.8.5-linux-arm64.tar.xz"
+  node_extract_cmd="tar -xf node-v8.11.2-linux-arm64.tar.xz"
   exec_cmd "$node_extract_cmd"
 
-  node_copy_cmd="cp -Rf node-v4.8.5-linux-arm64/{bin,include,lib,share} /usr/local"
+  node_copy_cmd="cp -Rf node-v8.11.2-linux-arm64/{bin,include,lib,share} /usr/local"
   exec_cmd "$node_copy_cmd"
 
   check_node_version_cmd="node -v"
@@ -137,12 +137,13 @@ initialize_swap() {
 docker_install() {
   echo "Installing docker"
 
+  # installing arm64 docker, since the machine is of arm64 architecture
   add-apt-repository -y "deb [arch=arm64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" && apt-get update
 
   install_docker="apt-get install -q --force-yes -y -o Dpkg::Options::='--force-confnew' docker-ce=$DOCKER_VERSION~ce-0~ubuntu"
   exec_cmd "$install_docker"
 
-  get_static_docker_binary="wget https://download.docker.com/linux/static/stable/aarch64/docker-$DOCKER_VERSION-ce.tgz -P /tmp/docker"
+  get_static_docker_binary="wget https://download.docker.com/linux/static/stable/armhf/docker-$DOCKER_VERSION-ce.tgz -P /tmp/docker"
   exec_cmd "$get_static_docker_binary"
 
   extract_static_docker_binary="tar -xzf /tmp/docker/docker-$DOCKER_VERSION-ce.tgz --directory /opt"
@@ -150,6 +151,8 @@ docker_install() {
 
   remove_static_docker_binary='rm -rf /tmp/docker'
   exec_cmd "$remove_static_docker_binary"
+
+  copy_static_binary_usr_bin="cp -rf /opt/docker/* /usr/bin/"
 }
 
 check_docker_opts() {
@@ -373,6 +376,22 @@ fetch_cexec() {
   popd
 }
 
+enable_32_bit_builds() {
+  __process_marker "Adding files to run 32-bit builds"
+
+  local temp_file="/tmp/copy-file.sh"
+  local base_docker_image="arm32v7/ubuntu:16.04"
+
+  rm -rf /tmp/* || true
+  touch "$temp_file"
+  chmod +x "$temp_file"
+  echo "cp -r /lib/arm-linux-gnueabihf/* /tmp/ || true" > $temp_file
+
+  docker run --init --rm -v /tmp:/tmp --entrypoint=".$temp_file" $base_docker_image
+
+  cp -rf /tmp/* /lib/
+}
+
 boot_reqProc() {
   __process_marker "Booting up reqProc..."
   docker pull $EXEC_IMAGE
@@ -482,6 +501,9 @@ main() {
 
   trap before_exit EXIT
   exec_grp "fetch_cexec"
+
+  trap before_exit EXIT
+  exec_grp "enable_32_bit_builds"
 
   trap before_exit EXIT
   exec_grp "boot_reqProc"
