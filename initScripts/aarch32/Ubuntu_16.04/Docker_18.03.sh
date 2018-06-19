@@ -2,10 +2,10 @@
 set -e
 set -o pipefail
 
-# initScript for Ubuntu 16.04 and Docker 17.09
+# initScript for Ubuntu 16.04 and Docker 18.03
 # ------------------------------------------------------------------------------
 
-readonly DOCKER_VERSION="17.09.1"
+readonly DOCKER_VERSION="18.03.1"
 readonly SWAP_FILE_PATH="/root/.__sh_swap__"
 export docker_restart=false
 
@@ -25,7 +25,6 @@ export REQPROC_MOUNTS=""
 export REQPROC_ENVS=""
 export REQPROC_OPTS=""
 export REQPROC_CONTAINER_NAME_PATTERN="reqProc"
-export EXEC_CONTAINER_NAME_PATTERN="shippable-exec"
 export REQPROC_CONTAINER_NAME="$REQPROC_CONTAINER_NAME_PATTERN-$BASE_UUID"
 export REQKICK_SERVICE_NAME_PATTERN="shippable-reqKick@"
 export LEGACY_CI_CACHE_STORE_LOCATION="/home/shippable/cache"
@@ -46,6 +45,8 @@ create_shippable_dir() {
 install_prereqs() {
   echo "Installing prerequisite binaries"
 
+  local nodejs_version="8.11.2"
+
   update_cmd="apt-get update"
   exec_cmd "$update_cmd"
 
@@ -53,15 +54,15 @@ install_prereqs() {
   exec_cmd "$install_prereqs_cmd"
 
   pushd /tmp
-  echo "Installing node 4.8.5"
+  echo "Installing node $nodejs_version"
 
-  get_node_tar_cmd="wget https://nodejs.org/dist/v4.8.5/node-v4.8.5-linux-arm64.tar.xz"
+  get_node_tar_cmd="wget https://nodejs.org/dist/v$nodejs_version/node-v$nodejs_version-linux-arm64.tar.xz"
   exec_cmd "$get_node_tar_cmd"
 
-  node_extract_cmd="tar -xf node-v4.8.5-linux-arm64.tar.xz"
+  node_extract_cmd="tar -xf node-v$nodejs_version-linux-arm64.tar.xz"
   exec_cmd "$node_extract_cmd"
 
-  node_copy_cmd="cp -Rf node-v4.8.5-linux-arm64/{bin,include,lib,share} /usr/local"
+  node_copy_cmd="cp -Rf node-v$nodejs_version-linux-arm64/{bin,include,lib,share} /usr/local"
   exec_cmd "$node_copy_cmd"
 
   check_node_version_cmd="node -v"
@@ -137,12 +138,14 @@ initialize_swap() {
 docker_install() {
   echo "Installing docker"
 
+  # installing arm64 docker, since the machine is of arm64 architecture
   add-apt-repository -y "deb [arch=arm64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" && apt-get update
 
   install_docker="apt-get install -q --force-yes -y -o Dpkg::Options::='--force-confnew' docker-ce=$DOCKER_VERSION~ce-0~ubuntu"
   exec_cmd "$install_docker"
 
-  get_static_docker_binary="wget https://download.docker.com/linux/static/stable/aarch64/docker-$DOCKER_VERSION-ce.tgz -P /tmp/docker"
+  # downloading armhf binary, so that we can run 32-bit docker using these binaries
+  get_static_docker_binary="wget https://download.docker.com/linux/static/stable/armhf/docker-$DOCKER_VERSION-ce.tgz -P /tmp/docker"
   exec_cmd "$get_static_docker_binary"
 
   extract_static_docker_binary="tar -xzf /tmp/docker/docker-$DOCKER_VERSION-ce.tgz --directory /opt"
@@ -150,6 +153,9 @@ docker_install() {
 
   remove_static_docker_binary='rm -rf /tmp/docker'
   exec_cmd "$remove_static_docker_binary"
+
+  copy_static_binary_usr_bin="cp -rf /opt/docker/* /usr/bin/"
+  exec_cmd "$copy_static_binary_usr_bin"
 }
 
 check_docker_opts() {
@@ -304,18 +310,6 @@ setup_opts() {
     "
 }
 
-remove_genexec() {
-  __process_marker "Removing exisiting genexec containers..."
-
-  local running_container_ids=$(docker ps -a \
-    | grep $EXEC_CONTAINER_NAME_PATTERN \
-    | awk '{print $1}')
-
-  if [ ! -z "$running_container_ids" ]; then
-    docker rm -f -v $running_container_ids || true
-  fi
-}
-
 remove_reqProc() {
   __process_marker "Removing exisiting reqProc containers..."
 
@@ -371,6 +365,24 @@ fetch_cexec() {
     tar -xf $reports_tar_file
     rm -rf $reports_tar_file
   popd
+}
+
+enable_32_bit_builds() {
+  __process_marker "Adding files to run 32-bit builds"
+
+  local temp_folder="/tmp/arm-linux-gnueabihf"
+  local temp_file="$temp_folder/copy-file.sh"
+  local base_docker_image="arm32v7/ubuntu:16.04"
+
+  mkdir -p $temp_folder
+  rm -rf $temp_folder/* || true
+  touch "$temp_file"
+  chmod +x "$temp_file"
+  echo "cp -r /lib/arm-linux-gnueabihf/* $temp_folder || true" > $temp_file
+
+  docker run --init --rm -v $temp_folder:$temp_folder --entrypoint=".$temp_file" $base_docker_image
+
+  cp -rf $temp_folder/* /lib/
 }
 
 boot_reqProc() {
@@ -472,9 +484,6 @@ main() {
   exec_grp "setup_opts"
 
   trap before_exit EXIT
-  exec_grp "remove_genexec"
-
-  trap before_exit EXIT
   exec_grp "remove_reqProc"
 
   trap before_exit EXIT
@@ -482,6 +491,9 @@ main() {
 
   trap before_exit EXIT
   exec_grp "fetch_cexec"
+
+  trap before_exit EXIT
+  exec_grp "enable_32_bit_builds"
 
   trap before_exit EXIT
   exec_grp "boot_reqProc"
