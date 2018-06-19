@@ -45,6 +45,8 @@ create_shippable_dir() {
 install_prereqs() {
   echo "Installing prerequisite binaries"
 
+  local nodejs_version="8.11.2"
+
   update_cmd="apt-get update"
   exec_cmd "$update_cmd"
 
@@ -52,15 +54,15 @@ install_prereqs() {
   exec_cmd "$install_prereqs_cmd"
 
   pushd /tmp
-  echo "Installing node 8.11.2"
+  echo "Installing node $nodejs_version"
 
-  get_node_tar_cmd="wget https://nodejs.org/dist/v8.11.2/node-v8.11.2-linux-arm64.tar.xz"
+  get_node_tar_cmd="wget https://nodejs.org/dist/v$nodejs_version/node-v$nodejs_version-linux-arm64.tar.xz"
   exec_cmd "$get_node_tar_cmd"
 
-  node_extract_cmd="tar -xf node-v8.11.2-linux-arm64.tar.xz"
+  node_extract_cmd="tar -xf node-v$nodejs_version-linux-arm64.tar.xz"
   exec_cmd "$node_extract_cmd"
 
-  node_copy_cmd="cp -Rf node-v8.11.2-linux-arm64/{bin,include,lib,share} /usr/local"
+  node_copy_cmd="cp -Rf node-v$nodejs_version-linux-arm64/{bin,include,lib,share} /usr/local"
   exec_cmd "$node_copy_cmd"
 
   check_node_version_cmd="node -v"
@@ -142,6 +144,7 @@ docker_install() {
   install_docker="apt-get install -q --force-yes -y -o Dpkg::Options::='--force-confnew' docker-ce=$DOCKER_VERSION~ce-0~ubuntu"
   exec_cmd "$install_docker"
 
+  # downloading armhf binary, so that we can run 32-bit docker using these binaries
   get_static_docker_binary="wget https://download.docker.com/linux/static/stable/armhf/docker-$DOCKER_VERSION-ce.tgz -P /tmp/docker"
   exec_cmd "$get_static_docker_binary"
 
