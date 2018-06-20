@@ -122,9 +122,13 @@ get_integration_resource_field() {
     echo "Usage: shipctl get_integration_resource_field RESOURCE_NAME KEY_NAME"
     exit 99
   fi
-  UP=$(get_resource_name "$1")
-  INTKEYNAME=$(sanitize_shippable_string "$(to_uppercase "$2")")
-  eval echo "$""$UP"_INTEGRATION_"$INTKEYNAME"
+  if [ $(get_integration_resource "$1" masterName) == "keyValuePair" ]; then
+    eval echo "$""$2"
+  else
+    UP=$(get_resource_name "$1")
+    INTKEYNAME=$(sanitize_shippable_string "$(to_uppercase "$2")")
+    eval echo "$""$UP"_INTEGRATION_"$INTKEYNAME"
+  fi
 }
 
 get_resource_version_name() {
