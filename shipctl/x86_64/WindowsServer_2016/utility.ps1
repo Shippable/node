@@ -132,6 +132,10 @@ function get_integration_resource_field([string] $resource, [string] $field) {
     if (-not $resource -or -not $field) {
         throw "Usage: shipctl get_integration_resource_field RESOURCE FIELD"
     }
+    $masterName = get_integration_resource $resource "masterName"
+    if ($masterName -eq "keyValuePair") {
+      return _get_env_value $field
+    }
     $up = get_resource_name $resource
     $intKeyName = _sanitize_upper $field
     $key = $up + "_INTEGRATION_" + $intKeyName
