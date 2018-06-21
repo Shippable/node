@@ -38,6 +38,8 @@ export DEFAULT_TASK_CONTAINER_MOUNTS="-v $BUILD_DIR:$BUILD_DIR \
 export TASK_CONTAINER_COMMAND="/reqExec/$NODE_ARCHITECTURE/$NODE_OPERATING_SYSTEM/dist/main/main"
 export DEFAULT_TASK_CONTAINER_OPTIONS="-d --rm"
 
+export HOST_ARCHITECTURE=$(uname -m)
+
 create_shippable_dir() {
   mkdir -p /home/shippable
 }
@@ -46,6 +48,10 @@ install_prereqs() {
   echo "Installing prerequisite binaries"
 
   local nodejs_version="8.11.2"
+  local architecture="$HOST_ARCHITECTURE"
+  if [ "$HOST_ARCHITECTURE" == "aarch64" ]; then
+    architecture="arm64"
+  fi
 
   update_cmd="apt-get update"
   exec_cmd "$update_cmd"
@@ -56,13 +62,13 @@ install_prereqs() {
   pushd /tmp
   echo "Installing node $nodejs_version"
 
-  get_node_tar_cmd="wget https://nodejs.org/dist/v$nodejs_version/node-v$nodejs_version-linux-arm64.tar.xz"
+  get_node_tar_cmd="wget https://nodejs.org/dist/v$nodejs_version/node-v$nodejs_version-linux-$architecture.tar.xz"
   exec_cmd "$get_node_tar_cmd"
 
-  node_extract_cmd="tar -xf node-v$nodejs_version-linux-arm64.tar.xz"
+  node_extract_cmd="tar -xf node-v$nodejs_version-linux-$architecture.tar.xz"
   exec_cmd "$node_extract_cmd"
 
-  node_copy_cmd="cp -Rf node-v$nodejs_version-linux-arm64/{bin,include,lib,share} /usr/local"
+  node_copy_cmd="cp -Rf node-v$nodejs_version-linux-$architecture/{bin,include,lib,share} /usr/local"
   exec_cmd "$node_copy_cmd"
 
   check_node_version_cmd="node -v"
@@ -138,13 +144,13 @@ initialize_swap() {
 docker_install() {
   echo "Installing docker"
 
-  # installing arm64 docker, since the machine is of arm64 architecture
-  add-apt-repository -y "deb [arch=arm64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" && apt-get update
+  local architecture=$(dpkg --print-architecture)
+
+  add-apt-repository -y "deb [arch=$architecture] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" && apt-get update
 
   install_docker="apt-get install -q --force-yes -y -o Dpkg::Options::='--force-confnew' docker-ce=$DOCKER_VERSION~ce-0~ubuntu"
   exec_cmd "$install_docker"
 
-  # downloading armhf binary, so that we can run 32-bit docker using these binaries
   get_static_docker_binary="wget https://download.docker.com/linux/static/stable/armhf/docker-$DOCKER_VERSION-ce.tgz -P /tmp/docker"
   exec_cmd "$get_static_docker_binary"
 
@@ -154,8 +160,10 @@ docker_install() {
   remove_static_docker_binary='rm -rf /tmp/docker'
   exec_cmd "$remove_static_docker_binary"
 
-  copy_static_binary_usr_bin="cp -rf /opt/docker/* /usr/bin/"
-  exec_cmd "$copy_static_binary_usr_bin"
+  if [ "$architecture" == "arm64" ]; then
+    copy_static_binary_usr_bin="cp -rf /opt/docker/* /usr/bin/"
+    exec_cmd "$copy_static_binary_usr_bin"
+  fi
 }
 
 check_docker_opts() {
@@ -492,8 +500,10 @@ main() {
   trap before_exit EXIT
   exec_grp "fetch_cexec"
 
-  trap before_exit EXIT
-  exec_grp "enable_32_bit_builds"
+  if [ "$HOST_ARCHITECTURE" == "aarch64" ]; then
+    trap before_exit EXIT
+    exec_grp "enable_32_bit_builds"
+  fi
 
   trap before_exit EXIT
   exec_grp "boot_reqProc"
