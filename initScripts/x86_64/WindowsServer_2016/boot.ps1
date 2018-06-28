@@ -177,7 +177,8 @@ Function setup_envs() {
     "-e SHIPPABLE_RELEASE_VERSION=$SHIPPABLE_RELEASE_VERSION " + `
     "-e SHIPPABLE_AMI_VERSION=$SHIPPABLE_AMI_VERSION " + `
     "-e DOCKER_HOST=${DOCKER_NAT_IP}:2375 " + `
-    "-e SHIPPABLE_NODE_SCRIPTS_LOCATION=$NODE_SCRIPTS_LOCATION"
+    "-e SHIPPABLE_NODE_SCRIPTS_LOCATION=$NODE_SCRIPTS_LOCATION " + `
+    "-e CLUSTER_TYPE_CODE=$CLUSTER_TYPE_CODE"
 }
 
 Function setup_opts() {
@@ -229,7 +230,7 @@ setup_dirs
 if ($NODE_TYPE_CODE -ne 7001) {
   initialize
 }
-# DOCKER_VERSION needs to be set here because Docker will definitely be available 
+# DOCKER_VERSION needs to be set here because Docker will definitely be available
 # at this point and we use it it the setup_envs function that's called below
 $DOCKER_VERSION = iex "docker version --format '{{.Server.Version}}'"
 setup_mounts
