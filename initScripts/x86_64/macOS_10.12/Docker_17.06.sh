@@ -50,8 +50,10 @@ setup_mounts() {
   REQPROC_MOUNTS="$REQPROC_MOUNTS \
     -v $BASE_DIR:$BASE_DIR \
     -v /var/run/docker.sock:/var/run/docker.sock"
-  DEFAULT_TASK_CONTAINER_MOUNTS="$DEFAULT_TASK_CONTAINER_MOUNTS \
-    -v /var/run/docker.sock:/var/run/docker.sock"
+  if [ "$IS_RESTRICTED_NODE" != "true" ]; then
+    DEFAULT_TASK_CONTAINER_MOUNTS="$DEFAULT_TASK_CONTAINER_MOUNTS \
+      -v /var/run/docker.sock:/var/run/docker.sock"
+  fi
 }
 
 setup_envs() {
@@ -83,7 +85,8 @@ setup_envs() {
     -e SHIPPABLE_RELEASE_VERSION=$SHIPPABLE_RELEASE_VERSION \
     -e SHIPPABLE_AMI_VERSION=$SHIPPABLE_AMI_VERSION \
     -e SHIPPABLE_NODE_SCRIPTS_LOCATION=$NODE_SCRIPTS_LOCATION \
-    -e CLUSTER_TYPE_CODE=$CLUSTER_TYPE_CODE"
+    -e CLUSTER_TYPE_CODE=$CLUSTER_TYPE_CODE \
+    -e IS_RESTRICTED_NODE=$IS_RESTRICTED_NODE"
 }
 
 setup_opts() {

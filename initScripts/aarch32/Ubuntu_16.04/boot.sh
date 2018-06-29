@@ -55,7 +55,6 @@ initialize() {
   source $NODE_INIT_SCRIPT
 }
 
-
 main() {
   check_input
   initialize
