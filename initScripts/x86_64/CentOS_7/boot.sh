@@ -119,10 +119,15 @@ setup_mounts() {
     -v $LEGACY_CI_MESSAGE_STORE_LOCATION:$LEGACY_CI_MESSAGE_STORE_LOCATION:rw \
     -v $LEGACY_CI_BUILD_LOCATION:$LEGACY_CI_BUILD_LOCATION:rw"
 
-  DEFAULT_TASK_CONTAINER_MOUNTS="$DEFAULT_TASK_CONTAINER_MOUNTS \
-    -v /opt/docker/docker:/usr/bin/docker \
-    -v /var/run/docker.sock:/var/run/docker.sock \
-    -v $NODE_SCRIPTS_LOCATION:/var/lib/shippable/node"
+  if [ "$IS_RESTRICTED_NODE" == "true" ]; then
+    DEFAULT_TASK_CONTAINER_MOUNTS="$DEFAULT_TASK_CONTAINER_MOUNTS \
+      -v $NODE_SCRIPTS_LOCATION:/var/lib/shippable/node"
+  else
+    DEFAULT_TASK_CONTAINER_MOUNTS="$DEFAULT_TASK_CONTAINER_MOUNTS \
+      -v /opt/docker/docker:/usr/bin/docker \
+      -v /var/run/docker.sock:/var/run/docker.sock \
+      -v $NODE_SCRIPTS_LOCATION:/var/lib/shippable/node"
+  fi
 }
 
 setup_envs() {
@@ -158,7 +163,8 @@ setup_envs() {
     -e SHIPPABLE_RELEASE_VERSION=$SHIPPABLE_RELEASE_VERSION \
     -e SHIPPABLE_AMI_VERSION=$SHIPPABLE_AMI_VERSION \
     -e SHIPPABLE_NODE_SCRIPTS_LOCATION=$NODE_SCRIPTS_LOCATION \
-    -e CLUSTER_TYPE_CODE=$CLUSTER_TYPE_CODE"
+    -e CLUSTER_TYPE_CODE=$CLUSTER_TYPE_CODE \
+    -e IS_RESTRICTED_NODE=$IS_RESTRICTED_NODE"
 
   if [ ! -z "$SHIPPABLE_HTTP_PROXY" ]; then
     REQPROC_ENVS="$REQPROC_ENVS \
