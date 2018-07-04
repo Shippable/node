@@ -218,6 +218,11 @@ Function boot_reqKick() {
   popd
 }
 
+Function cleanup() {
+  Write-Output "==== Cleaning up ===="
+  Remove-Item -force "$NODE_ENV"
+}
+
 Function print_summary() {
   Write-Output "==== Summary ===="
   Write-Output "- A firewall rule (${SHIPPABLE_FIREWALL_RULE_NAME}) to allow connections on port 2375 was added"
@@ -239,4 +244,5 @@ setup_envs
 setup_opts
 boot_reqProc
 boot_reqKick
+cleanup
 print_summary

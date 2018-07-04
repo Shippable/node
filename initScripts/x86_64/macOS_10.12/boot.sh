@@ -72,6 +72,11 @@ check_input() {
   check_envs "${expected_envs[@]}"
 }
 
+cleanup() {
+  __process_marker "Cleaning up..."
+  rm -f "$NODE_ENV"
+}
+
 initialize() {
   __process_marker "Initializing node..."
   source $NODE_INIT_SCRIPT
@@ -80,6 +85,7 @@ initialize() {
 main() {
   check_input
   initialize
+  cleanup
 }
 
 main
