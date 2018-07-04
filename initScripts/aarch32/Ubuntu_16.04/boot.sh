@@ -55,9 +55,15 @@ initialize() {
   source $NODE_INIT_SCRIPT
 }
 
+cleanup() {
+  __process_marker "Cleaning up..."
+  rm -f "$NODE_ENV"
+}
+
 main() {
   check_input
   initialize
+  cleanup
 }
 
 main

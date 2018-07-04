@@ -281,6 +281,11 @@ boot_reqKick() {
   }
 }
 
+cleanup() {
+  __process_marker "Cleaning up..."
+  rm -f "$NODE_ENV"
+}
+
 before_exit() {
   echo $1
   echo $2
@@ -325,6 +330,9 @@ main() {
 
   trap before_exit EXIT
   exec_grp "boot_reqKick"
+
+  trap before_exit EXIT
+  exec_grp "cleanup"
 }
 
 main
