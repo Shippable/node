@@ -166,6 +166,13 @@ check_docker_opts() {
   echo "Checking docker options"
 
   SHIPPABLE_DOCKER_OPTS='DOCKER_OPTS="$DOCKER_OPTS -H unix:///var/run/docker.sock -g=/data"'
+  is_gce_header=$(curl -I -s metadata.google.internal | grep "Metadata-Flavor: Google") || true
+  if [ -z "$is_gce_header" ]; then
+    SHIPPABLE_DOCKER_OPTS='DOCKER_OPTS="$DOCKER_OPTS -H unix:///var/run/docker.sock -g=/data"'
+  else 
+    SHIPPABLE_DOCKER_OPTS='DOCKER_OPTS="$DOCKER_OPTS -H unix:///var/run/docker.sock -g=/data --mtu 1460"'
+  fi
+
   opts_exist=$(sudo sh -c "grep '$SHIPPABLE_DOCKER_OPTS' /etc/default/docker || echo ''")
 
   # DOCKER_OPTS do not exist or match.
