@@ -164,7 +164,14 @@ docker_install() {
 
 check_docker_opts() {
   mkdir -p /etc/docker
-  config="{\"graph\": \"/data\"}"
+
+  is_gce_header=$(curl -I -s metadata.google.internal | grep "Metadata-Flavor: Google") || true
+  if [ -z "$is_gce_header" ]; then
+    config="{\"graph\": \"/data\"}"
+  else
+    config="{\"graph\": \"/data\", \"mtu\": 1460 }"
+  fi
+
   config_file="/etc/docker/daemon.json"
   if [ -f "$config_file" ] && [ "$(echo -e $config)" == "$(cat $config_file)" ]; then
     echo "Skipping adding config as its already added"
