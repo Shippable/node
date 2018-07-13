@@ -56,7 +56,7 @@ upgrade_kernel() {
 }
 
 install_prereqs() {
-  local nodejs_version="8.11.2"
+  local nodejs_version="8.11.3"
 
   echo "Installing prerequisite binaries"
   _run_update

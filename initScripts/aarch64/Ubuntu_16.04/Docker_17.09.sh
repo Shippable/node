@@ -44,7 +44,7 @@ create_shippable_dir() {
 }
 
 install_prereqs() {
-  local nodejs_version="8.11.2"
+  local nodejs_version="8.11.3"
   echo "Installing prerequisite binaries"
 
   update_cmd="apt-get update"

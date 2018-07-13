@@ -1,6 +1,6 @@
 $ErrorActionPreference = "Stop"
 
-$NODE_JS_VERSION = "8.11.2"
+$NODE_JS_VERSION = "8.11.3"
 $DOCKER_VERSION = "17.06.2-ee-5"
 $DOCKER_CONFIG_FILE="C:\ProgramData\Docker\config\daemon.json"
 
