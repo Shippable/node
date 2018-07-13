@@ -47,7 +47,7 @@ create_shippable_dir() {
 install_prereqs() {
   echo "Installing prerequisite binaries"
 
-  local nodejs_version="8.11.2"
+  local nodejs_version="8.11.3"
   local architecture="$HOST_ARCHITECTURE"
   if [ "$HOST_ARCHITECTURE" == "aarch64" ]; then
     architecture="arm64"
