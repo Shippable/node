@@ -142,6 +142,35 @@ function get_integration_resource_field([string] $resource, [string] $field) {
     return _get_env_value $key
 }
 
+function get_integration_keys([string] $integration) {
+    if (-not $integration) {
+        throw "Usage: shipctl get_integration_keys INTEGRATION_NAME"
+    }
+    $integrationEnvFile = Join-Path "$env:JOB_INTEGRATIONS" "integration.env"
+    if (!(Test-Path "$integrationEnvFile")) {
+        throw "integration.env not present for integration: $integration"
+    }
+    Get-Content $integrationEnvFile | %{ $_.Split('=')[0] }
+}
+
+function get_integration_field([string] $integration, [string] $field) {
+    if (-not $integration -or -not $field) {
+        throw "Usage: shipctl get_integration_field INTEGRATION_NAME FIELD"
+    }
+    $integrationJsonFile = Join-Path "$env:JOB_INTEGRATIONS" "$integration\integration.json"
+    if (!(Test-Path "$integrationJsonFile")) {
+        throw "integration.json not present for integration: $integration"
+    }
+    $masterName = get_json_value $integrationJsonFile "masterName"
+    if ($masterName -eq "keyValuePair") {
+      return _get_env_value $field
+    }
+    $up = _sanitize_upper $integration
+    $intKeyName = _sanitize_upper $field
+    $key = $up + "_INTEGRATION_" + $intKeyName
+    return _get_env_value $key
+}
+
 function get_resource_version_name([string] $resource) {
     if (-not $resource) {
         throw "Usage: shipctl get_resource_version_name RESOURCE"
