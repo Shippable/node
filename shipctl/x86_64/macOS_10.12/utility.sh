@@ -131,6 +131,38 @@ get_integration_resource_field() {
   fi
 }
 
+get_integration_keys() {
+  if [ "$1" == "" ]; then
+    echo "Usage: shipctl get_integration_keys INTEGRATION_NAME"
+    exit 99
+  fi
+  INTEGRATION_ENV_FILE=$JOB_INTEGRATIONS/$1/integration.env
+  if [ ! -f $INTEGRATION_ENV_FILE ]; then
+    echo "integration.env not present for integration: $1"
+    exit 99
+  fi
+  cat $INTEGRATION_ENV_FILE | awk -F "=" '{print $1}'
+}
+
+get_integration_field() {
+  if [ "$1" == "" ] || [ "$2" == "" ]; then
+    echo "Usage: shipctl get_integration_field INTEGRATION_NAME KEY_NAME"
+    exit 99
+  fi
+  INTEGRATION_JSON_FILE=$JOB_INTEGRATIONS/$1/integration.json
+  if [ ! -f $INTEGRATION_JSON_FILE ]; then
+    echo "integration.json not present for integration: $1"
+    exit 99
+  fi
+  if [ $(jq -r '.masterName' $INTEGRATION_JSON_FILE) == "keyValuePair" ]; then
+    eval echo "$""$2"
+  else
+    UP=$(sanitize_shippable_string "$(to_uppercase "$1")")
+    INTKEYNAME=$(sanitize_shippable_string "$(to_uppercase "$2")")
+    eval echo "$""$UP"_INTEGRATION_"$INTKEYNAME"
+  fi
+}
+
 get_resource_version_name() {
   if [ "$1" == "" ]; then
     echo "Usage: shipctl get_resource_version_name RESOURCE_NAME"
