@@ -146,7 +146,7 @@ function get_integration_keys([string] $integration) {
     if (-not $integration) {
         throw "Usage: shipctl get_integration_keys INTEGRATION_NAME"
     }
-    $integrationEnvFile = Join-Path "$env:JOB_INTEGRATIONS" "integration.env"
+    $integrationEnvFile = Join-Path "$env:JOB_INTEGRATIONS" "$integration\integration.env"
     if (!(Test-Path "$integrationEnvFile")) {
         throw "integration.env not present for integration: $integration"
     }
