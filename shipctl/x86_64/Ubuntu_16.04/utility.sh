@@ -122,7 +122,8 @@ get_integration_resource_field() {
     echo "Usage: shipctl get_integration_resource_field RESOURCE_NAME KEY_NAME"
     exit 99
   fi
-  if [ $(get_integration_resource "$1" masterName) == "keyValuePair" ]; then
+  RESOURCE_INTEGRATION_MASTERNAME=$(get_integration_resource "$1" masterName)
+  if [ "$RESOURCE_INTEGRATION_MASTERNAME" == "keyValuePair" ]; then
     eval echo "$""$2"
   else
     UP=$(get_resource_name "$1")
