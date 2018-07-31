@@ -263,6 +263,12 @@ boot_reqKick() {
   sed -i "s#{{REQEXEC_BIN_PATH}}#$REQEXEC_BIN_PATH#g" $reqKick_config_file
   sed -i "s#{{RUN_MODE}}#$RUN_MODE#g" $reqKick_config_file
   sed -i "s#{{UUID}}#$BASE_UUID#g" $reqKick_config_file
+  sed -i "s#{{NODE_ID}}#$NODE_ID#g" $reqKick_config_file
+  sed -i "s#{{SUBSCRIPTION_ID}}#$SUBSCRIPTION_ID#g" $reqKick_config_file
+  sed -i "s#{{NODE_TYPE_CODE}}#$NODE_TYPE_CODE#g" $reqKick_config_file
+  sed -i "s#{{SHIPPABLE_NODE_ARCHITECTURE}}#$NODE_ARCHITECTURE#g" $reqKick_config_file
+  sed -i "s#{{SHIPPABLE_NODE_OPERATING_SYSTEM}}#$NODE_OPERATING_SYSTEM#g" $reqKick_config_file
+  sed -i "s#{{SHIPPABLE_API_URL}}#$SHIPPABLE_API_URL#g" $reqKick_config_file
 
   sudo service $reqKick_service_name start
 
