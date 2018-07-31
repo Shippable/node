@@ -38,6 +38,8 @@ export DEFAULT_TASK_CONTAINER_MOUNTS="-v $BUILD_DIR:$BUILD_DIR \
   -v $REQEXEC_DIR:/reqExec"
 export TASK_CONTAINER_COMMAND="/reqExec/$NODE_ARCHITECTURE/$NODE_OPERATING_SYSTEM/dist/main/main"
 export DEFAULT_TASK_CONTAINER_OPTIONS="-d --rm"
+export SHIPPABLE_DIND_IMAGE="docker:$DOCKER_VERSION-dind"
+export SHIPPABLE_DIND_CONTAINER_NAME="shippable-dind"
 
 create_shippable_dir() {
   mkdir -p /home/shippable
@@ -216,6 +218,14 @@ install_ntp() {
   fi
 }
 
+setup_docker_in_docker() {
+  echo "Fetching docker in docker image $SHIPPABLE_DIND_IMAGE"
+  docker pull $SHIPPABLE_DIND_IMAGE
+
+  echo "Cleaning up docker in docker containers, if any"
+  docker rm -fv $SHIPPABLE_DIND_CONTAINER_NAME || true
+}
+
 setup_mounts() {
   rm -rf $SHIPPABLE_RUNTIME_DIR
   mkdir -p $BASE_DIR
@@ -239,6 +249,7 @@ setup_mounts() {
 
   if [ "$IS_RESTRICTED_NODE" == "true" ]; then
     DEFAULT_TASK_CONTAINER_MOUNTS="$DEFAULT_TASK_CONTAINER_MOUNTS \
+      -v /opt/docker/docker:/usr/bin/docker \
       -v $NODE_SCRIPTS_LOCATION:/var/lib/shippable/node"
   else
     DEFAULT_TASK_CONTAINER_MOUNTS="$DEFAULT_TASK_CONTAINER_MOUNTS \
@@ -301,6 +312,12 @@ setup_envs() {
   if [ "$NO_VERIFY_SSL" == "true" ]; then
     REQPROC_ENVS="$REQPROC_ENVS \
       -e NODE_TLS_REJECT_UNAUTHORIZED=0"
+  fi
+
+  if [ "$IS_RESTRICTED_NODE" == "true" ]; then
+    REQPROC_ENVS="$REQPROC_ENVS \
+      -e SHIPPABLE_DIND_IMAGE=$SHIPPABLE_DIND_IMAGE \
+      -e SHIPPABLE_DIND_CONTAINER_NAME=$SHIPPABLE_DIND_CONTAINER_NAME"
   fi
 }
 
@@ -469,6 +486,11 @@ main() {
 
   trap before_exit EXIT
   exec_grp "install_ntp"
+
+  if [ "$IS_RESTRICTED_NODE" == "true" ]; then
+    trap before_exit EXIT
+    exec_grp "setup_docker_in_docker"
+  fi
 
   trap before_exit EXIT
   exec_grp "setup_mounts"
