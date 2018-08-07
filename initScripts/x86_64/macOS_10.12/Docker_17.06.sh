@@ -160,6 +160,12 @@ boot_reqKick() {
     sudo sed -i '' "s#{{NODE_PATH}}#$(which node)#g" $service_location
     sudo sed -i '' "s#{{USER_NAME}}#$USER#g" $service_location
     sudo sed -i '' "s#{{PATH}}#$PATH#g" $service_location
+    sudo sed -i '' "s#{{NODE_ID}}#$NODE_ID#g" $service_location
+    sudo sed -i '' "s#{{SUBSCRIPTION_ID}}#$SUBSCRIPTION_ID#g" $service_location
+    sudo sed -i '' "s#{{NODE_TYPE_CODE}}#$NODE_TYPE_CODE#g" $service_location
+    sudo sed -i '' "s#{{SHIPPABLE_NODE_ARCHITECTURE}}#$NODE_ARCHITECTURE#g" $service_location
+    sudo sed -i '' "s#{{SHIPPABLE_NODE_OPERATING_SYSTEM}}#$NODE_OPERATING_SYSTEM#g" $service_location
+    sudo sed -i '' "s#{{SHIPPABLE_API_URL}}#$SHIPPABLE_API_URL#g" $service_location
 
     sudo launchctl load $service_location
 
