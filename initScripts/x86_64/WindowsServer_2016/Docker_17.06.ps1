@@ -128,7 +128,7 @@ Function fetch_reqKick() {
   Expand-Archive -LiteralPath $reqKick_zip_download_location -DestinationPath $REQKICK_DIR
 
   pushd $REQKICK_DIR
-  npm install
+  npm install --unsafe-perm=true --allow-root
   popd
 }
 
