@@ -213,7 +213,7 @@ check_docker_opts() {
   is_gce_header=$(curl -I -s metadata.google.internal | grep "Metadata-Flavor: Google") || true
   if [ -z "$is_gce_header" ]; then
     SHIPPABLE_DOCKER_OPTS='DOCKER_OPTS="$DOCKER_OPTS -H unix:///var/run/docker.sock -g=/data --storage-driver aufs"'
-  else 
+  else
     SHIPPABLE_DOCKER_OPTS='DOCKER_OPTS="$DOCKER_OPTS -H unix:///var/run/docker.sock -g=/data --storage-driver aufs --mtu 1460"'
   fi
 
@@ -369,7 +369,7 @@ fetch_reqKick() {
     rm -rf $reqKick_tar_file
   popd
   pushd $REQKICK_DIR
-    npm install
+    npm install --unsafe-perm=true --allow-root
   popd
 }
 

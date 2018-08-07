@@ -418,7 +418,7 @@ boot_reqKick() {
     rm -rf $reqKick_tar_file
   popd
   pushd $REQKICK_DIR
-  npm install
+  npm install --unsafe-perm=true --allow-root
 
   mkdir -p $REQKICK_CONFIG_DIR
 
