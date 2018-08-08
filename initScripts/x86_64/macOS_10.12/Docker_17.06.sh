@@ -140,7 +140,7 @@ boot_reqKick() {
     rm -rf $reqKick_tar_file
   popd
   pushd $REQKICK_DIR
-    npm install --unsafe-perm=true --allow-root
+    npm install
 
     local reqkick_template_dir="$REQKICK_DIR/init/$NODE_ARCHITECTURE/$NODE_OPERATING_SYSTEM"
     local service_template_location="$reqkick_template_dir/$REQKICK_SERVICE_NAME_PATTERN.$FILE_SUFFIX.template"
