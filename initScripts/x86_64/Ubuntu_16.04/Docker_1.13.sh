@@ -272,7 +272,7 @@ fetch_reqKick() {
     rm -rf $reqKick_tar_file
   popd
   pushd $REQKICK_DIR
-    npm install --unsafe-perm=true --allow-root
+    npm install
   popd
 }
 
