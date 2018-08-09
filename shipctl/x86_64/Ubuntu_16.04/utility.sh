@@ -613,3 +613,59 @@ get_git_changes() {
 
   echo "$result" | uniq
 }
+
+notify() {
+  if [[ $# -le 0 ]]; then
+    echo "Usage: shipctl notify RESOURCE [OPTIONS]"
+    exit 99
+  fi
+
+  # parse and validation the resource details
+  local r_name="$1"
+  shift
+
+  local r_type=$(get_resource_type "$r_name")
+  if [ -z "$r_type" ]; then
+    echo "Error: resource data not found for $r_name"
+    exit 99
+  elif [ "$r_type" != "notification" ]; then
+    echo "Error: resource $r_name is not of type 'notification'"
+    exit 99
+  fi
+
+  # find and validate the integration details
+  local r_endpoint=$(get_integration_resource_field "$r_name" webhookUrl)
+  if [ -z "$r_endpoint" ]; then
+    echo "Error: no endpoint found in resource $r_name"
+    exit 99
+  fi
+  local r_authorization=$(get_integration_resource_field "$r_name" authorization)
+  local curl_auth=""
+  if [ -n "$r_authorization" ]; then
+    local curl_auth="-H authorization:'$r_authorization'"
+  fi
+  # declare options and parse arguments
+  local opt_payload=""
+
+  for arg in "$@"
+  do
+    case $arg in
+      --payload=*)
+      opt_payload="${arg#*=}"
+      shift
+      ;;
+    esac
+  done
+  if [ -z $opt_payload ]; then
+    echo "Error: missing --payload argument"
+    exit 99
+  fi
+  isValid=$(jq type $opt_payload)
+  if [ -z "$isValid" ]; then
+    echo "Error: payload is not valid JSON"
+    exit 99
+  fi
+
+  curl_cmd="curl -XPOST -H content-type:'application/json' $curl_auth $r_endpoint -d @$opt_payload"
+  eval $curl_cmd
+}
