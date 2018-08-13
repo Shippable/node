@@ -620,7 +620,7 @@ notify() {
     exit 99
   fi
 
-  # parse and validation the resource details
+  # parse and validate the resource details
   local r_name="$1"
   shift
 
@@ -632,40 +632,111 @@ notify() {
     echo "Error: resource $r_name is not of type 'notification'"
     exit 99
   fi
-
-  # find and validate the integration details
-  local r_endpoint=$(get_integration_resource_field "$r_name" webhookUrl)
-  if [ -z "$r_endpoint" ]; then
-    echo "Error: no endpoint found in resource $r_name"
-    exit 99
-  fi
-  local r_authorization=$(get_integration_resource_field "$r_name" authorization)
+  local r_mastername=$(get_integration_resource "$r_name" masterName)
   local curl_auth=""
-  if [ -n "$r_authorization" ]; then
-    local curl_auth="-H authorization:'$r_authorization'"
-  fi
-  # declare options and parse arguments
+
+  # declare options and defaults, and parse arguments
+  local opt_color="#65cea7"
+  local opt_icon_url="https://app.shippable.com/images/slack-aye-aye-yoga.png"
   local opt_payload=""
+  local opt_pretext="`date`\n"
+  local opt_recipient=""
+  local opt_text=""
+  local opt_username="Shippable"
+
+  # set up default text
+  # todo: add link to buildJob for runSh once ENV is added
+  case $JOB_TYPE in
+    "runCI" )
+      opt_text="[${REPO_FULL_NAME}:${BRANCH}] <${BUILD_URL}|Build#${BUILD_NUMBER}>"
+      ;;
+    "runSh" )
+      if [ "$JOB_NAME" == "$JOB_TRIGGERED_BY_NAME" ]; then
+        opt_text="[${JOB_NAME}]| Manually triggered.\n"
+      else
+        opt_text="[${JOB_NAME}| Triggered by ${JOB_TRIGGERED_BY_NAME}.\n"
+      fi
+      ;;
+    *)
+      echo "Error: unsupported job type: $JOB_TYPE"
+      exit 99
+      ;;
+  esac
 
   for arg in "$@"
   do
     case $arg in
+      --color=*)
+        opt_color="${arg#*=}"
+        shift
+        ;;
+      --icon_url=*)
+        opt_icon_url="${arg#*=}"
+        shift
+        ;;
       --payload=*)
-      opt_payload="${arg#*=}"
-      shift
-      ;;
+        opt_payload="${arg#*=}"
+        shift
+        ;;
+      --pretext=*)
+        opt_pretext="${arg#*=}"
+        shift
+        ;;
+      --recipient=*)
+        opt_recipient="${arg#*=}"
+        shift
+        ;;
+      --text=*)
+        opt_text="${arg#*=}"
+        shift
+        ;;
+      --username=*)
+        opt_username="${arg#*=}"
+        shift
+        ;;
     esac
   done
-  if [ -z $opt_payload ]; then
-    echo "Error: missing --payload argument"
-    exit 99
+  # set up the default payloads once options have been parsed
+  local default_slack_payload="{\"username\":\"${opt_username}\",\"attachments\":[{\"pretext\":\"${opt_pretext}\",\"text\":\"${opt_text}\",\"color\":\"${opt_color}\"}],\"channel\":\"${opt_recipient}\",\"icon_url\":\"${opt_icon_url}\"}"
+  local default_webhook_payload="{\"username\":\"${opt_username}\",\"pretext\":\"${opt_pretext}\",\"text\":\"${opt_text}\",\"color\":\"${opt_color}\",\"recipient\":\"${opt_recipient}\",\"icon_url\":\"${opt_icon_url}\"}"
+  local default_payload=""
+  # set up type-unique options
+  case "$r_mastername" in
+    "Slack"|"slackKey" )
+      default_payload="$default_slack_payload"
+      ;;
+    "webhook"|"webhookV2" )
+      local r_authorization=$(get_integration_resource_field "$r_name" authorization)
+      if [ -n "$r_authorization" ]; then
+        curl_auth="-H authorization:'$r_authorization'"
+      fi
+      default_payload="$default_webhook_payload"
+      ;;
+    *)
+      echo "Error: unsupported notification type: $r_mastername"
+      exit 99
+      ;;
+  esac
+  if [ -z "$opt_payload" ]; then
+    echo $default_payload > /tmp/payload.json
+    opt_payload=/tmp/payload.json
   fi
-  isValid=$(jq type $opt_payload)
+
+  if [ ! -f $opt_payload ]; then
+    echo "Error: file not found at path: $opt_payload"
+  fi
+  local isValid=$(jq type $opt_payload || true)
   if [ -z "$isValid" ]; then
     echo "Error: payload is not valid JSON"
     exit 99
   fi
 
-  curl_cmd="curl -XPOST -H content-type:'application/json' $curl_auth $r_endpoint -d @$opt_payload"
+  local r_endpoint=$(get_integration_resource_field "$r_name" webhookUrl)
+  if [ -z "$r_endpoint" ]; then
+    echo "Error: no endpoint found in resource $r_name"
+    exit 99
+  fi
+
+  local curl_cmd="curl -XPOST -sS -H content-type:'application/json' $curl_auth $r_endpoint -d @$opt_payload"
   eval $curl_cmd
 }
