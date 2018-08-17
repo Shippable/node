@@ -67,7 +67,7 @@ shippable_jdk() {
     set_java_path "/usr/lib/jvm/java-10-oracle/bin/java";
     set_javac_path "/usr/lib/jvm/java-10-oracle/bin/javac";
   else
-    echo "The version of the jdk you are trying to use is not supported. The supported versions include openjdk7, openjdk8, openjdk9, oraclejdk8, oraclejdk10"
+    echo "The version of the jdk you are trying to use is not supported. The supported versions include openjdk7, openjdk8, openjdk9, openjdk10, oraclejdk8, oraclejdk10"
     exit 99
   fi
 
