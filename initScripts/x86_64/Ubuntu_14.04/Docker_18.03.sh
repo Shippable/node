@@ -2,10 +2,10 @@
 set -e
 set -o pipefail
 
-# initScript for Ubuntu 16.04 and Docker 18.03
+# initScript for Ubuntu 16.04 and Docker 18.03.1
 # ------------------------------------------------------------------------------
 
-readonly DOCKER_VERSION="18.03.0"
+readonly DOCKER_VERSION="18.03.1"
 readonly SWAP_FILE_PATH="/root/.__sh_swap__"
 export docker_restart=false
 export install_docker_only="$install_docker_only"
