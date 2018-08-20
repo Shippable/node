@@ -636,13 +636,13 @@ notify() {
   local curl_auth=""
 
   # declare options and defaults, and parse arguments
-  local opt_color="#65cea7"
-  local opt_icon_url="https://app.shippable.com/images/slack-aye-aye-yoga.png"
-  local opt_payload=""
-  local opt_pretext="`date`\n"
-  local opt_recipient=""
-  local opt_text=""
-  local opt_username="Shippable"
+  export opt_color="#65cea7"
+  export opt_icon_url="https://app.shippable.com/images/slack-aye-aye-yoga.png"
+  export opt_payload=""
+  export opt_pretext="`date`\n"
+  export opt_recipient=""
+  export opt_text=""
+  export opt_username="Shippable"
 
   # set up default text
   # todo: add link to buildJob for runSh once ENV is added
@@ -697,13 +697,18 @@ notify() {
     esac
   done
   # set up the default payloads once options have been parsed
-  local default_slack_payload="{\"username\":\"${opt_username}\",\"attachments\":[{\"pretext\":\"${opt_pretext}\",\"text\":\"${opt_text}\",\"color\":\"${opt_color}\"}],\"channel\":\"${opt_recipient}\",\"icon_url\":\"${opt_icon_url}\"}"
-  local default_webhook_payload="{\"username\":\"${opt_username}\",\"pretext\":\"${opt_pretext}\",\"text\":\"${opt_text}\",\"color\":\"${opt_color}\",\"recipient\":\"${opt_recipient}\",\"icon_url\":\"${opt_icon_url}\"}"
+  local default_slack_payload="{\"username\":\"\${opt_username}\",\"attachments\":[{\"pretext\":\"\${opt_pretext}\",\"text\":\"\${opt_text}\",\"color\":\"\${opt_color}\"}],\"channel\":\"\${opt_recipient}\",\"icon_url\":\"\${opt_icon_url}\"}"
+  local default_webhook_payload="{\"username\":\"\${opt_username}\",\"pretext\":\"\${opt_pretext}\",\"text\":\"\${opt_text}\",\"color\":\"\${opt_color}\",\"recipient\":\"\${opt_recipient}\",\"icon_url\":\"\${opt_icon_url}\"}"
   local default_payload=""
+  local recipients_list=()
   # set up type-unique options
   case "$r_mastername" in
     "Slack"|"slackKey" )
       default_payload="$default_slack_payload"
+      if [ -z "$opt_recipient" ]; then
+        local meta=$(shipctl get_resource_meta $r_name)
+        recipients_list=($(jq -r ".version.propertyBag.recipients[]" $meta/version.json))
+      fi
       ;;
     "webhook"|"webhookV2" )
       local r_authorization=$(get_integration_resource_field "$r_name" authorization)
@@ -717,19 +722,6 @@ notify() {
       exit 99
       ;;
   esac
-  if [ -z "$opt_payload" ]; then
-    echo $default_payload > /tmp/payload.json
-    opt_payload=/tmp/payload.json
-  fi
-
-  if [ ! -f $opt_payload ]; then
-    echo "Error: file not found at path: $opt_payload"
-  fi
-  local isValid=$(jq type $opt_payload || true)
-  if [ -z "$isValid" ]; then
-    echo "Error: payload is not valid JSON"
-    exit 99
-  fi
 
   local r_endpoint=$(get_integration_resource_field "$r_name" webhookUrl)
   if [ -z "$r_endpoint" ]; then
@@ -737,6 +729,58 @@ notify() {
     exit 99
   fi
 
-  local curl_cmd="curl -XPOST -sS -H content-type:'application/json' $curl_auth $r_endpoint -d @$opt_payload"
+  if [ -n "$opt_payload" ]; then
+    if [ ! -f $opt_payload ]; then
+      echo "Error: file not found at path: $opt_payload"
+      exit 99
+    fi
+    local isValid=$(jq type $opt_payload || true)
+    if [ -z "$isValid" ]; then
+      echo "Error: payload is not valid JSON"
+      exit 99
+    fi
+    _send_curl "$opt_payload" "$curl_auth" "$r_endpoint"
+  else
+    if [ ${#recipients_list[@]} -gt 0 ]; then
+      for recipient in ${recipients_list[@]};
+      do
+        opt_recipient="$recipient"
+        echo $default_payload > /tmp/payload.json
+        opt_payload=/tmp/payload.json
+        shipctl replace $opt_payload
+
+        local isValid=$(jq type $opt_payload || true)
+        if [ -z "$isValid" ]; then
+          echo "Error: payload is not valid JSON"
+          exit 99
+        fi
+        echo "sending notification to $opt_recipient"
+        _send_curl "$opt_payload" "$curl_auth" "$r_endpoint"
+      done
+    else
+      echo $default_payload > /tmp/payload.json
+      opt_payload=/tmp/payload.json
+      shipctl replace $opt_payload
+
+      local isValid=$(jq type $opt_payload || true)
+      if [ -z "$isValid" ]; then
+        echo "Error: payload is not valid JSON"
+        exit 99
+      fi
+      if [ -n "$opt_recipient" ]; then
+        echo "sending notification to \"$opt_recipient\""
+      fi
+      _send_curl "$opt_payload" "$curl_auth" "$r_endpoint"
+    fi
+  fi
+}
+
+_send_curl() {
+  local payload=$1
+  local auth=$2
+  local endpoint=$3
+
+  local curl_cmd="curl -XPOST -sS -H content-type:'application/json' $auth $endpoint -d @$payload"
   eval $curl_cmd
+  echo ""
 }
