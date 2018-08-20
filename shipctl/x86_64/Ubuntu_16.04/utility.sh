@@ -636,32 +636,58 @@ notify() {
   local curl_auth=""
 
   # declare options and defaults, and parse arguments
-  export opt_color="#65cea7"
-  export opt_icon_url="https://app.shippable.com/images/slack-aye-aye-yoga.png"
-  export opt_payload=""
-  export opt_pretext="`date`\n"
-  export opt_recipient=""
-  export opt_text=""
-  export opt_username="Shippable"
 
-  # set up default text
-  # todo: add link to buildJob for runSh once ENV is added
-  case $JOB_TYPE in
-    "runCI" )
-      opt_text="[${REPO_FULL_NAME}:${BRANCH}] <${BUILD_URL}|Build#${BUILD_NUMBER}>"
-      ;;
-    "runSh" )
-      if [ "$JOB_NAME" == "$JOB_TRIGGERED_BY_NAME" ]; then
-        opt_text="[${JOB_NAME}]| Manually triggered.\n"
-      else
-        opt_text="[${JOB_NAME}| Triggered by ${JOB_TRIGGERED_BY_NAME}.\n"
-      fi
-      ;;
-    *)
-      echo "Error: unsupported job type: $JOB_TYPE"
-      exit 99
-      ;;
-  esac
+  export opt_color="$NOTIFY_COLOR"
+  if [ -z "$opt_color" ]; then
+    opt_color="#65cea7"
+  fi
+
+  export opt_icon_url="$NOTIFY_ICON_URL"
+  if [ -z "$opt_icon_url" ]; then
+    opt_icon_url="https://app.shippable.com/images/slack-aye-aye-yoga.png"
+  fi
+
+  export opt_payload="$NOTIFY_PAYLOAD"
+  if [ -z "$opt_payload" ]; then
+    opt_payload=""
+  fi
+  export opt_pretext="$NOTIFY_PRETEXT"
+  if [ -z "$opt_pretext" ]; then
+    opt_pretext="`date`\n"
+  fi
+
+  export opt_recipient="$NOTIFY_RECIPIENT"
+  if [ -z "$opt_recipient" ]; then
+    opt_recipient=""
+  fi
+
+  export opt_username="$NOTIFY_USERNAME"
+  if [ -z "$opt_username" ]; then
+    opt_username="Shippable"
+  fi
+
+  export opt_text="$NOTIFY_TEXT"
+  if [ -z "$opt_text" ]; then
+    # set up default text
+    # todo: add link to buildJob for runSh once ENV is added
+    opt_text=""
+    case $JOB_TYPE in
+      "runCI" )
+        opt_text="[${REPO_FULL_NAME}:${BRANCH}] <${BUILD_URL}|Build#${BUILD_NUMBER}>"
+        ;;
+      "runSh" )
+        if [ "$JOB_NAME" == "$JOB_TRIGGERED_BY_NAME" ]; then
+          opt_text="[${JOB_NAME}]| Manually triggered.\n"
+        else
+          opt_text="[${JOB_NAME}| Triggered by ${JOB_TRIGGERED_BY_NAME}.\n"
+        fi
+        ;;
+      *)
+        echo "Error: unsupported job type: $JOB_TYPE"
+        exit 99
+        ;;
+    esac
+  fi
 
   for arg in "$@"
   do
