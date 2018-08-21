@@ -265,7 +265,7 @@ post_resource_state() {
   RES=$1
   STATENAME=$2
   STATEVALUE=$3
-  echo "$STATENAME"="$STATEVALUE" > "$JOB_STATE/$RES.env"
+  echo "$STATENAME"=\"$STATEVALUE\" > "$JOB_STATE/$RES.env"
 }
 
 put_resource_state() {
@@ -276,7 +276,7 @@ put_resource_state() {
   RES=$1
   STATENAME=$2
   STATEVALUE=$3
-  echo "$STATENAME"="$STATEVALUE" >> "$JOB_STATE/$RES.env"
+  echo "$STATENAME"=\"$STATEVALUE\" >> "$JOB_STATE/$RES.env"
 }
 
 copy_file_to_state() {
@@ -644,7 +644,7 @@ notify() {
 
   export opt_icon_url="$NOTIFY_ICON_URL"
   if [ -z "$opt_icon_url" ]; then
-    opt_icon_url="https://app.shippable.com/images/slack-aye-aye-yoga.png"
+    opt_icon_url="${SHIPPABLE_WWW_URL}/images/slack-aye-aye-yoga.png"
   fi
 
   export opt_payload="$NOTIFY_PAYLOAD"
@@ -676,11 +676,7 @@ notify() {
         opt_text="[${REPO_FULL_NAME}:${BRANCH}] <${BUILD_URL}|Build#${BUILD_NUMBER}>"
         ;;
       "runSh" )
-        if [ "$JOB_NAME" == "$JOB_TRIGGERED_BY_NAME" ]; then
-          opt_text="[${JOB_NAME}]| Manually triggered.\n"
-        else
-          opt_text="[${JOB_NAME}| Triggered by ${JOB_TRIGGERED_BY_NAME}.\n"
-        fi
+        opt_text="[${JOB_NAME}] <${BUILD_URL}|Build#${BUILD_NUMBER}>"
         ;;
       *)
         echo "Error: unsupported job type: $JOB_TYPE"
