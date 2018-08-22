@@ -265,7 +265,7 @@ post_resource_state() {
   RES=$1
   STATENAME=$2
   STATEVALUE=$3
-  echo "$STATENAME"=\"$STATEVALUE\" > "$JOB_STATE/$RES.env"
+  echo "$STATENAME"="$STATEVALUE" > "$JOB_STATE/$RES.env"
 }
 
 put_resource_state() {
@@ -276,7 +276,7 @@ put_resource_state() {
   RES=$1
   STATENAME=$2
   STATEVALUE=$3
-  echo "$STATENAME"=\"$STATEVALUE\" >> "$JOB_STATE/$RES.env"
+  echo "$STATENAME"="$STATEVALUE" >> "$JOB_STATE/$RES.env"
 }
 
 copy_file_to_state() {
