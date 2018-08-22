@@ -1,7 +1,6 @@
 #!/bin/bash -e
 shipctl_command=$1
 shift
-arguments=$@
 source utility.sh
 
 if [ "$shipctl_command" == "" ] || [ "$shipctl_command" == "" ]; then
@@ -11,7 +10,7 @@ fi
 
 execute_shipctl_command() {
   if type $1 &> /dev/null; then
-    $@
+    "$@"
   else
     echo "The command $1 is not supported on this image."
     exit 99
@@ -19,17 +18,17 @@ execute_shipctl_command() {
 }
 
 if [ "$shipctl_command" == "jdk" ]; then
-  execute_shipctl_command shippable_jdk $arguments
+  execute_shipctl_command shippable_jdk "$@"
 elif [ "$shipctl_command" == "retry" ]; then
-  execute_shipctl_command shippable_retry $arguments
+  execute_shipctl_command shippable_retry "$@"
 elif [ "$shipctl_command" == "decrypt" ]; then
-  execute_shipctl_command shippable_decrypt $arguments
+  execute_shipctl_command shippable_decrypt "$@"
 elif [ "$shipctl_command" == "service" ]; then
-  execute_shipctl_command shippable_service $arguments
+  execute_shipctl_command shippable_service "$@"
 elif [ "$shipctl_command" == "replace" ]; then
-  execute_shipctl_command shippable_replace $arguments
+  execute_shipctl_command shippable_replace "$@"
 elif [ -n "$(type -t $shipctl_command)" ] && [ "$(type -t $shipctl_command)" = function ]; then
-  execute_shipctl_command $shipctl_command $arguments
+  execute_shipctl_command $shipctl_command "$@"
 else
   echo "The command $shipctl_command is not supported"
   exit 99
