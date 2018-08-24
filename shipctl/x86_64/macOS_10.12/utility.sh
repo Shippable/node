@@ -448,6 +448,70 @@ put_resource_state_multi() {
   done
 }
 
+bump_version() {
+  local version_to_bump=$1
+  local action=$2
+  local versionParts=$(echo "$version_to_bump" | cut -d "-" -f 1 -s)
+  local prerelease=$(echo "$version_to_bump" | cut -d "-" -f 2 -s)
+  if [[ $versionParts == "" && $prerelease == "" ]]; then
+    # when no prerelease is present
+    versionParts=$version_to_bump
+  fi
+  local major=$(echo "$versionParts" | cut -d "." -f 1 | sed "s/v//")
+  local minor=$(echo "$versionParts" | cut -d "." -f 2)
+  local patch=$(echo "$versionParts" | cut -d "." -f 3)
+  if ! [[ $action == "major" || $action == "minor" || $action == "patch" ||
+    $action == "rc" || $action == "alpha" || $action == "beta" || $action == "final" ]]; then
+    echo "error: Invalid action given in the argument." >&2; exit 99
+  fi
+  local numRegex='^[0-9]+$'
+  if ! [[ $major =~ $numRegex && $minor =~ $numRegex && $patch =~ $numRegex ]] ; then
+    echo "error: Invalid semantics given in the argument." >&2; exit 99
+  fi
+  if [[ $(echo "$versionParts" | cut -d "." -f 1) == $major ]]; then
+    appendV=false
+  else
+    appendV=true
+  fi
+  if [[ $action == "final" ]];then
+    local new_version="$major.$minor.$patch"
+  else
+    if [[ $action == "major" ]]; then
+      major=$((major + 1))
+      minor=0
+      patch=0
+    elif [[ $action == "minor" ]]; then
+      minor=$((minor + 1))
+      patch=0
+    elif [[ $action == "patch" ]]; then
+      patch=$((patch + 1))
+    elif [[ $action == "rc" || $action == "alpha" || $action == "beta" ]]; then
+      local prereleaseCount="";
+      local prereleaseText="";
+      if [ ! -z $(echo "$prerelease" | grep -oP "$action") ]; then
+        local count=$(echo "$prerelease" | grep -oP "$action.[0-9]*")
+        if [ ! -z $count ]; then
+          prereleaseCount=$(echo "$count" | cut -d "." -f 2 -s)
+          prereleaseCount=$(($prereleaseCount + 1))
+        else
+          prereleaseCount=1
+        fi
+        prereleaseText="$action.$prereleaseCount"
+      else
+        prereleaseText=$action
+      fi
+    fi
+    local new_version="$major.$minor.$patch"
+    if [[ $prereleaseText != "" ]]; then
+      new_version="$new_version-$prereleaseText"
+    fi
+  fi
+  if [[ $appendV == true ]]; then
+    new_version="v$new_version"
+  fi
+  echo $new_version
+}
+
 get_git_changes() {
   if [[ $# -le 0 ]]; then
     echo "Usage: shipctl get_git_changes [--path | --resource]"
@@ -548,4 +612,197 @@ get_git_changes() {
   popd > /dev/null
 
   echo "$result" | uniq
+}
+
+notify() {
+  if [[ $# -le 0 ]]; then
+    echo "Usage: shipctl notify RESOURCE [OPTIONS]"
+    exit 99
+  fi
+
+  # parse and validate the resource details
+  local r_name="$1"
+  shift
+
+  local r_type=$(get_resource_type "$r_name")
+  if [ -z "$r_type" ]; then
+    echo "Error: resource data not found for $r_name"
+    exit 99
+  elif [ "$r_type" != "notification" ]; then
+    echo "Error: resource $r_name is not of type 'notification'"
+    exit 99
+  fi
+  local r_mastername=$(get_integration_resource "$r_name" masterName)
+  local curl_auth=""
+
+  # declare options and defaults, and parse arguments
+
+  export opt_color="$NOTIFY_COLOR"
+  if [ -z "$opt_color" ]; then
+    opt_color="#65cea7"
+  fi
+
+  export opt_icon_url="$NOTIFY_ICON_URL"
+  if [ -z "$opt_icon_url" ]; then
+    opt_icon_url="${SHIPPABLE_WWW_URL}/images/slack-aye-aye-yoga.png"
+  fi
+
+  export opt_payload="$NOTIFY_PAYLOAD"
+  if [ -z "$opt_payload" ]; then
+    opt_payload=""
+  fi
+  export opt_pretext="$NOTIFY_PRETEXT"
+  if [ -z "$opt_pretext" ]; then
+    opt_pretext="`date`\n"
+  fi
+
+  export opt_recipient="$NOTIFY_RECIPIENT"
+  if [ -z "$opt_recipient" ]; then
+    opt_recipient=""
+  fi
+
+  export opt_username="$NOTIFY_USERNAME"
+  if [ -z "$opt_username" ]; then
+    opt_username="Shippable"
+  fi
+
+  export opt_text="$NOTIFY_TEXT"
+  if [ -z "$opt_text" ]; then
+    # set up default text
+    # todo: add link to buildJob for runSh once ENV is added
+    opt_text=""
+    case $JOB_TYPE in
+      "runCI" )
+        opt_text="[${REPO_FULL_NAME}:${BRANCH}] <${BUILD_URL}|Build#${BUILD_NUMBER}>"
+        ;;
+      "runSh" )
+        opt_text="[${JOB_NAME}] <${BUILD_URL}|Build#${BUILD_NUMBER}>"
+        ;;
+      *)
+        echo "Error: unsupported job type: $JOB_TYPE"
+        exit 99
+        ;;
+    esac
+  fi
+
+  for arg in "$@"
+  do
+    case $arg in
+      --color=*)
+        opt_color="${arg#*=}"
+        shift
+        ;;
+      --icon_url=*)
+        opt_icon_url="${arg#*=}"
+        shift
+        ;;
+      --payload=*)
+        opt_payload="${arg#*=}"
+        shift
+        ;;
+      --pretext=*)
+        opt_pretext="${arg#*=}"
+        shift
+        ;;
+      --recipient=*)
+        opt_recipient="${arg#*=}"
+        shift
+        ;;
+      --text=*)
+        opt_text="${arg#*=}"
+        shift
+        ;;
+      --username=*)
+        opt_username="${arg#*=}"
+        shift
+        ;;
+    esac
+  done
+  # set up the default payloads once options have been parsed
+  local default_slack_payload="{\"username\":\"\${opt_username}\",\"attachments\":[{\"pretext\":\"\${opt_pretext}\",\"text\":\"\${opt_text}\",\"color\":\"\${opt_color}\"}],\"channel\":\"\${opt_recipient}\",\"icon_url\":\"\${opt_icon_url}\"}"
+  local default_webhook_payload="{\"username\":\"\${opt_username}\",\"pretext\":\"\${opt_pretext}\",\"text\":\"\${opt_text}\",\"color\":\"\${opt_color}\",\"recipient\":\"\${opt_recipient}\",\"icon_url\":\"\${opt_icon_url}\"}"
+  local default_payload=""
+  local recipients_list=()
+  # set up type-unique options
+  case "$r_mastername" in
+    "Slack"|"slackKey" )
+      default_payload="$default_slack_payload"
+      if [ -z "$opt_recipient" ]; then
+        local meta=$(shipctl get_resource_meta $r_name)
+        recipients_list=($(jq -r ".version.propertyBag.recipients[]" $meta/version.json))
+      fi
+      ;;
+    "webhook"|"webhookV2" )
+      local r_authorization=$(get_integration_resource_field "$r_name" authorization)
+      if [ -n "$r_authorization" ]; then
+        curl_auth="-H authorization:'$r_authorization'"
+      fi
+      default_payload="$default_webhook_payload"
+      ;;
+    *)
+      echo "Error: unsupported notification type: $r_mastername"
+      exit 99
+      ;;
+  esac
+
+  local r_endpoint=$(get_integration_resource_field "$r_name" webhookUrl)
+  if [ -z "$r_endpoint" ]; then
+    echo "Error: no endpoint found in resource $r_name"
+    exit 99
+  fi
+
+  if [ -n "$opt_payload" ]; then
+    if [ ! -f $opt_payload ]; then
+      echo "Error: file not found at path: $opt_payload"
+      exit 99
+    fi
+    local isValid=$(jq type $opt_payload || true)
+    if [ -z "$isValid" ]; then
+      echo "Error: payload is not valid JSON"
+      exit 99
+    fi
+    _send_curl "$opt_payload" "$curl_auth" "$r_endpoint"
+  else
+    if [ ${#recipients_list[@]} -gt 0 ]; then
+      for recipient in ${recipients_list[@]};
+      do
+        opt_recipient="$recipient"
+        echo $default_payload > /tmp/payload.json
+        opt_payload=/tmp/payload.json
+        shipctl replace $opt_payload
+
+        local isValid=$(jq type $opt_payload || true)
+        if [ -z "$isValid" ]; then
+          echo "Error: payload is not valid JSON"
+          exit 99
+        fi
+        echo "sending notification to $opt_recipient"
+        _send_curl "$opt_payload" "$curl_auth" "$r_endpoint"
+      done
+    else
+      echo $default_payload > /tmp/payload.json
+      opt_payload=/tmp/payload.json
+      shipctl replace $opt_payload
+
+      local isValid=$(jq type $opt_payload || true)
+      if [ -z "$isValid" ]; then
+        echo "Error: payload is not valid JSON"
+        exit 99
+      fi
+      if [ -n "$opt_recipient" ]; then
+        echo "sending notification to \"$opt_recipient\""
+      fi
+      _send_curl "$opt_payload" "$curl_auth" "$r_endpoint"
+    fi
+  fi
+}
+
+_send_curl() {
+  local payload=$1
+  local auth=$2
+  local endpoint=$3
+
+  local curl_cmd="curl -XPOST -sS -H content-type:'application/json' $auth $endpoint -d @$payload"
+  eval $curl_cmd
+  echo ""
 }
