@@ -40,7 +40,7 @@ shippable_jdk() {
     set_javac_path "/usr/lib/jvm/java-7-openjdk-arm64/bin/javac";
   elif [ "$JDK_VERSION" == "openjdk8" ]; then
     export_java_path "/usr/lib/jvm/java-8-openjdk-arm64";
-    set_java_path "/usr/lib/jvm/java-8-openjdk-arm64/jre/bin/java";
+    set_java_path "/usr/lib/jvm/java-8-openjdk-arm64/bin/java";
     set_javac_path "/usr/lib/jvm/java-8-openjdk-arm64/bin/javac";
    elif [ "$JDK_VERSION" == "openjdk10" ]; then
     export_java_path "/usr/lib/jvm/java-10-openjdk-arm64";
@@ -51,7 +51,7 @@ shippable_jdk() {
     set_java_path "/usr/lib/jvm/java-8-oracle/jre/bin/java";
     set_javac_path "/usr/lib/jvm/java-8-oracle/bin/javac";
   else
-    echo "The version of the jdk you are trying to use is not supported. The supported versions include openjdk7, openjdk8, and oraclejdk8"
+    echo "The version of the jdk you are trying to use is not supported. The supported versions include openjdk7, openjdk8,openjdk10 and oraclejdk8"
     exit 99
   fi
 
