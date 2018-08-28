@@ -42,6 +42,10 @@ shippable_jdk() {
     export_java_path "/usr/lib/jvm/java-8-openjdk-arm64";
     set_java_path "/usr/lib/jvm/java-8-openjdk-arm64/jre/bin/java";
     set_javac_path "/usr/lib/jvm/java-8-openjdk-arm64/bin/javac";
+   elif [ "$JDK_VERSION" == "openjdk10" ]; then
+    export_java_path "/usr/lib/jvm/java-10-openjdk-arm64";
+    set_java_path "/usr/lib/jvm/java-10-openjdk-arm64/jre/bin/java";
+    set_javac_path "/usr/lib/jvm/java-10-openjdk-arm64/bin/javac";
   elif [ "$JDK_VERSION" == "oraclejdk8" ]; then
     export_java_path "/usr/lib/jvm/java-8-oracle";
     set_java_path "/usr/lib/jvm/java-8-oracle/jre/bin/java";
