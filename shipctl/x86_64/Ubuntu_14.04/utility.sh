@@ -632,8 +632,9 @@ notify() {
     echo "Error: resource $r_name is not of type 'notification'"
     exit 99
   fi
-  local r_mastername=$(get_integration_resource "$r_name" masterName)
-  local curl_auth=""
+
+  local meta=$(shipctl get_resource_meta $r_name)
+  local r_method=$(jq -r ".version.propertyBag.method" $meta/version.json)
 
   # declare options and defaults, and parse arguments
 
@@ -663,20 +664,36 @@ notify() {
 
   export opt_username="$NOTIFY_USERNAME"
   if [ -z "$opt_username" ]; then
-    opt_username="Shippable"
+    if [ "$r_method" == "irc" ]; then
+      opt_username="Shippable-$BUILD_NUMBER"
+    else
+      opt_username="Shippable"
+    fi
+  fi
+
+  export opt_password="$NOTIFY_PASSWORD"
+  if [ -z "$opt_password" ]; then
+    opt_password="none"
   fi
 
   export opt_text="$NOTIFY_TEXT"
   if [ -z "$opt_text" ]; then
     # set up default text
-    # todo: add link to buildJob for runSh once ENV is added
     opt_text=""
     case $JOB_TYPE in
       "runCI" )
-        opt_text="[${REPO_FULL_NAME}:${BRANCH}] <${BUILD_URL}|Build#${BUILD_NUMBER}>"
+        if [ "$r_method" == "irc" ]; then
+          opt_text="[${REPO_FULL_NAME}:${BRANCH}] Build #${BUILD_NUMBER} ${BUILD_URL}"
+        else
+          opt_text="[${REPO_FULL_NAME}:${BRANCH}] <${BUILD_URL}|Build#${BUILD_NUMBER}>"
+        fi
         ;;
       "runSh" )
-        opt_text="[${JOB_NAME}] <${BUILD_URL}|Build#${BUILD_NUMBER}>"
+        if [ "$r_method" == "irc" ]; then
+          opt_text="[${JOB_NAME}] Build #${BUILD_NUMBER} ${BUILD_URL}"
+        else
+          opt_text="[${JOB_NAME}] <${BUILD_URL}|Build#${BUILD_NUMBER}>"
+        fi
         ;;
       *)
         echo "Error: unsupported job type: $JOB_TYPE"
@@ -716,57 +733,139 @@ notify() {
         opt_username="${arg#*=}"
         shift
         ;;
+      --password=*)
+        opt_password="${arg#*=}"
+        shift
+        ;;
     esac
   done
-  # set up the default payloads once options have been parsed
-  local default_slack_payload="{\"username\":\"\${opt_username}\",\"attachments\":[{\"pretext\":\"\${opt_pretext}\",\"text\":\"\${opt_text}\",\"color\":\"\${opt_color}\"}],\"channel\":\"\${opt_recipient}\",\"icon_url\":\"\${opt_icon_url}\"}"
-  local default_webhook_payload="{\"username\":\"\${opt_username}\",\"pretext\":\"\${opt_pretext}\",\"text\":\"\${opt_text}\",\"color\":\"\${opt_color}\",\"recipient\":\"\${opt_recipient}\",\"icon_url\":\"\${opt_icon_url}\"}"
-  local default_payload=""
+
   local recipients_list=()
-  # set up type-unique options
-  case "$r_mastername" in
-    "Slack"|"slackKey" )
-      default_payload="$default_slack_payload"
-      if [ -z "$opt_recipient" ]; then
-        local meta=$(shipctl get_resource_meta $r_name)
-        recipients_list=($(jq -r ".version.propertyBag.recipients[]" $meta/version.json))
-      fi
-      ;;
-    "webhook"|"webhookV2" )
-      local r_authorization=$(get_integration_resource_field "$r_name" authorization)
-      if [ -n "$r_authorization" ]; then
-        curl_auth="-H authorization:'$r_authorization'"
-      fi
-      default_payload="$default_webhook_payload"
-      ;;
-    *)
-      echo "Error: unsupported notification type: $r_mastername"
-      exit 99
-      ;;
-  esac
 
-  local r_endpoint=$(get_integration_resource_field "$r_name" webhookUrl)
-  if [ -z "$r_endpoint" ]; then
-    echo "Error: no endpoint found in resource $r_name"
-    exit 99
-  fi
-
-  if [ -n "$opt_payload" ]; then
-    if [ ! -f $opt_payload ]; then
-      echo "Error: file not found at path: $opt_payload"
-      exit 99
+  if [ "$r_method" == "irc" ]; then
+    if [ -z "$opt_recipient" ]; then
+      recipients_list=($(jq -r ".version.propertyBag.recipients[]" $meta/version.json))
     fi
-    local isValid=$(jq type $opt_payload || true)
-    if [ -z "$isValid" ]; then
-      echo "Error: payload is not valid JSON"
-      exit 99
-    fi
-    _send_curl "$opt_payload" "$curl_auth" "$r_endpoint"
-  else
     if [ ${#recipients_list[@]} -gt 0 ]; then
       for recipient in ${recipients_list[@]};
       do
         opt_recipient="$recipient"
+
+        IFS='#' read -a irc_recipient <<< "$opt_recipient"
+
+        if [ -z "${irc_recipient[1]}" ]; then
+          echo "Error: no channel found in recipient $opt_recipient"
+          exit 99
+        fi
+        if [ -z "${irc_recipient[0]}" ]; then
+          echo "Error: no server address found in recipient $opt_recipient"
+          exit 99
+        fi
+
+        echo "sending notification to $opt_recipient"
+        {
+          sleep 10;
+          echo "PASS $opt_password";
+          echo "USER `whoami` 0 * :$opt_username";
+          echo "NICK $opt_username";
+          sleep 5;
+          echo "JOIN #${irc_recipient[1]}";
+          echo "NOTICE #${irc_recipient[1]} :$opt_text";
+          echo "QUIT";
+        } | nc ${irc_recipient[0]} 6667
+      done
+    else
+      if [ -n "$opt_recipient" ]; then
+        echo "sending notification to \"$opt_recipient\""
+      fi
+
+      IFS='#' read -a irc_recipient <<< "$opt_recipient"
+
+      if [ -z "${irc_recipient[1]}" ]; then
+        echo "Error: no channel found in recipient $opt_recipient"
+        exit 99
+      fi
+      if [ -z "${irc_recipient[0]}" ]; then
+        echo "Error: no server address found in recipient $opt_recipient"
+        exit 99
+      fi
+
+      {
+        sleep 10;
+        echo "PASS $opt_password";
+        echo "USER `whoami` 0 * :$opt_username";
+        echo "NICK $opt_username";
+        sleep 5;
+        echo "JOIN #${irc_recipient[1]}";
+        echo "NOTICE #${irc_recipient[1]} :$opt_text";
+        echo "QUIT";
+      } | nc ${irc_recipient[0]} 6667
+    fi
+  else
+    local r_mastername=$(get_integration_resource "$r_name" masterName)
+    local curl_auth=""
+
+    # set up the default payloads once options have been parsed
+    local default_slack_payload="{\"username\":\"\${opt_username}\",\"attachments\":[{\"pretext\":\"\${opt_pretext}\",\"text\":\"\${opt_text}\",\"color\":\"\${opt_color}\"}],\"channel\":\"\${opt_recipient}\",\"icon_url\":\"\${opt_icon_url}\"}"
+    local default_webhook_payload="{\"username\":\"\${opt_username}\",\"pretext\":\"\${opt_pretext}\",\"text\":\"\${opt_text}\",\"color\":\"\${opt_color}\",\"recipient\":\"\${opt_recipient}\",\"icon_url\":\"\${opt_icon_url}\"}"
+    local default_payload=""
+
+    # set up type-unique options
+    case "$r_mastername" in
+      "Slack"|"slackKey" )
+        default_payload="$default_slack_payload"
+        if [ -z "$opt_recipient" ]; then
+          recipients_list=($(jq -r ".version.propertyBag.recipients[]" $meta/version.json))
+        fi
+        ;;
+      "webhook"|"webhookV2" )
+        local r_authorization=$(get_integration_resource_field "$r_name" authorization)
+        if [ -n "$r_authorization" ]; then
+          curl_auth="-H authorization:'$r_authorization'"
+        fi
+        default_payload="$default_webhook_payload"
+        ;;
+      *)
+        echo "Error: unsupported notification type: $r_mastername"
+        exit 99
+        ;;
+    esac
+
+    local r_endpoint=$(get_integration_resource_field "$r_name" webhookUrl)
+    if [ -z "$r_endpoint" ]; then
+      echo "Error: no endpoint found in resource $r_name"
+      exit 99
+    fi
+
+    if [ -n "$opt_payload" ]; then
+      if [ ! -f $opt_payload ]; then
+        echo "Error: file not found at path: $opt_payload"
+        exit 99
+      fi
+      local isValid=$(jq type $opt_payload || true)
+      if [ -z "$isValid" ]; then
+        echo "Error: payload is not valid JSON"
+        exit 99
+      fi
+      _send_curl "$opt_payload" "$curl_auth" "$r_endpoint"
+    else
+      if [ ${#recipients_list[@]} -gt 0 ]; then
+        for recipient in ${recipients_list[@]};
+        do
+          opt_recipient="$recipient"
+          echo $default_payload > /tmp/payload.json
+          opt_payload=/tmp/payload.json
+          shipctl replace $opt_payload
+
+          local isValid=$(jq type $opt_payload || true)
+          if [ -z "$isValid" ]; then
+            echo "Error: payload is not valid JSON"
+            exit 99
+          fi
+          echo "sending notification to $opt_recipient"
+          _send_curl "$opt_payload" "$curl_auth" "$r_endpoint"
+        done
+      else
         echo $default_payload > /tmp/payload.json
         opt_payload=/tmp/payload.json
         shipctl replace $opt_payload
@@ -776,23 +875,11 @@ notify() {
           echo "Error: payload is not valid JSON"
           exit 99
         fi
-        echo "sending notification to $opt_recipient"
+        if [ -n "$opt_recipient" ]; then
+          echo "sending notification to \"$opt_recipient\""
+        fi
         _send_curl "$opt_payload" "$curl_auth" "$r_endpoint"
-      done
-    else
-      echo $default_payload > /tmp/payload.json
-      opt_payload=/tmp/payload.json
-      shipctl replace $opt_payload
-
-      local isValid=$(jq type $opt_payload || true)
-      if [ -z "$isValid" ]; then
-        echo "Error: payload is not valid JSON"
-        exit 99
       fi
-      if [ -n "$opt_recipient" ]; then
-        echo "sending notification to \"$opt_recipient\""
-      fi
-      _send_curl "$opt_payload" "$curl_auth" "$r_endpoint"
     fi
   fi
 }
