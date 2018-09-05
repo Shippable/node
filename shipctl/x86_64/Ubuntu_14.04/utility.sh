@@ -743,6 +743,21 @@ notify() {
   local recipients_list=()
 
   if [ "$r_method" == "irc" ]; then
+
+    local irc_command=""
+
+    if type nc &> /dev/null && true; then
+      irc_command=nc
+    elif type ncat &> /dev/null && true; then
+      irc_command=ncat
+    elif type telnet &> /dev/null && true; then
+      irc_command=telnet
+    else
+      echo "Error: no command found to send IRC messages"
+      echo "Error: nc, ncat, or telnet must be installed"
+      exit 99
+    fi
+
     if [ -z "$opt_recipient" ]; then
       recipients_list=($(jq -r ".version.propertyBag.recipients[]" $meta/version.json))
     fi
@@ -772,7 +787,7 @@ notify() {
           echo "JOIN #${irc_recipient[1]}";
           echo "NOTICE #${irc_recipient[1]} :$opt_text";
           echo "QUIT";
-        } | nc ${irc_recipient[0]} 6667
+        } | ${irc_command} ${irc_recipient[0]} 6667
       done
     else
       if [ -n "$opt_recipient" ]; then
@@ -799,7 +814,7 @@ notify() {
         echo "JOIN #${irc_recipient[1]}";
         echo "NOTICE #${irc_recipient[1]} :$opt_text";
         echo "QUIT";
-      } | nc ${irc_recipient[0]} 6667
+      } | ${irc_command} ${irc_recipient[0]} 6667
     fi
   else
     local r_mastername=$(get_integration_resource "$r_name" masterName)
