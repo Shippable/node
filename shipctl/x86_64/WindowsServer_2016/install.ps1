@@ -2,7 +2,7 @@ $currentDir = $PSScriptRoot
 $destinationDir = "$env:ProgramFiles\Shippable"
 
 if (!(Test-Path -PathType Container $destinationDir)) {
-    mkdir $destinationDir
+    New-Item -ItemType directory -Path $destinationDir
 }
 
 Write-Output "Installing shipctl"

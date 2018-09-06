@@ -540,3 +540,191 @@ function get_git_changes() {
     $result | select -uniq
   popd
 }
+
+function notify() {
+  param(
+    [string]$resource,
+    [string]$payload,
+    [string]$recipient,
+    [string]$icon_url,
+    [string]$color,
+    [string]$pretext,
+    [string]$text,
+    [string]$username
+  )
+  if ($PSBoundParameters.Count -lt 1) {
+    throw "Usage: shipctl notify RESOURCE [-payload|-recipient|-pretext|-text|-username|-color|-icon_url]"
+  }
+
+  $env:opt_resource = $resource
+
+  $r_type=$(get_resource_type "$env:opt_resource")
+  if (!$r_type) {
+    throw "Error: resource data not found for $env:opt_resource"
+  } elseif ($r_type -ne "notification") {
+    throw "Error: resource $env:opt_resource is not of type 'notification'"
+  }
+  $r_mastername=$(get_integration_resource "$env:opt_resource" masterName)
+  $r_endpoint=$(get_integration_resource_field "$env:opt_resource" webhookUrl)
+  $env:opt_recipient = $recipient
+  if (!$env:opt_recipient) {
+    $env:opt_recipient = $env:NOTIFY_RECIPIENT
+    if (!$env:opt_recipient) {
+      $env:opt_recipient=""
+    }
+  }
+
+  $env:opt_icon_url = $icon_url
+  if (!$env:opt_icon_url) {
+    $env:opt_icon_url = $env:NOTIFY_ICON_URL
+    if (!$env:opt_icon_url) {
+      $env:opt_icon_url = "$env:SHIPPABLE_WWW_URL/images/slack-aye-aye-yoga.png"
+    }
+  }
+
+  $env:opt_color = $color
+  if (!$env:opt_color) {
+    $env:opt_color = $env:NOTIFY_COLOR
+    if (!$env:opt_color) {
+      $env:opt_color = "#65cea7"
+    }
+  }
+
+  $env:opt_pretext = $pretext
+  if (!$env:opt_pretext) {
+    $env:opt_pretext = $env:NOTIFY_PRETEXT
+    if (!$env:opt_pretext) {
+      $env:opt_pretext = Get-Date -UFormat "%c (UTC %Z)"
+    }
+  }
+
+  $env:opt_text = $text
+  if (!$env:opt_text) {
+    $env:opt_text = $env:NOTIFY_TEXT
+    if (!$env:opt_text) {
+      if ($env:JOB_TYPE -eq "runCI") {
+        $env:opt_text = "[$env:REPO_FULL_NAME:$env:BRANCH] `<$env:BUILD_URL|Build#$env:BUILD_NUMBER`>"
+      } elseif ($env:JOB_TYPE -eq "runSh") {
+        $env:opt_text = "[$env:JOB_NAME] `<$env:BUILD_URL|Build#$env:BUILD_NUMBER`>"
+      } else {
+        throw "Error: unsuported job type: $env:JOB_TYPE"
+      }
+    }
+  }
+
+  $env:opt_username = $username
+  if (!$env:opt_username) {
+    $opt_username = $env:NOTIFY_USERNAME
+    if (!$env:opt_username) {
+      $env:opt_username = "Shippable"
+    }
+  }
+  $env:opt_payload = $payload
+  if (!$env:opt_payload) {
+      $env:opt_payload = $env:NOTIFY_PAYLOAD
+      if (!$env:opt_payload) {
+        $env:opt_payload = ""
+      }
+  }
+
+  $default_slack_payload = '{"username":"$opt_username","attachments":[{"pretext":"$opt_pretext","text":"$opt_text","color":"$opt_color"}],"channel":"$opt_recipient","icon_url":"$opt_icon_url"}'
+  $default_webhook_payload = '{"username":"$opt_username","pretext":"$opt_pretext","text":"$opt_text","color":"$opt_color","channel":"$opt_recipient","icon_url":"$opt_icon_url"}'
+  $default_payload=""
+
+  if ($r_mastername -eq "Slack" -or $r_mastername -eq "slackKey") {
+    $default_payload=$default_slack_payload
+    $recipients_list = $(get_resource_version_key "$env:opt_resource" "recipients")
+  } elseif ($r_mastername -eq "webhook" -or $r_mastername -eq "webhookV2") {
+    $r_authorization=$(get_integration_resource_field "$env:opt_resource" authorization)
+    if (!$r_authorization) {
+      $r_authorization = ""
+    }
+    $default_payload=$default_webhook_payload
+  } else {
+    throw "Error: unsupported notification type: $r_mastername"
+  }
+  if ($env:opt_payload) {
+    if (!(Test-Path $env:opt_payload)) {
+      throw "Error: file not found at path: $opt_payload"
+    }
+    try {
+      $result = Get-Content $env:opt_payload -Raw | ConvertFrom-Json -ErrorAction Stop
+    } catch {
+      throw "Error: payload is not valid JSON"
+    }
+
+    Write-Output "sending notification"
+    _send_notification -payload "$env:opt_payload" -auth "$r_authorization" -endpoint "$r_endpoint"
+
+  } else {
+    if ($recipients_list.count -gt 0 -and !$env:opt_recipient) {
+      foreach ($recipient in $recipients_list) {
+        $env:opt_recipient = $recipient
+
+        Out-File -FilePath "$env:TEMP/payload.json" -InputObject $default_payload
+        $env:opt_payload = "$env:TEMP/payload.json"
+        shipctl replace $env:opt_payload
+
+        try {
+          $result = Get-Content $env:opt_payload -Raw | ConvertFrom-Json -ErrorAction Stop
+        } catch {
+          throw "Error: payload is not valid JSON"
+        }
+
+        Write-Output "sending notification to $env:opt_recipient"
+        _send_notification -payload "$env:opt_payload" -auth "$r_authorization" -endpoint "$r_endpoint"
+      }
+    } else {
+
+      Out-File -FilePath "$env:TEMP/payload.json" -InputObject $default_payload
+      $env:opt_payload="$env:TEMP/payload.json"
+      shipctl replace $env:opt_payload
+
+      $fileContent = Get-Content "$env:opt_payload"
+      $fileContent = $fileContent.Replace("$" + "opt_recipient", "")
+      # Use IO.File instead of Out-File to prevent UTF-8 BOM
+      [IO.File]::WriteAllLines(($env:opt_payload | Resolve-Path), $fileContent)
+
+      try {
+        $result = Get-Content $env:opt_payload -Raw | ConvertFrom-Json -ErrorAction Stop
+      } catch {
+        throw "Error: payload is not valid JSON"
+      }
+      if ($env:opt_recipient) {
+        Write-Output "sending notification to $env:opt_recipient"
+      } else {
+        Write-Output "sending notification"
+      }
+      _send_notification -payload "$env:opt_payload" -auth "$r_authorization" -endpoint "$r_endpoint"
+    }
+  }
+  Write-Output "done"
+  exit 0
+}
+
+function _send_notification() {
+  param(
+    [string]$payload,
+    [string]$auth,
+    [string]$endpoint
+  )
+
+  $json = Get-Content $payload -Raw | ConvertFrom-Json | ConvertTo-Json -Compress
+  if (!$auth) {
+    try {
+      $result = Invoke-WebRequest -Method 'Post' -Uri "$endpoint" -ContentType "application/json" -Body $json -UseBasicParsing
+    } catch {
+      Write-Output $_.Exception|format-list -force
+      throw "Error: exception in web request."
+    }
+  } else {
+
+    try {
+      $headers = @{ Authorization = $auth }
+      $result = Invoke-WebRequest -Method 'Post' -Uri "$endpoint" -Headers $headers -ContentType "application/json" -Body $json -UseBasicParsing
+    } catch {
+      Write-Output $_.Exception|format-list -force
+      throw "Error: exception in web request."
+    }
+  }
+}
