@@ -550,10 +550,11 @@ function notify() {
     [string]$color,
     [string]$pretext,
     [string]$text,
-    [string]$username
+    [string]$username,
+    [string]$password
   )
   if ($PSBoundParameters.Count -lt 1) {
-    throw "Usage: shipctl notify RESOURCE [-payload|-recipient|-pretext|-text|-username|-color|-icon_url]"
+    throw "Usage: shipctl notify RESOURCE [-payload|-recipient|-pretext|-text|-username|-password|-color|-icon_url]"
   }
 
   $env:opt_resource = $resource
@@ -564,8 +565,14 @@ function notify() {
   } elseif ($r_type -ne "notification") {
     throw "Error: resource $env:opt_resource is not of type 'notification'"
   }
-  $r_mastername=$(get_integration_resource "$env:opt_resource" masterName)
-  $r_endpoint=$(get_integration_resource_field "$env:opt_resource" webhookUrl)
+
+
+  $r_method = $(get_resource_version_key "$env:opt_resource" method)
+  if (!$r_method) {
+    $r_mastername=$(get_integration_resource "$env:opt_resource" masterName)
+    $r_endpoint = $(get_integration_resource_field "$env:opt_resource" webhookUrl)
+  }
+
   $env:opt_recipient = $recipient
   if (!$env:opt_recipient) {
     $env:opt_recipient = $env:NOTIFY_RECIPIENT
@@ -603,9 +610,17 @@ function notify() {
     $env:opt_text = $env:NOTIFY_TEXT
     if (!$env:opt_text) {
       if ($env:JOB_TYPE -eq "runCI") {
-        $env:opt_text = "[$env:REPO_FULL_NAME:$env:BRANCH] `<$env:BUILD_URL|Build#$env:BUILD_NUMBER`>"
+        if ($r_method -eq "irc") {
+          $env:opt_text = "[$env:REPO_FULL_NAME:$env:BRANCH] Build $env:BUILD_NUMBER $env:BUILD_URL"
+        } else {
+          $env:opt_text = "[$env:REPO_FULL_NAME:$env:BRANCH] `<$env:BUILD_URL|Build#$env:BUILD_NUMBER`>"
+        }
       } elseif ($env:JOB_TYPE -eq "runSh") {
-        $env:opt_text = "[$env:JOB_NAME] `<$env:BUILD_URL|Build#$env:BUILD_NUMBER`>"
+        if ($r_method -eq "irc") {
+          $env:opt_text="[$env:JOB_NAME] Build $env:BUILD_NUMBER $env:BUILD_URL"
+        } else {
+          $env:opt_text = "[$env:JOB_NAME] `<$env:BUILD_URL|Build#$env:BUILD_NUMBER`>"
+        }
       } else {
         throw "Error: unsuported job type: $env:JOB_TYPE"
       }
@@ -616,9 +631,22 @@ function notify() {
   if (!$env:opt_username) {
     $opt_username = $env:NOTIFY_USERNAME
     if (!$env:opt_username) {
-      $env:opt_username = "Shippable"
+      if ($r_method -eq "irc") {
+        $env:opt_username = "Shippable-$env:BUILD_NUMBER"
+      } else {
+        $env:opt_username = "Shippable"
+      }
     }
   }
+
+  $env:opt_password = $password
+  if (!$env:opt_password) {
+    $opt_password = $env:NOTIFY_PASSWORD
+    if (!$env:opt_password) {
+      $env:opt_password = ""
+    }
+  }
+
   $env:opt_payload = $payload
   if (!$env:opt_payload) {
       $env:opt_payload = $env:NOTIFY_PAYLOAD
@@ -630,85 +658,105 @@ function notify() {
   $default_slack_payload = '{"username":"$opt_username","attachments":[{"pretext":"$opt_pretext","text":"$opt_text","color":"$opt_color"}],"channel":"$opt_recipient","icon_url":"$opt_icon_url"}'
   $default_webhook_payload = '{"username":"$opt_username","pretext":"$opt_pretext","text":"$opt_text","color":"$opt_color","channel":"$opt_recipient","icon_url":"$opt_icon_url"}'
   $default_payload=""
-
-  if ($r_mastername -eq "Slack" -or $r_mastername -eq "slackKey") {
-    $default_payload=$default_slack_payload
-    $recipients_list = $(get_resource_version_key "$env:opt_resource" "recipients")
-  } elseif ($r_mastername -eq "webhook" -or $r_mastername -eq "webhookV2") {
-    $r_authorization=$(get_integration_resource_field "$env:opt_resource" authorization)
-    if (!$r_authorization) {
-      $r_authorization = ""
+  if ($r_method -eq "irc") {
+    if ($env:opt_recipient) {
+      $recipients_list = @("$env:opt_recipient")
+    } else {
+      $recipients_list = $(get_resource_version_key "$env:opt_resource" "recipients")
     }
-    $default_payload=$default_webhook_payload
+    if ($recipients_list.count -le 0) {
+      throw "Error: no recipient provided."
+    }
+    foreach ($recipient in $recipients_list) {
+      $server,$channel = $recipient.split('#')
+      if (!$server) {
+        throw "Error: no server specified in recipient $recipient"
+      } elseif (!$channel) {
+        throw "Error: no channel specified in recipient $recipient"
+      }
+      $channel = "#$channel"
+      Write-Output "sending notification to $recipient"
+      _send_irc_notification -server $server -channel $channel -nick $env:opt_username -pass $env:opt_password -payload $env:opt_text
+    }
   } else {
-    throw "Error: unsupported notification type: $r_mastername"
-  }
-  if ($env:opt_payload) {
-    if (!(Test-Path $env:opt_payload)) {
-      throw "Error: file not found at path: $opt_payload"
+    if ($r_mastername -eq "Slack" -or $r_mastername -eq "slackKey") {
+      $default_payload = $default_slack_payload
+      $recipients_list = $(get_resource_version_key "$env:opt_resource" "recipients")
+    } elseif ($r_mastername -eq "webhook" -or $r_mastername -eq "webhookV2") {
+      $r_authorization = $(get_integration_resource_field "$env:opt_resource" authorization)
+      if (!$r_authorization) {
+        $r_authorization = ""
+      }
+      $default_payload = $default_webhook_payload
+    } else {
+      throw "Error: unsupported notification type: $r_mastername"
     }
-    try {
-      $result = Get-Content $env:opt_payload -Raw | ConvertFrom-Json -ErrorAction Stop
-    } catch {
-      throw "Error: payload is not valid JSON"
-    }
+    if ($env:opt_payload) {
+      if (!(Test-Path $env:opt_payload)) {
+        throw "Error: file not found at path: $opt_payload"
+      }
+      try {
+        $result = Get-Content $env:opt_payload -Raw | ConvertFrom-Json -ErrorAction Stop
+      } catch {
+        throw "Error: payload is not valid JSON"
+      }
 
-    Write-Output "sending notification"
-    _send_notification -payload "$env:opt_payload" -auth "$r_authorization" -endpoint "$r_endpoint"
+      Write-Output "sending notification"
+      _send_web_notification -payload "$env:opt_payload" -auth "$r_authorization" -endpoint "$r_endpoint"
 
-  } else {
-    if ($recipients_list.count -gt 0 -and !$env:opt_recipient) {
-      foreach ($recipient in $recipients_list) {
-        $env:opt_recipient = $recipient
+    } else {
+      if ($($recipients_list.count) -gt 0 -and !$env:opt_recipient) {
+        foreach ($recipient in $recipients_list) {
+          $env:opt_recipient = $recipient
+
+          Out-File -FilePath "$env:TEMP/payload.json" -InputObject $default_payload
+          $env:opt_payload = "$env:TEMP/payload.json"
+          shipctl replace $env:opt_payload
+
+          try {
+            $result = Get-Content $env:opt_payload -Raw | ConvertFrom-Json -ErrorAction Stop
+          } catch {
+            throw "Error: payload is not valid JSON"
+          }
+
+          Write-Output "sending notification to $env:opt_recipient"
+          _send_web_notification -payload "$env:opt_payload" -auth "$r_authorization" -endpoint "$r_endpoint"
+        }
+      } else {
 
         Out-File -FilePath "$env:TEMP/payload.json" -InputObject $default_payload
         $env:opt_payload = "$env:TEMP/payload.json"
         shipctl replace $env:opt_payload
+
+        $fileContent = Get-Content "$env:opt_payload"
+        $fileContent = $fileContent.Replace("$" + "opt_recipient", "")
+        # Use IO.File instead of Out-File to prevent UTF-8 BOM
+        [IO.File]::WriteAllLines(($env:opt_payload | Resolve-Path), $fileContent)
 
         try {
           $result = Get-Content $env:opt_payload -Raw | ConvertFrom-Json -ErrorAction Stop
         } catch {
           throw "Error: payload is not valid JSON"
         }
-
-        Write-Output "sending notification to $env:opt_recipient"
-        _send_notification -payload "$env:opt_payload" -auth "$r_authorization" -endpoint "$r_endpoint"
+        if ($env:opt_recipient) {
+          Write-Output "sending notification to $env:opt_recipient"
+        } else {
+          Write-Output "sending notification"
+        }
+        _send_web_notification -payload "$env:opt_payload" -auth "$r_authorization" -endpoint "$r_endpoint"
       }
-    } else {
-
-      Out-File -FilePath "$env:TEMP/payload.json" -InputObject $default_payload
-      $env:opt_payload="$env:TEMP/payload.json"
-      shipctl replace $env:opt_payload
-
-      $fileContent = Get-Content "$env:opt_payload"
-      $fileContent = $fileContent.Replace("$" + "opt_recipient", "")
-      # Use IO.File instead of Out-File to prevent UTF-8 BOM
-      [IO.File]::WriteAllLines(($env:opt_payload | Resolve-Path), $fileContent)
-
-      try {
-        $result = Get-Content $env:opt_payload -Raw | ConvertFrom-Json -ErrorAction Stop
-      } catch {
-        throw "Error: payload is not valid JSON"
-      }
-      if ($env:opt_recipient) {
-        Write-Output "sending notification to $env:opt_recipient"
-      } else {
-        Write-Output "sending notification"
-      }
-      _send_notification -payload "$env:opt_payload" -auth "$r_authorization" -endpoint "$r_endpoint"
     }
   }
   Write-Output "done"
   exit 0
 }
 
-function _send_notification() {
+function _send_web_notification() {
   param(
     [string]$payload,
     [string]$auth,
     [string]$endpoint
   )
-
   $json = Get-Content $payload -Raw | ConvertFrom-Json | ConvertTo-Json -Compress
   if (!$auth) {
     try {
@@ -718,7 +766,6 @@ function _send_notification() {
       throw "Error: exception in web request."
     }
   } else {
-
     try {
       $headers = @{ Authorization = $auth }
       $result = Invoke-WebRequest -Method 'Post' -Uri "$endpoint" -Headers $headers -ContentType "application/json" -Body $json -UseBasicParsing
@@ -727,4 +774,103 @@ function _send_notification() {
       throw "Error: exception in web request."
     }
   }
+}
+
+function _send_irc_notification() {
+  param(
+    [string]$server,
+    [string]$channel,
+    [string]$nick,
+    [string]$password,
+    [string]$payload
+  )
+  $port = 6667
+
+  # make the connection
+  $client = New-Object -TypeName Net.Sockets.TcpClient
+  $client.Connect($server, $port)
+  $netStream = $client.GetStream()
+  $encoding = [System.Text.Encoding]::ASCII
+  $streamWriter = New-Object -Type System.IO.StreamWriter -ArgumentList $netStream, $encoding
+  $connection = "on"
+  # send initial login commands
+  if ($password) {
+    $streamWriter.WriteLine("PASS $password")
+    $streamWriter.Flush()
+  }
+  $streamWriter.WriteLine("NICK $nick")
+  $streamWriter.WriteLine("USER $env:UserName 0 * :Shippable Assembly Lines")
+  $streamWriter.Flush()
+
+  # read data
+  $maxWaitTime = 60 # seconds
+  $message = ""
+  $ready = $false
+  while (($connection -eq "on") -and ($maxWaitTime -ge 0)) {
+
+    if ($netStream.DataAvailable) {
+      [char]$char = $netStream.ReadByte()
+      if ($char -eq 13) {
+        write-output "$message"
+        $ready = _check_message $message
+        $message = ""
+      } elseif ($char -ne 10) {
+        $message += $char
+      }
+    } else {
+      if ($ready) {
+        sleep 2
+        write-output "Joining channel $channel"
+        $streamWriter.WriteLine("JOIN $channel")
+        $streamWriter.Flush()
+        sleep 2
+        $payload = $payload.TrimEnd()
+        Write-Output "Sending notice"
+        $streamWriter.WriteLine("NOTICE $channel :$payload")
+        $streamWriter.Flush()
+        $connection = "off"
+      } else {
+        write-output "waiting for $maxWaitTime more seconds..."
+        sleep 2
+        $maxWaitTime -= 2
+      }
+    }
+  }
+  if ($maxWaitTime -le 0) {
+    Write-Output "Max wait time exceeded. Closing connection."
+    $errorMessage = "Max wait time exceeded"
+  }
+
+  # disconnect
+  write-output "disconnecting from server"
+  $streamWriter.WriteLine("PART $channel")
+  $streamWriter.WriteLine("QUIT")
+  $streamWriter.Flush()
+  $streamWriter.Close()
+  $netStream.Close()
+  $client.Close()
+  if ($errorMessage) {
+    throw $errorMessage
+  }
+}
+
+function _check_message() {
+
+  param(
+    [string]$message
+  )
+
+  if ($message -match "^:(.+?) +([0-9]{3}|[A-Z]+)") {
+    $from = $matches[1]
+    $code = $matches[2]
+  }
+
+  $ready = $false
+  switch -regex ($code) {
+    "376" { # means end of MOTD. Additional commands will be accepted now
+      $ready = $true
+      break
+    }
+  }
+  return $ready
 }
