@@ -8,6 +8,7 @@ if [ "$shipctl_command" == "" ] || [ "$shipctl_command" == "" ]; then
   exit 1
 fi
 
+# Executes the command in a separate subshell
 execute_shipctl_command() {
   if type $1 &> /dev/null; then
     "$@"
@@ -17,8 +18,19 @@ execute_shipctl_command() {
   fi
 }
 
+# Sources the script in the current shell.
+# target script will override any conflicting ENV's
+source_shipctl_command() {
+  if type $1 &> /dev/null; then
+    source "$@"
+  else
+    echo "The command $1 is not supported on this image."
+    exit 99
+  fi
+}
+
 if [ "$shipctl_command" == "jdk" ]; then
-  execute_shipctl_command shippable_jdk "$@"
+  source_shipctl_command shippable_jdk "$@"
 elif [ "$shipctl_command" == "retry" ]; then
   execute_shipctl_command shippable_retry "$@"
 elif [ "$shipctl_command" == "decrypt" ]; then
