@@ -305,6 +305,73 @@ copy_file_from_prev_state() {
   fi
 }
 
+replicate() {
+  if [ "$1" == "" ] || [ "$2" == "" ]; then
+    echo "Usage: shipctl replicate STATE_RESOURCE_NAME STATE_RESOURCE_NAME"
+    exit 99
+  fi
+  local resFrom=$1
+  local resTo=$2
+  local typeFrom=$(shipctl get_resource_type $resFrom)
+  local typeTo=$(shipctl get_resource_type $resTo)
+
+  if [ "$typeFrom" != "state" ]; then
+    echo "Error: resources must be type 'state'"
+    exit 99
+  fi
+  if [ "$typeFrom" != "$typeTo" ]; then
+    echo "Error: resources must be the same type."
+    exit 99
+  fi
+
+  # declare options
+  local opt_type="$typeFrom"
+  local opt_files_only=""
+  local opt_metadata_only=""
+
+  for arg in "$@"
+  do
+    case $arg in
+      --files-only )
+        opt_files_only="true"
+        shift
+        ;;
+      --metadata-only )
+        opt_metadata_only="true"
+        shift
+        ;;
+    esac
+  done
+
+  # copy files
+  if [ -z "$opt_metadata_only" ]; then
+    local fromPath="/build/IN/$resFrom/$opt_type"
+    local toPath="/build/OUT/$resTo/$opt_type"
+    if [ -d "$fromPath" ] && [ -n "$(ls -A $fromPath)" ]; then
+      # files exist. copy them.
+      rm -rf $toPath/*
+      cp -r $fromPath/* $toPath
+    fi
+  fi
+
+  # copy values
+  if [ -z "$opt_files_only" ]; then
+    local mdFilePathFrom="/build/IN/$resFrom/version.json"
+    local mdFilePathTo="/build/OUT/$resTo/version.json"
+    if [ -f "$mdFilePathFrom" ] && [ -f "$mdFilePathTo" ]; then
+      if [ -z "$(which jq)" ]; then
+        echo "Error: jq is required for metadata copy"
+        exit 99
+      fi
+      local fromVersion=$(jq '.version.propertyBag' $mdFilePathFrom)
+      local tmpFilePath="/build/OUT/$resTo/copyTmp.json"
+      cp $mdFilePathTo  $tmpFilePath
+      jq ".version.propertyBag = $fromVersion" $tmpFilePath > $mdFilePathTo
+      rm $tmpFilePath
+    fi
+  fi
+}
+
 refresh_file_to_state() {
   if [ "$1" == "" ]; then
     echo "Usage: shipctl refresh_file_to_state FILE_PATH"
