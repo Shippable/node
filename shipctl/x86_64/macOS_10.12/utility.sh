@@ -364,7 +364,7 @@ replicate() {
         exit 99
       fi
       local fromVersion=$(jq '.version.propertyBag' $mdFilePathFrom)
-      local tmpFilePath="/build/OUT/$resTo/copyTmp.json"
+      local tmpFilePath="$JOB_PATH/OUT/$resTo/copyTmp.json"
       cp $mdFilePathTo  $tmpFilePath
       jq ".version.propertyBag = $fromVersion" $tmpFilePath > $mdFilePathTo
       rm $tmpFilePath
@@ -409,7 +409,7 @@ copy_resource_file_from_state() {
   FILE_NAME=$2
   RES_TYPE=$(get_resource_type $RES_NAME)
   PATH_TO_COPY_INTO=$3
-  FULL_PATH="/build/IN/$RES_NAME/$RES_TYPE/$FILE_NAME"
+  FULL_PATH="$JOB_PATH/IN/$RES_NAME/$RES_TYPE/$FILE_NAME"
 
   echo "---------------- Restoring file from state -------------------"
   if [ -f "$FULL_PATH" ]; then
@@ -441,8 +441,8 @@ refresh_file_to_out_path() {
   #greedy trimming ## is greedy, / is the string to look for and return last
   #part
   ONLYFILENAME=${FILE_NAME##*/}
-  RES_OUT_PATH="/build/OUT/$RES_NAME/state"
-  RES_IN_PATH="/build/IN/$RES_NAME/state"
+  RES_OUT_PATH="$JOB_PATH/OUT/$RES_NAME/state"
+  RES_IN_PATH="$JOB_PATH/IN/$RES_NAME/state"
 
   echo "---------------- Copying file to state -------------------"
   if [ -f "$FILE_NAME" ]; then
