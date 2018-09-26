@@ -345,8 +345,8 @@ replicate() {
 
   # copy files
   if [ -z "$opt_metadata_only" ]; then
-    local fromPath="/build/IN/$resFrom/$opt_type"
-    local toPath="/build/OUT/$resTo/$opt_type"
+    local fromPath="$JOB_PATH/IN/$resFrom/$opt_type"
+    local toPath="$JOB_PATH/OUT/$resTo/$opt_type"
     if [ -d "$fromPath" ] && [ -n "$(ls -A $fromPath)" ]; then
       # files exist. copy them.
       rm -rf $toPath/*
@@ -356,8 +356,8 @@ replicate() {
 
   # copy values
   if [ -z "$opt_files_only" ]; then
-    local mdFilePathFrom="/build/IN/$resFrom/version.json"
-    local mdFilePathTo="/build/OUT/$resTo/version.json"
+    local mdFilePathFrom="$JOB_PATH/IN/$resFrom/version.json"
+    local mdFilePathTo="$JOB_PATH/OUT/$resTo/version.json"
     if [ -f "$mdFilePathFrom" ] && [ -f "$mdFilePathTo" ]; then
       if [ -z "$(which jq)" ]; then
         echo "Error: jq is required for metadata copy"
