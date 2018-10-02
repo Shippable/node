@@ -318,6 +318,7 @@ replicate() {
   # declare options
   local opt_files_only=""
   local opt_metadata_only=""
+  local opt_webhook_data_only=""
 
   for arg in "$@"
   do
@@ -328,6 +329,10 @@ replicate() {
         ;;
       --metadata-only )
         opt_metadata_only="true"
+        shift
+        ;;
+      --webhook-data-only )
+        opt_webhook_data_only="true"
         shift
         ;;
     esac
@@ -363,11 +368,36 @@ replicate() {
         echo "Error: jq is required for metadata copy"
         exit 99
       fi
-      local fromVersion=$(jq '.version.propertyBag' $mdFilePathFrom)
-      local tmpFilePath="$JOB_PATH/OUT/$resTo/copyTmp.json"
-      cp $mdFilePathTo  $tmpFilePath
-      jq ".version.propertyBag = $fromVersion" $tmpFilePath > $mdFilePathTo
-      rm $tmpFilePath
+      if [ -z "$opt_webhook_data_only" ]; then
+        local fromVersion=$(jq '.version.propertyBag' $mdFilePathFrom)
+        local tmpFilePath="$JOB_PATH/OUT/$resTo/copyTmp.json"
+        cp $mdFilePathTo  $tmpFilePath
+        jq ".version.propertyBag = $fromVersion" $tmpFilePath > $mdFilePathTo
+        rm $tmpFilePath
+      else
+        # store only the 3 fields that count as webhook data
+        local fromShaData=$(jq '.version.propertyBag.shaData' $mdFilePathFrom)
+        local fromWebhookRequestHeaders=$(jq '.version.propertyBag.webhookRequestHeaders' $mdFilePathFrom)
+        local fromWebhookRequestBody=$(jq '.version.propertyBag.webhookRequestBody' $mdFilePathFrom)
+        local tmpFilePath="$JOB_PATH/OUT/$resTo/copyTmp.json"
+
+        if [ "$fromShaData" != "null" ]; then
+          cp $mdFilePathTo  $tmpFilePath
+          jq ".version.propertyBag.shaData = $fromShaData" $tmpFilePath > $mdFilePathTo
+        fi
+        if [ "$fromWebhookRequestHeaders" != "null" ]; then
+          cp $mdFilePathTo  $tmpFilePath
+          jq ".version.propertyBag.webhookRequestHeaders = $fromWebhookRequestHeaders" $tmpFilePath > $mdFilePathTo
+        fi
+        if [ "$fromWebhookRequestBody" != "null" ]; then
+          cp $mdFilePathTo  $tmpFilePath
+          jq ".version.propertyBag.webhookRequestBody = $fromWebhookRequestBody" $tmpFilePath > $mdFilePathTo
+        fi
+
+        if [ -f "$tmpFilePath" ]; then
+          rm $tmpFilePath
+        fi
+      fi
     fi
   fi
 }
