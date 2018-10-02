@@ -312,22 +312,13 @@ replicate() {
   fi
   local resFrom=$1
   local resTo=$2
-  local typeFrom=$(shipctl get_resource_type $resFrom)
-  local typeTo=$(shipctl get_resource_type $resTo)
-
-  if [ "$typeFrom" != "state" ]; then
-    echo "Error: resources must be type 'state'"
-    exit 99
-  fi
-  if [ "$typeFrom" != "$typeTo" ]; then
-    echo "Error: resources must be the same type."
-    exit 99
-  fi
+  local typeFrom="$(shipctl get_resource_type $resFrom)"
+  local typeTo="$(shipctl get_resource_type $resTo)"
 
   # declare options
-  local opt_type="$typeFrom"
   local opt_files_only=""
   local opt_metadata_only=""
+  local opt_webhook_data_only=""
 
   for arg in "$@"
   do
@@ -340,17 +331,31 @@ replicate() {
         opt_metadata_only="true"
         shift
         ;;
+      --webhook-data-only )
+        opt_webhook_data_only="true"
+        shift
+        ;;
     esac
   done
+  if [ "$typeTo" = "ciRepo" ]; then
+    echo "Error: cannot replicate to ciRepo"
+    exit 99
+  fi
+  if [[ "$typeFrom" =~ ^gitRepo|ciRepo|syncRepo$ ]] && [[ "$typeTo" =~ ^gitRepo|syncRepo$ ]]; then
+    opt_metadata_only="true"
+  elif [ "$typeFrom" != "$typeTo" ]; then
+    echo "Error: resources must be the same type."
+    exit 99
+  fi
 
   # copy files
   if [ -z "$opt_metadata_only" ]; then
-    local fromPath="$JOB_PATH/IN/$resFrom/$opt_type"
-    local toPath="$JOB_PATH/OUT/$resTo/$opt_type"
-    if [ -d "$fromPath" ] && [ -n "$(ls -A $fromPath)" ]; then
+    local pathFrom="$JOB_PATH/IN/$resFrom/$typeFrom"
+    local pathTo="$JOB_PATH/OUT/$resTo/$typeTo"
+    if [ -d "$fromPath" ] && [ -n "$(ls -A $pathFrom)" ]; then
       # files exist. copy them.
-      rm -rf $toPath/*
-      cp -r $fromPath/* $toPath
+      rm -rf $pathTo/*
+      cp -r $pathFrom/* $pathTo
     fi
   fi
 
@@ -363,11 +368,36 @@ replicate() {
         echo "Error: jq is required for metadata copy"
         exit 99
       fi
-      local fromVersion=$(jq '.version.propertyBag' $mdFilePathFrom)
-      local tmpFilePath="$JOB_PATH/OUT/$resTo/copyTmp.json"
-      cp $mdFilePathTo  $tmpFilePath
-      jq ".version.propertyBag = $fromVersion" $tmpFilePath > $mdFilePathTo
-      rm $tmpFilePath
+      if [ -z "$opt_webhook_data_only" ]; then
+        local fromVersion=$(jq '.version.propertyBag' $mdFilePathFrom)
+        local tmpFilePath="$JOB_PATH/OUT/$resTo/copyTmp.json"
+        cp $mdFilePathTo  $tmpFilePath
+        jq ".version.propertyBag = $fromVersion" $tmpFilePath > $mdFilePathTo
+        rm $tmpFilePath
+      else
+        # store only the 3 fields that count as webhook data
+        local fromShaData=$(jq '.version.propertyBag.shaData' $mdFilePathFrom)
+        local fromWebhookRequestHeaders=$(jq '.version.propertyBag.webhookRequestHeaders' $mdFilePathFrom)
+        local fromWebhookRequestBody=$(jq '.version.propertyBag.webhookRequestBody' $mdFilePathFrom)
+        local tmpFilePath="$JOB_PATH/OUT/$resTo/copyTmp.json"
+
+        if [ "$fromShaData" != "null" ]; then
+          cp $mdFilePathTo  $tmpFilePath
+          jq ".version.propertyBag.shaData = $fromShaData" $tmpFilePath > $mdFilePathTo
+        fi
+        if [ "$fromWebhookRequestHeaders" != "null" ]; then
+          cp $mdFilePathTo  $tmpFilePath
+          jq ".version.propertyBag.webhookRequestHeaders = $fromWebhookRequestHeaders" $tmpFilePath > $mdFilePathTo
+        fi
+        if [ "$fromWebhookRequestBody" != "null" ]; then
+          cp $mdFilePathTo  $tmpFilePath
+          jq ".version.propertyBag.webhookRequestBody = $fromWebhookRequestBody" $tmpFilePath > $mdFilePathTo
+        fi
+
+        if [ -f "$tmpFilePath" ]; then
+          rm $tmpFilePath
+        fi
+      fi
     fi
   fi
 }
