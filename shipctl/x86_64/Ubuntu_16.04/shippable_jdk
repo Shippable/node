@@ -50,6 +50,10 @@ shippable_jdk() {
     export_java_path "/usr/lib/jvm/java-10-openjdk-amd64";
     set_java_path "/usr/lib/jvm/java-10-openjdk-amd64/bin/java";
     set_javac_path "/usr/lib/jvm/java-10-openjdk-amd64/bin/javac";
+  elif [ "$JDK_VERSION" == "openjdk11" ]; then
+    export_java_path "/usr/lib/jvm/java-11-openjdk-amd64";
+    set_java_path "/usr/lib/jvm/java-11-openjdk-amd64/bin/java";
+    set_javac_path "/usr/lib/jvm/java-11-openjdk-amd64/bin/javac";
   elif [ "$JDK_VERSION" == "oraclejdk7" ]; then
     export_java_path "/usr/lib/jvm/java-7-oracle";
     set_java_path "/usr/lib/jvm/java-7-oracle/jre/bin/java";
@@ -66,8 +70,12 @@ shippable_jdk() {
     export_java_path "/usr/lib/jvm/java-10-oracle";
     set_java_path "/usr/lib/jvm/java-10-oracle/bin/java";
     set_javac_path "/usr/lib/jvm/java-10-oracle/bin/javac";
+   elif [ "$JDK_VERSION" == "oraclejdk11" ]; then
+    export_java_path "/usr/lib/jvm/java-11-oraclejdk-amd64";
+    set_java_path "/usr/lib/jvm/java-11-oraclejdk-amd64/bin/java";
+    set_javac_path "/usr/lib/jvm/java-11-oraclejdk-amd64/bin/javac";
   else
-    echo "The version of the jdk you are trying to use is not supported. The supported versions include openjdk7, openjdk8, openjdk9, openjdk10, oraclejdk8, oraclejdk10"
+    echo "The version of the jdk you are trying to use is not supported. The supported versions include openjdk7, openjdk8, openjdk9, openjdk10, openjdk11, oraclejdk8, oraclejdk10, oraclejdk11"
     exit 99
   fi
 
