@@ -283,6 +283,105 @@ function copy_file_from_prev_state([string] $filePath, [string] $restorePath) {
     Copy-Item -Recurse -Verbose "$previousStateFile" "$restorePath"
 }
 
+function replicate() {
+
+    param(
+    [string]$resourceFrom,
+    [string]$resourceTo,
+    [switch]$files_only,
+    [switch]$metadata_only,
+    [switch]$webhook_data_only
+  )
+
+  if ($PSBoundParameters.Count -lt 2) {
+    throw "Usage: shipctl replicate FROM_resource TO_resource [-files_only|-metadata_only|-webhook_data_only]"
+  }
+  $toCurrentJob = $false
+  $typeFrom = $(get_resource_type "$resourceFrom")
+  $typeTo = $(get_resource_type "$resourceTo")
+
+  if ($resourceFrom -eq $env:JOB_NAME) {
+    throw "Error: current job cannot be the FROM argument"
+  }
+  if ($typeTo -eq "ciRepo") {
+    throw "Error: cannot replicate to ciRepo"
+  }
+  if (($typeFrom -match "^gitRepo|ciRepo|syncRepo$") -and ($typeTo -match "^gitRepo|syncRepo$")) {
+    $metadata_only = $true
+  } elseif ("$resourceTo" -eq "$env:JOB_NAME") {
+    $toCurrentJob = $true
+  } elseif ("$typeFrom" -ne "$typeTo") {
+    throw "Error: resources must be the same type"
+  }
+
+  # copy files
+  if (!$metadata_only) {
+    $pathFrom = "$env:JOB_PATH/IN/$resourceFrom/$typeFrom"
+    $pathTo = ""
+    if (!$toCurrentJob) {
+      $pathTo = "$env:JOB_PATH/OUT/$resourceTo/$typeTo"
+    } else {
+      $pathTo = "$env:JOB_STATE"
+    }
+    $resultTo = test-path "$pathTo"
+    $resultFrom = test-path "$pathFrom"
+    if ((Test-Path "$pathFrom") -and (Test-Path "$pathTo")) {
+      $directory = Get-ChildItem $pathFrom | Measure-Object
+      if ($directory.count -gt 0) {
+        Copy-Item -Path $pathFrom/* -Destination $pathTo -recurse -Force
+      }
+    }
+  }
+  # copy metadata
+  if (!$files_only) {
+    $metadataFromContents = Get-Content -Raw -Path "$env:JOB_PATH/IN/$resourceFrom/version.json" | ConvertFrom-Json
+    $mdFilePathTo = ""
+    if ($toCurrentJob) {
+      $mdFilePathTo = "$env:JOB_STATE/outputVersion.json"
+    } else {
+      $mdFilePathTo = "$env:JOB_PATH/OUT/$resourceTo/version.json"
+    }
+    if (!$webhook_data_only) {
+      $fromVersion = $metadataFromContents.version.propertyBag #read json at mdFilePathFrom.version.propertyBag
+
+      if ($toCurrentJob) {
+        $outputVersion = @{
+          "propertyBag" = $fromVersion
+        }
+        (ConvertTo-Json $outputVersion -depth 100) | Out-File -filepath "$mdFilePathTo" -Encoding UTF8
+
+      } else {
+        $toVersionJson = Get-Content -Raw -Path $mdFilePathTo | ConvertFrom-Json
+        $toVersionJson.version.propertyBag = $fromVersion
+        (ConvertTo-Json $toVersionJson -depth 100) | Out-File -filepath "$mdFilePathTo" -Encoding UTF8
+      }
+    } else {
+      $fromShaData = $metadataFromContents.version.propertyBag.shaData
+      $fromWebhookRequestHeaders = $metadataFromContents.version.propertyBag.webhookRequestHeaders
+      $fromWebhookRequestBody = $metadataFromContents.version.propertyBag.webhookRequestBody
+      if ($toCurrentJob) {
+        $bag = [PSCustomObject]@{}
+        $toVersionJson = [PSCustomObject]@{propertyBag=$bag}
+        $jsonSource = $toVersionJson
+      } else {
+        $jsonSource = Get-Content -Raw -Path $mdFilePathTo | ConvertFrom-Json
+        $toVersionJson = $jsonSource.version
+      }
+      if ($fromShaData) {
+        Add-Member -InputObject $toVersionJson.propertyBag -NotePropertyName 'shaData' -NotePropertyValue $fromShaData -Force
+        $toVersionJson
+      }
+      if ($fromWebhookRequestHeaders) {
+        Add-Member -InputObject $toVersionJson.propertyBag -NotePropertyName 'webhookRequestHeaders' -NotePropertyValue $fromWebhookRequestHeaders -Force
+      }
+      if ($fromWebhookRequestBody) {
+        Add-Member -InputObject $toVersionJson.propertyBag -NotePropertyName 'webhookRequestBody' -NotePropertyValue $fromWebhookRequestBody -Force
+      }
+      (ConvertTo-Json $jsonSource -depth 100) | Out-File -filepath "$mdFilePathTo" -Encoding UTF8
+    }
+  }
+}
+
 function refresh_file_to_state([string] $newStateFile) {
     if (-not $newStateFile) {
         throw "Usage: shipctl refresh_file_to_state FILE"
