@@ -320,6 +320,8 @@ replicate() {
   local opt_metadata_only=""
   local opt_webhook_data_only=""
   local opt_to_current_job=""
+  local opt_match_settings=""
+  local canMatchSettings=""
 
   for arg in "$@"
   do
@@ -334,6 +336,10 @@ replicate() {
         ;;
       --webhook-data-only )
         opt_webhook_data_only="true"
+        shift
+        ;;
+      --match-settings )
+        opt_match_settings="true"
         shift
         ;;
       --* )
@@ -352,11 +358,64 @@ replicate() {
   fi
   if [[ "$typeFrom" =~ ^gitRepo|ciRepo|syncRepo$ ]] && [[ "$typeTo" =~ ^gitRepo|syncRepo$ ]]; then
     opt_metadata_only="true"
+    canMatchSettings="true"
   elif [ "$resTo" == "$JOB_NAME" ]; then
     opt_to_current_job="true"
   elif [ "$typeFrom" != "$typeTo" ]; then
     echo "Error: resources must be the same type."
     exit 99
+  fi
+
+  if [ -n "$opt_match_settings" ] && [ -n "$canMatchSettings" ]; then
+    opt_webhook_data_only="true"
+    local fromVersionFile="$JOB_PATH/IN/$resFrom/version.json"
+    local toVersionFile="$JOB_PATH/OUT/$resTo/version.json"
+    local fromShaData=$(jq '.version.propertyBag.shaData' $fromVersionFile)
+    local shouldReplicate="true"
+    if [ -z "$fromShaData" ]; then
+      echo "Error: FROM resource does not contain shaData."
+      exit 99
+    fi
+    # check FROM to see if it has a gitTag.
+    local isGitTag=$(jq '.version.propertyBag.shaData.isGitTag' $fromVersionFile)
+    if [ "$isGitTag" == "true" ]; then
+      local gitTagName=$(jq -r '.version.propertyBag.shaData.gitTagName' $fromVersionFile)
+      # check if TO has a tags only/except section. Will be empty string otherwise.
+      local toTagsOnly=$(jq -r '.version.propertyBag | select(.tags) | .tags.only[]' $toVersionFile)
+      local toTagsExcept=$(jq -r '.version.propertyBag | select(.tags) | .tags.except[]' $toVersionFile)
+      if [ -n "$toTagsOnly" ]; then
+        local matchedTag=""
+        if [ ${#toTagsOnly[@]} -gt 0 ]; then
+          for tag in ${toTagsOnly[@]};
+          do
+            if [[ $gitTagName = $tag ]]; then
+              matchedTag="true"
+            fi
+          done
+          if [ "$matchedTag" != "true" ]; then
+            shouldReplicate=""
+          fi
+        fi
+      fi
+      if [ -n "$toTagsExcept" ]; then
+        local matchedTag=""
+        if [ ${#toTagsExcept[@]} -gt 0 ]; then
+          for tag in ${toTagsExcept[@]};
+          do
+            if [[ $gitTagName = $tag ]]; then
+              matchedTag="true"
+            fi
+          done
+          if [ "$matchedTag" == "true" ]; then
+            shouldReplicate=""
+          fi
+        fi
+      fi
+    fi
+    if [ -z "$shouldReplicate" ]; then
+      echo "FROM shaData does not match TO settings. skipping replicate"
+      return 0
+    fi
   fi
 
   # copy files
