@@ -366,6 +366,10 @@ replicate() {
     exit 99
   fi
 
+  if [ -n "$opt_match_settings" ] && [ -z "$canMatchSettings" ]; then
+    echo "Warning: --match-settings flag not supported for the specified resources."
+  fi
+
   if [ -n "$opt_match_settings" ] && [ -n "$canMatchSettings" ]; then
     opt_webhook_data_only="true"
     local fromVersionFile="$JOB_PATH/IN/$resFrom/version.json"
@@ -376,8 +380,9 @@ replicate() {
       echo "Error: FROM resource does not contain shaData."
       exit 99
     fi
-    # check FROM to see if it has a gitTag.
+    # check for tag-based types.
     local isGitTag=$(jq '.version.propertyBag.shaData.isGitTag' $fromVersionFile)
+    local isRelease=$(jq '.version.propertyBag.shaData.isRelease' $fromVersionFile)
     if [ "$isGitTag" == "true" ]; then
       local gitTagName=$(jq -r '.version.propertyBag.shaData.gitTagName' $fromVersionFile)
       # check if TO has a tags only/except section. Will be empty string otherwise.
@@ -411,7 +416,54 @@ replicate() {
           fi
         fi
       fi
+    elif [ "$isRelease" != "true" ]; then
+      # if it's not a tag, and it's not a release, treat it as a branch.
+      local branchName=$(jq -r '.version.propertyBag.shaData | select(.branchName) | .branchName' $fromVersionFile)
+      if [ -z "$branchName" ]; then
+        echo "Error: no branch name in FROM resource shaData. Cannot replicate."
+        return 0
+      fi
+      local toBranch=$(jq -r '.version.propertyBag | select(.branch) | .branch' $toVersionFile)
+      local toBranchesOnly=$(jq -r '.version.propertyBag | select(.branches) | .branches.only[]' $toVersionFile)
+      local toBranchesExcept=$(jq -r '.version.propertyBag | select(.branches) | .branches.except[]' $toVersionFile)
+      if [ -n "$toBranch" ]; then
+        # this is the case where the TO repo is configured for a single branch.
+        if [ "$toBranch" != "$branchName" ]; then
+          shouldReplicate=""
+        fi
+      else
+        # if not configured for a single branch, then check the only/except sections
+        if [ -n "$toBranchesOnly" ]; then
+          local matchedBranch=""
+          if [ ${#toBranchesOnly[@]} -gt 0 ]; then
+            for branch in ${toBranchesOnly[@]};
+            do
+              if [[ $branchName = $branch ]]; then
+                matchedBranch="true"
+              fi
+            done
+            if [ "$matchedBranch" != "true" ]; then
+              shouldReplicate=""
+            fi
+          fi
+        fi
+        if [ -n "$toBranchesExcept" ]; then
+          local matchedBranch=""
+          if [ ${#toBranchesExcept[@]} -gt 0 ]; then
+            for branch in ${toBranchesExcept[@]};
+            do
+              if [[ $branchName = $branch ]]; then
+                matchedBranch="true"
+              fi
+            done
+            if [ "$matchedBranch" == "true" ]; then
+              shouldReplicate=""
+            fi
+          fi
+        fi
+      fi
     fi
+
     if [ -z "$shouldReplicate" ]; then
       echo "FROM shaData does not match TO settings. skipping replicate"
       return 0
