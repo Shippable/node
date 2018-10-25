@@ -48,8 +48,12 @@ shippable_jdk() {
       set_java_path "/usr/lib/jvm/java-1.7.0-openjdk-1.7.0.171-2.6.13.0.el7_4.x86_64/jre/bin/java";
       set_javac_path "/usr/lib/jvm/java-1.7.0-openjdk-1.7.0.171-2.6.13.0.el7_4.x86_64/bin/javac";
     fi
-  elif [ "$JDK_VERSION" == "openjdk8" ]; then 
-    if [ -d "/usr/lib/jvm/java-1.8.0-openjdk-1.8.0.181-3.b13.el7_5.x86_64" ]; then
+  elif [ "$JDK_VERSION" == "openjdk8" ]; then
+    if [ -d "/usr/lib/jvm/java-8-openjdk-amd64" ]; then
+      export_java_path "/usr/lib/jvm/java-8-openjdk-amd64";
+      set_java_path "/usr/lib/jvm/java-8-openjdk-amd64/bin/java";
+      set_javac_path "/usr/lib/jvm/java-8-openjdk-amd64/bin/javac";
+    elif [ -d "/usr/lib/jvm/java-1.8.0-openjdk-1.8.0.181-3.b13.el7_5.x86_64" ]; then
       export_java_path "/usr/lib/jvm/java-1.8.0-openjdk-1.8.0.181-3.b13.el7_5.x86_64";
       set_java_path "/usr/lib/jvm/java-1.8.0-openjdk-1.8.0.181-3.b13.el7_5.x86_64/jre/bin/java";
       set_javac_path "/usr/lib/jvm/java-1.8.0-openjdk-1.8.0.181-3.b13.el7_5.x86_64/bin/javac";   
@@ -70,12 +74,12 @@ shippable_jdk() {
     export_java_path "/usr/lib/jvm/java-10-openjdk-amd64";
     set_java_path "/usr/lib/jvm/java-10-openjdk-amd64/bin/java";
     set_javac_path "/usr/lib/jvm/java-10-openjdk-amd64/bin/javac";
-  elif [ "$JDK_VERSION" == "openjdk11" ]; then
-    export_java_path "/usr/lib/jvm/java-11-openjdk-amd64";
-    set_java_path "/usr/lib/jvm/java-11-openjdk-amd64/bin/java";
-    set_javac_path "/usr/lib/jvm/java-11-openjdk-amd64/bin/javac";   
   elif [ "$JDK_VERSION" == "oraclejdk8" ]; then
-    if [ -d "/usr/java/jre1.8.0_181-amd64" ]; then
+    if [ -d "/usr/lib/jvm/java-8-oraclejdk-amd64" ]; then
+      export_java_path "/usr/lib/jvm/java-8-oraclejdk-amd64";
+      set_java_path "/usr/lib/jvm/java-8-oraclejdk-amd64/bin/java";
+      set_javac_path "/usr/lib/jvm/java-8-oraclejdk-amd64/bin/javac";
+    elif [ -d "/usr/java/jre1.8.0_181-amd64" ]; then
       export_java_path "/usr/java/jre1.8.0_181-amd64";
       set_java_path "/usr/java/jre1.8.0_181-amd64/bin/java";
       set_javac_path "/usr/java/jdk1.8.0_181-amd64/bin/javac";  
