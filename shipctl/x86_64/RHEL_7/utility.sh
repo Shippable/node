@@ -424,8 +424,8 @@ replicate() {
         return 0
       fi
       local toBranch=$(jq -r '.version.propertyBag | select(.branch) | .branch' $toVersionFile)
-      local toBranchesOnly=$(jq -r '.version.propertyBag | select(.branches) | .branches.only[]' $toVersionFile)
-      local toBranchesExcept=$(jq -r '.version.propertyBag | select(.branches) | .branches.except[]' $toVersionFile)
+      local toBranchesOnly=$(jq -r '.version.propertyBag | select(.branches.only) | .branches.only[]' $toVersionFile)
+      local toBranchesExcept=$(jq -r '.version.propertyBag | select(.branches.except) | .branches.except[]' $toVersionFile)
       if [ -n "$toBranch" ]; then
         # this is the case where the TO repo is configured for a single branch.
         if [ "$toBranch" != "$branchName" ]; then
