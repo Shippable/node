@@ -386,8 +386,8 @@ replicate() {
     if [ "$isGitTag" == "true" ]; then
       local gitTagName=$(jq -r '.version.propertyBag.shaData.gitTagName' $fromVersionFile)
       # check if TO has a tags only/except section. Will be empty string otherwise.
-      local toTagsOnly=$(jq -r '.version.propertyBag | select(.tags) | .tags.only[]' $toVersionFile)
-      local toTagsExcept=$(jq -r '.version.propertyBag | select(.tags) | .tags.except[]' $toVersionFile)
+      local toTagsOnly=$(jq -r '.version.propertyBag | select(.tags.only) | .tags.only[]' $toVersionFile)
+      local toTagsExcept=$(jq -r '.version.propertyBag | select(.tags.except) | .tags.except[]' $toVersionFile)
       if [ -n "$toTagsOnly" ]; then
         local matchedTag=""
         if [ ${#toTagsOnly[@]} -gt 0 ]; then
