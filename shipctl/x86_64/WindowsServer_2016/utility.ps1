@@ -317,7 +317,7 @@ function replicate() {
   }
 
   if ($match_settings -and !$canMatchSettings) {
-    Write-Output "Warning: -match_settings flag not supported for the specified resources."
+    throw "Error: -match_settings flag not supported for the specified resources."
   }
 
   # match branch/tag settings
@@ -329,34 +329,23 @@ function replicate() {
 
     $fromShaData = $fromVersionData.version.propertyBag.shaData
     if (!$fromShaData) {
-        throw "Error: FROM resource does not contain shaData."
+      throw "Error: FROM resource does not contain shaData."
     }
     $isGitTag = $fromVersionData.version.propertyBag.shaData.isGitTag
     $isRelease = $fromVersionData.version.propertyBag.shaData.isRelease
     if ($isGitTag -eq "true") {
-      #tags
       $gitTagName = $fromVersionData.version.propertyBag.shaData.gitTagName
       $toTagsOnly = $toVersionData.version.propertyBag.tags.only
       $toTagsExcept = $toVersionData.version.propertyBag.tags.except
       if ($toTagsOnly -and $toTagsOnly.Count -gt 0 ) {
-        $matchedTag = $false
-        foreach ($tag in $toTagsOnly) {
-          if ($gitTagName -like $tag) {
-            $matchedTag = $true
-          }
-        }
-        if (!$matchedTag) {
+        $matchingTags = $toTagsOnly.Where({$gitTagName -like $_}).Count
+        if ($matchingTags -eq 0) {
           $shouldReplicate = $false
         }
       }
       if ($toTagsExcept -and ($toTagsExcept.Count -gt 0 )) {
-        $matchedTag = $false
-        foreach ($tag in $toTagsExcept) {
-          if ($gitTagName -like $tag) {
-            $matchedTag = $true
-          }
-        }
-        if ($matchedTag) {
+        $matchingTags = $toTagsExcept.Where({$gitTagName -like $_}).Count
+        if ($matchingTags -gt 0) {
           $shouldReplicate = $false
         }
       }
@@ -375,25 +364,14 @@ function replicate() {
         }
       } else {
         if ($toBranchesOnly.Count -gt 0) {
-          $matchedBranch = $false
-          foreach ($branch in $toBranchesOnly) {
-            if ("$branchName" -like "$branch") {
-              $matchedBranch = $true
-            }
-
-          }
-          if (!$matchedBranch) {
+          $matchingBranches = $toBranchesOnly.Where({$branchName -like $_}).Count
+          if ($matchingBranches -eq 0) {
             $shouldReplicate = $false
           }
         }
         if ($toBranchesExcept.Count -gt 0) {
-          $matchedBranch = $false
-          foreach ($branch in $toBranchesExcept) {
-            if ("$branchName" -like "$branch") {
-              $matchedBranch = $true
-            }
-          }
-          if ($matchedBranch) {
+          $matchingBranches = $toBranchesExcept.Where({$branchName -like $_}).Count
+          if ($matchingBranches -gt 0) {
             $shouldReplicate = $false
           }
         }

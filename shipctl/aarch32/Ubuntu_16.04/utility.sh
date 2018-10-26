@@ -367,7 +367,8 @@ replicate() {
   fi
 
   if [ -n "$opt_match_settings" ] && [ -z "$canMatchSettings" ]; then
-    echo "Warning: --match-settings flag not supported for the specified resources."
+    echo "Error: --match-settings flag not supported for the specified resources."
+    exit 99
   fi
 
   if [ -n "$opt_match_settings" ] && [ -n "$canMatchSettings" ]; then
