@@ -74,6 +74,10 @@ shippable_jdk() {
     export_java_path "/usr/lib/jvm/java-10-openjdk-amd64";
     set_java_path "/usr/lib/jvm/java-10-openjdk-amd64/bin/java";
     set_javac_path "/usr/lib/jvm/java-10-openjdk-amd64/bin/javac";
+  elif [ "$JDK_VERSION" == "openjdk11" ]; then
+    export_java_path "/usr/lib/jvm/java-11-openjdk-amd64";
+    set_java_path "/usr/lib/jvm/java-11-openjdk-amd64/bin/java";
+    set_javac_path "/usr/lib/jvm/java-11-openjdk-amd64/bin/javac";   
   elif [ "$JDK_VERSION" == "oraclejdk8" ]; then
     if [ -d "/usr/lib/jvm/java-8-oraclejdk-amd64" ]; then
       export_java_path "/usr/lib/jvm/java-8-oraclejdk-amd64";
