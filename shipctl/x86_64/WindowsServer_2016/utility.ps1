@@ -290,7 +290,8 @@ function replicate() {
     [string]$resourceTo,
     [switch]$files_only,
     [switch]$metadata_only,
-    [switch]$webhook_data_only
+    [switch]$webhook_data_only,
+    [switch]$match_settings
   )
 
   if ($PSBoundParameters.Count -lt 2) {
@@ -308,10 +309,78 @@ function replicate() {
   }
   if (($typeFrom -match "^gitRepo|ciRepo|syncRepo$") -and ($typeTo -match "^gitRepo|syncRepo$")) {
     $metadata_only = $true
+    $canMatchSettings = $true
   } elseif ("$resourceTo" -eq "$env:JOB_NAME") {
     $toCurrentJob = $true
   } elseif ("$typeFrom" -ne "$typeTo") {
     throw "Error: resources must be the same type"
+  }
+
+  if ($match_settings -and !$canMatchSettings) {
+    throw "Error: -match_settings flag not supported for the specified resources."
+  }
+
+  # match branch/tag settings
+  if ($match_settings -and $canMatchSettings) {
+    $webhook_data_only = $true
+    $fromVersionData = Get-Content -Raw -Path "$env:JOB_PATH/IN/$resourceFrom/version.json" | ConvertFrom-Json
+    $toVersionData = Get-Content -Raw -Path "$env:JOB_PATH/OUT/$resourceTo/version.json" | ConvertFrom-Json
+    $shouldReplicate = $true
+
+    $fromShaData = $fromVersionData.version.propertyBag.shaData
+    if (!$fromShaData) {
+      throw "Error: FROM resource does not contain shaData."
+    }
+    $isGitTag = $fromVersionData.version.propertyBag.shaData.isGitTag
+    $isRelease = $fromVersionData.version.propertyBag.shaData.isRelease
+    if ($isGitTag -eq "true") {
+      $gitTagName = $fromVersionData.version.propertyBag.shaData.gitTagName
+      $toTagsOnly = $toVersionData.version.propertyBag.tags.only
+      $toTagsExcept = $toVersionData.version.propertyBag.tags.except
+      if ($toTagsOnly -and $toTagsOnly.Count -gt 0 ) {
+        $matchingTags = $toTagsOnly.Where({$gitTagName -like $_}).Count
+        if ($matchingTags -eq 0) {
+          $shouldReplicate = $false
+        }
+      }
+      if ($toTagsExcept -and ($toTagsExcept.Count -gt 0 )) {
+        $matchingTags = $toTagsExcept.Where({$gitTagName -like $_}).Count
+        if ($matchingTags -gt 0) {
+          $shouldReplicate = $false
+        }
+      }
+    } elseif ($isRelease -ne "true") {
+      # branches
+      $branchName = $fromVersionData.version.propertyBag.shaData.branchName
+      if (!$branchName) {
+        throw "Error: No branch name in FROM resource shaData. Cannot replicate"
+      }
+      $toBranch = $toVersionData.version.propertyBag.branch
+      $toBranchesOnly = $toVersionData.version.propertyBag.branches.only
+      $toBranchesExcept = $toVersionData.version.propertyBag.branches.except
+      if ($toBranch) {
+        if ($toBranch -ne $branchName) {
+          $shouldReplicate = $false
+        }
+      } else {
+        if ($toBranchesOnly.Count -gt 0) {
+          $matchingBranches = $toBranchesOnly.Where({$branchName -like $_}).Count
+          if ($matchingBranches -eq 0) {
+            $shouldReplicate = $false
+          }
+        }
+        if ($toBranchesExcept.Count -gt 0) {
+          $matchingBranches = $toBranchesExcept.Where({$branchName -like $_}).Count
+          if ($matchingBranches -gt 0) {
+            $shouldReplicate = $false
+          }
+        }
+      }
+    }
+    if (!$shouldReplicate) {
+      Write-Output "FROM shaData does not match TO settings. Skipping replicate."
+      exit 0
+    }
   }
 
   # copy files
