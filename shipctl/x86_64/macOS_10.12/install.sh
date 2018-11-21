@@ -12,12 +12,7 @@ echo "Installing shippable_replace"
 sudo cp $SRC_DIR/shippable_replace /usr/local/bin/shippable_replace
 
 echo "Installing shippable_jdk"
-readonly shippable_jdk_location="/usr/local/bin/shippable_jdk"
-if [ -f "$shippable_jdk_location" ]; then
-  echo "shippable_jdk already installed on the image, skipping"
-else
-  sudo cp $SRC_DIR/shippable_jdk $shippable_jdk_location
-fi
+cp $SRC_DIR/shippable_jdk /usr/local/bin/shippable_jdk
 
 echo "Installing shipctl"
 sudo cp $SRC_DIR/shipctl /usr/local/bin/shipctl
