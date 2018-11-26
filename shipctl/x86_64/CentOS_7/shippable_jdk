@@ -105,7 +105,7 @@ shippable_jdk() {
     set_java_path "/usr/java/jdk-9.0.4/bin/java";
     set_javac_path "/usr/java/jdk-9.0.4/bin/javac";
   elif [ "$JDK_VERSION" == "oraclejdk10" ]; then
-    if [ -d "/usr/java/jre-10.0.2" ]; then
+    if [ -d "/usr/java/jdk-10.0.2" ]; then
       export_java_path "/usr/java/jdk-10.0.2";
       set_java_path "/usr/java/jdk-10.0.2/bin/java";
       set_javac_path "/usr/java/jdk-10.0.2/bin/javac";
