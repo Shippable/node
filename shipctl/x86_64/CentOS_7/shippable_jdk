@@ -34,6 +34,7 @@ set_javac_path() {
 }
 
 shippable_jdk() {
+  if [ "$JDK_VERSION" == "openjdk7" ]; then
     if [ -d "/usr/lib/jvm/java-1.7.0-openjdk-1.7.0.191-2.6.15.4.el7_5.x86_64" ]; then
       export_java_path "/usr/lib/jvm/java-1.7.0-openjdk-1.7.0.191-2.6.15.4.el7_5.x86_64";
       set_java_path "/usr/lib/jvm/java-1.7.0-openjdk-1.7.0.191-2.6.15.4.el7_5.x86_64/bin/java";
