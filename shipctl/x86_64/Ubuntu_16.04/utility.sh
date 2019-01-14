@@ -122,14 +122,9 @@ get_integration_resource_field() {
     echo "Usage: shipctl get_integration_resource_field RESOURCE_NAME KEY_NAME"
     exit 99
   fi
-  RESOURCE_INTEGRATION_MASTERNAME=$(get_integration_resource "$1" masterName)
-  if [ "$RESOURCE_INTEGRATION_MASTERNAME" == "keyValuePair" ]; then
-    eval echo "$""$2"
-  else
-    UP=$(get_resource_name "$1")
-    INTKEYNAME=$(sanitize_shippable_string "$(to_uppercase "$2")")
-    eval echo "$""$UP"_INTEGRATION_"$INTKEYNAME"
-  fi
+  UP=$(get_resource_name "$1")
+  INTKEYNAME=$(sanitize_shippable_string "$(to_uppercase "$2")")
+  eval echo "$""$UP"_INTEGRATION_"$INTKEYNAME"
 }
 
 get_integration_keys() {
@@ -155,13 +150,9 @@ get_integration_field() {
     echo "integration.json not present for integration: $1"
     exit 99
   fi
-  if [ $(jq -r '.masterName' $INTEGRATION_JSON_FILE) == "keyValuePair" ]; then
-    eval echo "$""$2"
-  else
-    UP=$(sanitize_shippable_string "$(to_uppercase "$1")")
-    INTKEYNAME=$(sanitize_shippable_string "$(to_uppercase "$2")")
-    eval echo "$""$UP"_INTEGRATION_"$INTKEYNAME"
-  fi
+  UP=$(sanitize_shippable_string "$(to_uppercase "$1")")
+  INTKEYNAME=$(sanitize_shippable_string "$(to_uppercase "$2")")
+  eval echo "$""$UP"_INTEGRATION_"$INTKEYNAME"
 }
 
 get_resource_version_name() {
