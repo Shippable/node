@@ -132,10 +132,6 @@ function get_integration_resource_field([string] $resource, [string] $field) {
     if (-not $resource -or -not $field) {
         throw "Usage: shipctl get_integration_resource_field RESOURCE FIELD"
     }
-    $masterName = get_integration_resource $resource "masterName"
-    if ($masterName -eq "keyValuePair") {
-      return _get_env_value $field
-    }
     $up = get_resource_name $resource
     $intKeyName = _sanitize_upper $field
     $key = $up + "_INTEGRATION_" + $intKeyName
@@ -160,10 +156,6 @@ function get_integration_field([string] $integration, [string] $field) {
     $integrationJsonFile = Join-Path "$env:JOB_INTEGRATIONS" "$integration\integration.json"
     if (!(Test-Path "$integrationJsonFile")) {
         throw "integration.json not present for integration: $integration"
-    }
-    $masterName = get_json_value $integrationJsonFile "masterName"
-    if ($masterName -eq "keyValuePair") {
-      return _get_env_value $field
     }
     $up = _sanitize_upper $integration
     $intKeyName = _sanitize_upper $field
@@ -256,7 +248,7 @@ function post_resource_state([string] $resource, [string] $stateName, [string] $
 
 function put_resource_state([string] $resource, [string] $stateName, [string] $stateValue) {
     if (-not $resource -or -not $stateName -or -not $stateValue) {
-        throw "Usage: shipctl put_resource_stat RESOURCE KEY VALUE"
+        throw "Usage: shipctl put_resource_state RESOURCE KEY VALUE"
     }
     "$stateName=$stateValue" | Out-File -Encoding utf8 -NoNewLine -Append -File "$env:JOB_STATE/$resource.env"
 }
