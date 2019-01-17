@@ -12,7 +12,7 @@ echo "Installing shippable_replace"
 sudo cp $SRC_DIR/shippable_replace /usr/local/bin/shippable_replace
 
 echo "Installing shippable_jdk"
-cp $SRC_DIR/shippable_jdk /usr/local/bin/shippable_jdk
+sudo cp $SRC_DIR/shippable_jdk /usr/local/bin/shippable_jdk
 
 echo "Installing shipctl"
 sudo cp $SRC_DIR/shipctl /usr/local/bin/shipctl
