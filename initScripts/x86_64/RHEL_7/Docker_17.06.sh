@@ -67,8 +67,9 @@ install_docker_prereqs() {
   exec_cmd "$add_docker_repo"
 
   # Check that package isn't installed by manually checking as if its already installed, rpm package installs fail
-  if [[ $(rpm -q container-selinux) != "container-selinux-2.42-1.gitad8f0f7.el7.noarch" ]]; then
-    install_container_selinux='sudo yum install -y http://mirror.centos.org/centos/7/extras/x86_64/Packages/container-selinux-2.42-1.gitad8f0f7.el7.noarch.rpm'
+  local container_selinux_package="container-selinux-2.74-1.el7.noarch"
+  if [[ $(rpm -q container-selinux) != "$container_selinux_package" ]]; then
+    install_container_selinux="sudo yum install -y http://mirror.centos.org/centos/7/extras/x86_64/Packages/$container_selinux_package.rpm"
     exec_cmd "$install_container_selinux"
   fi
 }
