@@ -261,7 +261,7 @@ function copy_file_to_state([string] $fileName) {
 }
 
 function copy_file_from_prev_state([string] $filePath, [string] $restorePath) {
-    if (-not $fileName -or -not $restorePath) {
+    if (-not $filePath -or -not $restorePath) {
         throw "Usage: shipctl copy_file_from_prev_state FILE DESTINATION"
     }
     $previousStateFile = Join-Path "$env:JOB_PREVIOUS_STATE" "$filePath"
