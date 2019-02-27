@@ -1290,7 +1290,7 @@ _get_curl() {
   local auth=$2
   local endpoint=$3
 
-  local curl_cmd="curl -XGET -s $auth $endpoint $payload"
+  local curl_cmd="curl -s $auth $endpoint $payload"
   eval $curl_cmd
   echo ""
 }
