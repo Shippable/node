@@ -1263,15 +1263,15 @@ _notify_newrelic() {
       echo "Error: payload is not valid JSON"
       exit 99
     fi
-  fi
-  echo "Recording deployments on NewRelic for appID: $appId"
-  local deployment=$(_post_curl "$opt_payload" "$curl_auth" "$r_endpoint")
-  local deploymentId=$(echo $deployment | jq ".deployment.id")
-  if [ -z "$deploymentId" ]; then
-    echo "Error: $deployment"
-    exit 99
-  else
-    echo "Deployment Id: $deploymentId"
+    echo "Recording deployments on NewRelic for appID: $appId"
+    local deployment=$(_post_curl "$opt_payload" "$curl_auth" "$r_endpoint")
+    local deploymentId=$(echo $deployment | jq ".deployment.id")
+    if [ -z "$deploymentId" ]; then
+      echo "Error: $deployment"
+      exit 99
+    else
+      echo "Deployment Id: $deploymentId"
+    fi
   fi
 }
 
