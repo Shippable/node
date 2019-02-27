@@ -876,6 +876,7 @@ notify() {
 
   local meta=$(shipctl get_resource_meta $r_name)
   local r_method=$(jq -r ".version.propertyBag.method" $meta/version.json)
+  local r_mastername=$(get_integration_resource "$r_name" masterName)
 
   # declare options and defaults, and parse arguments
 
@@ -915,6 +916,26 @@ notify() {
   export opt_password="$NOTIFY_PASSWORD"
   if [ -z "$opt_password" ]; then
     opt_password="none"
+  fi
+
+  export opt_type="$NOTIFY_TYPE"
+  if [ -z "$opt_type" ]; then
+    opt_type=""
+  fi
+
+  export opt_revision="$NOTIFY_REVISION"
+  if [ -z "$opt_revision" ]; then
+    opt_revision=""
+  fi
+
+  export opt_description="$NOTIFY_DESCRIPTION"
+  if [ -z "$opt_description" ]; then
+    opt_description=""
+  fi
+
+  export opt_changelog="$NOTIFY_CHANGELOG"
+  if [ -z "$opt_changelog" ]; then
+    opt_changelog=""
   fi
 
   export opt_text="$NOTIFY_TEXT"
@@ -976,6 +997,30 @@ notify() {
         ;;
       --password=*)
         opt_password="${arg#*=}"
+        shift
+        ;;
+      --type=*)
+        opt_type="${arg#*=}"
+        shift
+        ;;
+      --revision=*)
+        opt_revision="${arg#*=}"
+        shift
+        ;;
+      --description=*)
+        opt_description="${arg#*=}"
+        shift
+        ;;
+      --changelog=*)
+        opt_changelog="${arg#*=}"
+        shift
+        ;;
+      --appId=*)
+        opt_appId="${arg#*=}"
+        shift
+        ;;
+      --appName=*)
+        opt_appName="${arg#*=}"
         shift
         ;;
     esac
@@ -1057,8 +1102,9 @@ notify() {
         echo "QUIT";
       } | ${irc_command} ${irc_recipient[0]} 6667
     fi
+  elif [ "$r_mastername" == "NewRelic" ]; then
+    _notify_newrelic
   else
-    local r_mastername=$(get_integration_resource "$r_name" masterName)
     local curl_auth=""
 
     # set up the default payloads once options have been parsed
@@ -1103,7 +1149,7 @@ notify() {
         echo "Error: payload is not valid JSON"
         exit 99
       fi
-      _send_curl "$opt_payload" "$curl_auth" "$r_endpoint"
+      _post_curl "$opt_payload" "$curl_auth" "$r_endpoint"
     else
       if [ ${#recipients_list[@]} -gt 0 ]; then
         for recipient in ${recipients_list[@]};
@@ -1119,7 +1165,7 @@ notify() {
             exit 99
           fi
           echo "sending notification to $opt_recipient"
-          _send_curl "$opt_payload" "$curl_auth" "$r_endpoint"
+          _post_curl "$opt_payload" "$curl_auth" "$r_endpoint"
         done
       else
         echo $default_payload > /tmp/payload.json
@@ -1134,18 +1180,117 @@ notify() {
         if [ -n "$opt_recipient" ]; then
           echo "sending notification to \"$opt_recipient\""
         fi
-        _send_curl "$opt_payload" "$curl_auth" "$r_endpoint"
+        _post_curl "$opt_payload" "$curl_auth" "$r_endpoint"
       fi
     fi
   fi
 }
 
-_send_curl() {
+_notify_newrelic() {
+  local curl_auth=""
+  local appId=""
+  local r_endpoint=""
+  local default_post_deployment_payload="{\"\${opt_type}\":{\"revision\":\"\${opt_revision}\",\"description\":\"\${opt_description}\",\"user\":\"\${opt_username}\",\"changelog\":\"\${opt_changelog}\"}}"
+  local default_get_appid_payload="--data-urlencode 'filter[name]=$opt_appName' -d 'exclude_links=true'"
+  local default_get_payload=""
+  local default_post_payload=""
+  local r_authorization=$(get_integration_resource_field "$r_name" token)
+
+  if [ -n "$r_authorization" ]; then
+    curl_auth="-H X-Api-Key:'$r_authorization'"
+  fi
+
+  local r_url=$(get_integration_resource_field "$r_name" url)
+  if [ -z "$r_url" ]; then
+    echo "Error: no url found in resource $r_name"
+    exit 99
+  fi
+
+  if [ -z "$opt_appId" ] && [ -z "$opt_appName" ]; then
+    echo "Error: --appId or --appName should be present in shipctl notify"
+    exit 99
+  fi
+  # get the appId from the appName by making a get request to newrelic, if appId is not present
+  appId="$opt_appId"
+  if [ -z "$appId" ]; then
+    r_endpoint="$r_url/applications.json"
+    default_get_payload="$default_get_appid_payload"
+    local applications=$(_get_curl "$default_get_payload" "$curl_auth" "$r_endpoint")
+    appId=$(echo $applications | jq ".applications[0].id // empty")
+  fi
+
+  # record the deployment
+  if [ -z "$appId" ]; then
+    echo "Error: Unable to find an application on NewRelic"
+    exit 99
+  fi
+  r_endpoint="$r_url/applications/$appId/deployments.json"
+  default_post_payload="$default_post_deployment_payload"
+
+  if [ -n "$opt_payload" ]; then
+    if [ ! -f $opt_payload ]; then
+      echo "Error: file not found at path: $opt_payload"
+      exit 99
+    fi
+    local isValid=$(jq type $opt_payload || true)
+    if [ -z "$isValid" ]; then
+      echo "Error: payload is not valid JSON"
+      exit 99
+    fi
+    echo "Recording deployments on NewRelic for appID: $appId"
+    local deployment=$(_post_curl "$opt_payload" "$curl_auth" "$r_endpoint")
+    local deploymentId=$(echo $deployment | jq ".deployment.id")
+    if [ -z "$deploymentId" ]; then
+      echo "Error: $deployment"
+      exit 99
+    else
+      echo "Deployment Id: $deploymentId"
+    fi
+  else
+    if [ -z "$opt_type" ]; then
+      echo "Error: --type is missing in shipctl notify"
+      exit 99
+    fi
+    if [ -z "$opt_revision" ]; then
+      echo "Error: --revision is missing in shipctl notify"
+      exit 99
+    fi
+    echo $default_post_payload > /tmp/payload.json
+    opt_payload=/tmp/payload.json
+    shipctl replace $opt_payload
+    local isValid=$(jq type $opt_payload || true)
+    if [ -z "$isValid" ]; then
+      echo "Error: payload is not valid JSON"
+      exit 99
+    fi
+    echo "Recording deployments on NewRelic for appID: $appId"
+    local deployment=$(_post_curl "$opt_payload" "$curl_auth" "$r_endpoint")
+    local deploymentId=$(echo $deployment | jq ".deployment.id")
+    if [ -z "$deploymentId" ]; then
+      echo "Error: $deployment"
+      exit 99
+    else
+      echo "Deployment Id: $deploymentId"
+    fi
+  fi
+}
+
+_post_curl() {
   local payload=$1
   local auth=$2
   local endpoint=$3
 
   local curl_cmd="curl -XPOST -sS -H content-type:'application/json' $auth $endpoint -d @$payload"
+  eval $curl_cmd
+  echo ""
+}
+
+_get_curl() {
+  local payload=$1
+  local auth=$2
+  local endpoint=$3
+
+  local curl_cmd="curl -s $auth $endpoint $payload"
   eval $curl_cmd
   echo ""
 }
