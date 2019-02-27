@@ -938,6 +938,31 @@ notify() {
     opt_changelog=""
   fi
 
+  export opt_project_id="$NOTIFY_PROJECT_ID"
+  if [ -z "$opt_project_id" ]; then
+    opt_project_id=""
+  fi
+
+  export opt_environment="$NOTIFY_ENVIRONMENT"
+  if [ -z "$opt_environment" ]; then
+    opt_environment=""
+  fi
+
+  export opt_email="$NOTIFY_EMAIL"
+  if [ -z "$opt_email" ]; then
+    opt_email=""
+  fi
+
+  export opt_repository="$NOTIFY_REPOSITORY"
+  if [ -z "$opt_repository" ]; then
+    opt_repository=""
+  fi
+
+  export opt_version="$NOTIFY_VERSION"
+  if [ -z "$opt_version" ]; then
+    opt_version=""
+  fi
+
   export opt_text="$NOTIFY_TEXT"
   if [ -z "$opt_text" ]; then
     # set up default text
@@ -1023,6 +1048,26 @@ notify() {
         opt_appName="${arg#*=}"
         shift
         ;;
+      --project-id=*)
+        opt_project_id="${arg#*=}"
+        shift
+        ;;
+      --environment=*)
+        opt_environment="${arg#*=}"
+        shift
+        ;;
+      --email=*)
+        opt_email="${arg#*=}"
+        shift
+        ;;
+      --repository=*)
+        opt_repository="${arg#*=}"
+        shift
+        ;;
+      --version=*)
+        opt_version="${arg#*=}"
+        shift
+        ;;
     esac
   done
 
@@ -1104,6 +1149,8 @@ notify() {
     fi
   elif [ "$r_mastername" == "NewRelic" ]; then
     _notify_newrelic
+  elif [ "$r_mastername" == "airBrakeKey" ]; then
+    _notify_airbrake
   else
     local curl_auth=""
 
@@ -1273,6 +1320,59 @@ _notify_newrelic() {
       echo "Deployment Id: $deploymentId"
     fi
   fi
+}
+
+_notify_airbrake() {
+  local curl_auth=""
+  local r_obj_type=""
+  local r_project_id="${opt_project_id}"
+  local r_endpoint=$(get_integration_resource_field "$r_name" url)
+  local r_token=$(get_integration_resource_field "$r_name" token)
+  local default_airbrake_payload="{\"environment\":\"\${opt_environment}\",\"username\":\"\${opt_username}\",\"email\":\"\${opt_email}\",\"repository\":\"\${opt_repository}\",\"revision\":\"\${opt_revision}\",\"version\":\"\${opt_version}\"}"
+
+  if [ -z "$opt_type" ]; then
+    echo "Error: --type is missing in shipctl notify"
+    exit 99
+  fi
+  if [ "$opt_type" == "deploy" ]; then
+    r_obj_type="deploys"
+  else
+    echo "Error: unsupported type value $opt_type"
+    exit 99
+  fi
+
+  if [ -z "$r_project_id" ]; then
+    recipients_list=($(jq -r ".version.propertyBag.recipients[]" $meta/version.json))
+    r_project_id=${recipients_list[0]}
+  fi
+  if [ -z "$r_project_id" ]; then
+    echo "Error: missing project ID, try passing --project-id"
+    exit 99
+  fi
+
+  r_endpoint="${r_endpoint%/}"
+  r_endpoint="${r_endpoint}/projects/${r_project_id}/${r_obj_type}?key=${r_token}"
+
+  if [ -n "$opt_payload" ]; then
+    if [ ! -f $opt_payload ]; then
+      echo "Error: file not found at path: $opt_payload"
+      exit 99
+    fi
+  else
+    echo $default_airbrake_payload > /tmp/payload.json
+    opt_payload=/tmp/payload.json
+    shipctl replace $opt_payload
+  fi
+
+  local isValid=$(jq type $opt_payload || true)
+  if [ -z "$isValid" ]; then
+    echo "Error: payload is not valid JSON"
+    exit 99
+  fi
+
+  echo "Requesting Airbrake project: $r_project_id"
+
+  _post_curl "$opt_payload" "$curl_auth" "$r_endpoint"
 }
 
 _post_curl() {
