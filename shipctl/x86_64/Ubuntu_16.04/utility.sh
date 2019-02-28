@@ -1147,7 +1147,7 @@ notify() {
         echo "QUIT";
       } | ${irc_command} ${irc_recipient[0]} 6667
     fi
-  elif [ "$r_mastername" == "NewRelic" ]; then
+  elif [ "$r_mastername" == "newRelicKey" ]; then
     _notify_newrelic
   elif [ "$r_mastername" == "airBrakeKey" ]; then
     _notify_airbrake
