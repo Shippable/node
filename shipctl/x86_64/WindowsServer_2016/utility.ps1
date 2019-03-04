@@ -795,7 +795,7 @@ function notify() {
 
   $env:opt_username = $username
   if (!$env:opt_username) {
-    $opt_username = $env:NOTIFY_USERNAME
+    $env:opt_username = $env:NOTIFY_USERNAME
     if (!$env:opt_username) {
       $env:opt_username = ""
     }
@@ -803,7 +803,7 @@ function notify() {
 
   $env:opt_password = $password
   if (!$env:opt_password) {
-    $opt_password = $env:NOTIFY_PASSWORD
+    $env:opt_password = $env:NOTIFY_PASSWORD
     if (!$env:opt_password) {
       $env:opt_password = ""
     }
