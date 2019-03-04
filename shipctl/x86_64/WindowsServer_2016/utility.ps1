@@ -711,10 +711,17 @@ function notify() {
     [string]$pretext,
     [string]$text,
     [string]$username,
-    [string]$password
+    [string]$password,
+    [string]$type,
+    [alias("project-id")][string]$project_id,
+    [string]$environment,
+    [string]$email,
+    [string]$repository,
+    [string]$revision,
+    [string]$version
   )
   if ($PSBoundParameters.Count -lt 1) {
-    throw "Usage: shipctl notify RESOURCE [-payload|-recipient|-pretext|-text|-username|-password|-color|-icon_url]"
+    throw "Usage: shipctl notify RESOURCE [-payload|-recipient|-pretext|-text|-username|-password|-color|-icon_url|-type|-project-id|-environment|-email|-repository|-revision|-version]"
   }
 
   $env:opt_resource = $resource
@@ -730,7 +737,6 @@ function notify() {
   $r_method = $(get_resource_version_key "$env:opt_resource" method)
   if (!$r_method) {
     $r_mastername=$(get_integration_resource "$env:opt_resource" masterName)
-    $r_endpoint = $(get_integration_resource_field "$env:opt_resource" webhookUrl)
   }
 
   $env:opt_recipient = $recipient
@@ -789,19 +795,15 @@ function notify() {
 
   $env:opt_username = $username
   if (!$env:opt_username) {
-    $opt_username = $env:NOTIFY_USERNAME
+    $env:opt_username = $env:NOTIFY_USERNAME
     if (!$env:opt_username) {
-      if ($r_method -eq "irc") {
-        $env:opt_username = "Shippable-$env:BUILD_NUMBER"
-      } else {
-        $env:opt_username = "Shippable"
-      }
+      $env:opt_username = ""
     }
   }
 
   $env:opt_password = $password
   if (!$env:opt_password) {
-    $opt_password = $env:NOTIFY_PASSWORD
+    $env:opt_password = $env:NOTIFY_PASSWORD
     if (!$env:opt_password) {
       $env:opt_password = ""
     }
@@ -815,10 +817,69 @@ function notify() {
       }
   }
 
+  $env:opt_type = $type
+  if (!$env:opt_type) {
+    $env:opt_type = $env:NOTIFY_TYPE
+    if (!$env:opt_type) {
+      $env:opt_type = ""
+    }
+  }
+
+  $env:opt_project_id = $project_id
+  if (!$env:opt_project_id) {
+    $env:opt_project_id = $env:NOTIFY_PROJECT_ID
+    if (!$env:opt_project_id) {
+      $env:opt_project_id = ""
+    }
+  }
+
+  $env:opt_environment = $environment
+  if (!$env:opt_environment) {
+    $env:opt_environment = $env:NOTIFY_ENVIRONMENT
+    if (!$env:opt_environment) {
+      $env:opt_environment = ""
+    }
+  }
+
+  $env:opt_email = $email
+  if (!$env:opt_email) {
+    $env:opt_email = $env:NOTIFY_EMAIL
+    if (!$env:opt_email) {
+      $env:opt_email = ""
+    }
+  }
+
+  $env:opt_repository = $repository
+  if (!$env:opt_repository) {
+    $env:opt_repository = $env:NOTIFY_REPOSITORY
+    if (!$env:opt_repository) {
+      $env:opt_repository = ""
+    }
+  }
+
+  $env:opt_revision = $revision
+  if (!$env:opt_revision) {
+    $env:opt_revision = $env:NOTIFY_REVISION
+    if (!$env:opt_revision) {
+      $env:opt_revision = ""
+    }
+  }
+
+  $env:opt_version = $version
+  if (!$env:opt_version) {
+    $env:opt_version = $env:NOTIFY_VERSION
+    if (!$env:opt_version) {
+      $env:opt_version = ""
+    }
+  }
+
   $default_slack_payload = '{"username":"$opt_username","attachments":[{"pretext":"$opt_pretext","text":"$opt_text","color":"$opt_color"}],"channel":"$opt_recipient","icon_url":"$opt_icon_url"}'
   $default_webhook_payload = '{"username":"$opt_username","pretext":"$opt_pretext","text":"$opt_text","color":"$opt_color","channel":"$opt_recipient","icon_url":"$opt_icon_url"}'
   $default_payload=""
   if ($r_method -eq "irc") {
+    if (!$env:opt_username) {
+      $env:opt_username = "Shippable-$env:BUILD_NUMBER"
+    }
     if ($env:opt_recipient) {
       $recipients_list = @("$env:opt_recipient")
     } else {
@@ -838,7 +899,13 @@ function notify() {
       Write-Output "sending notification to $recipient"
       _send_irc_notification -server $server -channel $channel -nick $env:opt_username -pass $env:opt_password -payload $env:opt_text
     }
+  } elseif ($r_mastername -eq "airBrakeKey") {
+    _send_airbrake_notification
   } else {
+    $r_endpoint = $(get_integration_resource_field "$env:opt_resource" webhookUrl)
+    if (!$env:opt_username) {
+      $env:opt_username = "Shippable"
+    }
     if ($r_mastername -eq "Slack" -or $r_mastername -eq "slackKey") {
       $default_payload = $default_slack_payload
       $recipients_list = $(get_resource_version_key "$env:opt_resource" "recipients")
@@ -915,8 +982,12 @@ function _send_web_notification() {
   param(
     [string]$payload,
     [string]$auth,
-    [string]$endpoint
+    [string]$endpoint,
+    [string]$security_protocol
   )
+  if ($security_protocol) {
+    [Net.ServicePointManager]::SecurityProtocol = $security_protocol
+  }
   $json = Get-Content $payload -Raw | ConvertFrom-Json | ConvertTo-Json -Compress
   if (!$auth) {
     try {
@@ -1012,6 +1083,54 @@ function _send_irc_notification() {
   if ($errorMessage) {
     throw $errorMessage
   }
+}
+
+function _send_airbrake_notification() {
+  $r_authorization = ""
+  $r_obj_type = ""
+  $r_project_id = "$env:opt_project_id"
+  $r_endpoint = $(get_integration_resource_field "$env:opt_resource" url)
+  $r_token = $(get_integration_resource_field "$env:opt_resource" token)
+  $default_airbrake_payload = '{"environment":"$opt_environment","username":"$opt_username","email":"$opt_email","repository":"$opt_repository","revision":"$opt_revision","version":"$opt_version"}'
+
+  if (!$env:opt_type) {
+    throw "Error: --type is missing in shipctl notify"
+  }
+  if ($env:opt_type -eq "deploy") {
+    $r_obj_type = "deploys"
+  } else {
+    throw "Error: unsupported type value $env:opt_type"
+  }
+
+  if (!$r_project_id) {
+    $recipients_list = $(get_resource_version_key "$env:opt_resource" "recipients")
+    $r_project_id = $recipients_list[0]
+  }
+  if (!$r_project_id) {
+    throw "Error: missing project ID, try passing -project-id"
+  }
+
+  $r_endpoint = $r_endpoint.trim('/')
+  $r_endpoint = "$r_endpoint/projects/${r_project_id}/${r_obj_type}?key=${r_token}"
+
+  if ($env:opt_payload) {
+    if (!(Test-Path $env:opt_payload)) {
+      throw "Error: file not found at path: $env:opt_payload"
+    }
+    try {
+      $result = Get-Content $env:opt_payload -Raw | ConvertFrom-Json -ErrorAction Stop
+    } catch {
+      throw "Error: payload is not valid JSON"
+    }
+  } else {
+    Out-File -FilePath "$env:TEMP/payload.json" -InputObject $default_airbrake_payload
+    $env:opt_payload = "$env:TEMP/payload.json"
+    shipctl replace $env:opt_payload
+  }
+
+  Write-Output "Requesting Airbrake project: $r_project_id"
+
+  _send_web_notification -payload "$env:opt_payload" -auth "$r_authorization" -endpoint "$r_endpoint" -security_protocol "tls12"
 }
 
 function _check_message() {
