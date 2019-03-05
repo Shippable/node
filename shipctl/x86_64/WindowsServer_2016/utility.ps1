@@ -949,9 +949,10 @@ function notify() {
       $recipients_list = $(get_resource_version_key "$env:opt_resource" "recipients")
     } elseif ($r_mastername -eq "webhook" -or $r_mastername -eq "webhookV2") {
       $authorization = $(get_integration_resource_field "$env:opt_resource" authorization)
-      $r_authorization = @{ "Authorization" = "$authorization" }
       if (!$authorization) {
         $r_authorization = @{}
+      } else {
+        $r_authorization = @{ "Authorization" = "$authorization" }
       }
       $default_payload = $default_webhook_payload
     } else {
