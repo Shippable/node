@@ -718,10 +718,14 @@ function notify() {
     [string]$email,
     [string]$repository,
     [string]$revision,
-    [string]$version
+    [string]$version,
+    [string]$description,
+    [string]$changelog,
+    [string]$appId,
+    [string]$appName
   )
   if ($PSBoundParameters.Count -lt 1) {
-    throw "Usage: shipctl notify RESOURCE [-payload|-recipient|-pretext|-text|-username|-password|-color|-icon_url|-type|-project-id|-environment|-email|-repository|-revision|-version]"
+    throw "Usage: shipctl notify RESOURCE [-payload|-recipient|-pretext|-text|-username|-password|-color|-icon_url|-type|-project-id|-environment|-email|-repository|-revision|-version|-description|-changelog|-appId|-appName]"
   }
 
   $env:opt_resource = $resource
@@ -873,6 +877,38 @@ function notify() {
     }
   }
 
+  $env:opt_description = $description
+  if (!$env:opt_description) {
+    $env:opt_description = $env:NOTIFY_DESCRIPTION
+    if (!$env:opt_description) {
+      $env:opt_description = ""
+    }
+  }
+
+  $env:opt_changelog = $changelog
+  if (!$env:opt_changelog) {
+    $env:opt_changelog = $env:NOTIFY_CHANGELOG
+    if (!$env:opt_changelog) {
+      $env:opt_changelog = ""
+    }
+  }
+
+  $env:opt_appId = $appId
+  if (!$env:opt_appId) {
+    $env:opt_appId = $env:NOTIFY_APPID
+    if (!$env:opt_appId) {
+      $env:opt_appId = ""
+    }
+  }
+
+  $env:opt_appName = $appName
+  if (!$env:opt_appName) {
+    $env:opt_appName = $env:NOTIFY_APPNAME
+    if (!$env:opt_appName) {
+      $env:opt_appName = ""
+    }
+  }
+
   $default_slack_payload = '{"username":"$opt_username","attachments":[{"pretext":"$opt_pretext","text":"$opt_text","color":"$opt_color"}],"channel":"$opt_recipient","icon_url":"$opt_icon_url"}'
   $default_webhook_payload = '{"username":"$opt_username","pretext":"$opt_pretext","text":"$opt_text","color":"$opt_color","channel":"$opt_recipient","icon_url":"$opt_icon_url"}'
   $default_payload=""
@@ -901,6 +937,8 @@ function notify() {
     }
   } elseif ($r_mastername -eq "airBrakeKey") {
     _send_airbrake_notification
+  } elseif ($r_mastername -eq "newRelicKey") {
+    _send_newrelic_notification
   } else {
     $r_endpoint = $(get_integration_resource_field "$env:opt_resource" webhookUrl)
     if (!$env:opt_username) {
@@ -910,9 +948,10 @@ function notify() {
       $default_payload = $default_slack_payload
       $recipients_list = $(get_resource_version_key "$env:opt_resource" "recipients")
     } elseif ($r_mastername -eq "webhook" -or $r_mastername -eq "webhookV2") {
-      $r_authorization = $(get_integration_resource_field "$env:opt_resource" authorization)
-      if (!$r_authorization) {
-        $r_authorization = ""
+      $authorization = $(get_integration_resource_field "$env:opt_resource" authorization)
+      $r_authorization = @{ "Authorization" = "$authorization" }
+      if (!$authorization) {
+        $r_authorization = @{}
       }
       $default_payload = $default_webhook_payload
     } else {
@@ -929,7 +968,7 @@ function notify() {
       }
 
       Write-Output "sending notification"
-      _send_web_notification -payload "$env:opt_payload" -auth "$r_authorization" -endpoint "$r_endpoint"
+      _send_web_notification -payload "$env:opt_payload" -auth $r_authorization -endpoint "$r_endpoint"
 
     } else {
       if ($($recipients_list.count) -gt 0 -and !$env:opt_recipient) {
@@ -947,7 +986,7 @@ function notify() {
           }
 
           Write-Output "sending notification to $env:opt_recipient"
-          _send_web_notification -payload "$env:opt_payload" -auth "$r_authorization" -endpoint "$r_endpoint"
+          _send_web_notification -payload "$env:opt_payload" -auth $r_authorization -endpoint "$r_endpoint"
         }
       } else {
 
@@ -970,7 +1009,7 @@ function notify() {
         } else {
           Write-Output "sending notification"
         }
-        _send_web_notification -payload "$env:opt_payload" -auth "$r_authorization" -endpoint "$r_endpoint"
+        _send_web_notification -payload "$env:opt_payload" -auth $r_authorization -endpoint "$r_endpoint"
       }
     }
   }
@@ -981,7 +1020,7 @@ function notify() {
 function _send_web_notification() {
   param(
     [string]$payload,
-    [string]$auth,
+    [hashtable]$auth,
     [string]$endpoint,
     [string]$security_protocol
   )
@@ -989,7 +1028,7 @@ function _send_web_notification() {
     [Net.ServicePointManager]::SecurityProtocol = $security_protocol
   }
   $json = Get-Content $payload -Raw | ConvertFrom-Json | ConvertTo-Json -Compress
-  if (!$auth) {
+  if ($auth.count -eq 0) {
     try {
       $result = Invoke-WebRequest -Method 'Post' -Uri "$endpoint" -ContentType "application/json" -Body $json -UseBasicParsing
     } catch {
@@ -998,8 +1037,32 @@ function _send_web_notification() {
     }
   } else {
     try {
-      $headers = @{ Authorization = $auth }
-      $result = Invoke-WebRequest -Method 'Post' -Uri "$endpoint" -Headers $headers -ContentType "application/json" -Body $json -UseBasicParsing
+      $result = Invoke-WebRequest -Method 'Post' -Uri "$endpoint" -Headers $auth -ContentType "application/json" -Body $json -UseBasicParsing
+    } catch {
+      Write-Output $_.Exception|format-list -force
+      throw "Error: exception in web request."
+    }
+  }
+}
+
+function _get_web_request() {
+  param(
+    [hashtable]$payload,
+    [hashtable]$auth,
+    [string]$endpoint
+  )
+  if ($auth.count -eq 0) {
+    try {
+      $result = Invoke-WebRequest -Method 'Get' -Uri "$endpoint" -Body $payload -UseBasicParsing
+      return $result
+    } catch {
+      Write-Output $_.Exception|format-list -force
+      throw "Error: exception in web request."
+    }
+  } else {
+    try {
+      $result = Invoke-WebRequest -Method 'Get' -Uri "$endpoint" -Headers $auth -Body $payload -UseBasicParsing
+      return $result
     } catch {
       Write-Output $_.Exception|format-list -force
       throw "Error: exception in web request."
@@ -1086,7 +1149,7 @@ function _send_irc_notification() {
 }
 
 function _send_airbrake_notification() {
-  $r_authorization = ""
+  $r_authorization = @{}
   $r_obj_type = ""
   $r_project_id = "$env:opt_project_id"
   $r_endpoint = $(get_integration_resource_field "$env:opt_resource" url)
@@ -1130,7 +1193,75 @@ function _send_airbrake_notification() {
 
   Write-Output "Requesting Airbrake project: $r_project_id"
 
-  _send_web_notification -payload "$env:opt_payload" -auth "$r_authorization" -endpoint "$r_endpoint" -security_protocol "tls12"
+  _send_web_notification -payload "$env:opt_payload" -auth $r_authorization -endpoint "$r_endpoint" -security_protocol "tls12"
+}
+
+function _send_newrelic_notification() {
+  $appId = ""
+  $r_endpoint = ""
+  $default_post_deployment_payload = '{"$opt_type":{"revision":"$opt_revision","description":"$opt_description","user":"$opt_username","changelog":"$opt_changelog"}}'
+  $default_get_appid_payload = @{ "filter[name]" = "$env:opt_appName" }
+  $default_get_payload = ""
+  $default_post_payload = ""
+  $authorization = $(get_integration_resource_field "$env:opt_resource" token)
+
+  if ($authorization) {
+    $r_authorization = @{ "X-Api-Key" = "$authorization" }
+  } else {
+    $r_authorization = @{}
+  }
+
+  if (!$env:opt_username) {
+    $env:opt_username = "Shippable"
+  }
+
+  $r_url=$(get_integration_resource_field "$env:opt_resource" url)
+  if (!$r_url) {
+    throw "Error: no url found in resource $env:opt_resource"
+  }
+
+  if (!$env:opt_appId -and !$env:opt_appName) {
+    throw "Error: --appId or --appName should be present in shipctl notify"
+  }
+
+  $appId=$env:opt_appId
+  if (!$appId) {
+    $r_endpoint="$r_url/applications.json"
+    $default_get_payload=$default_get_appid_payload
+    $applications=$(_get_web_request -payload $default_get_payload -auth $r_authorization -endpoint "$r_endpoint") | ConvertFrom-Json
+    $appId=$applications.applications[0].id
+  }
+
+  if (!$appId) {
+    throw "Error: Unable to find an application on NewRelic"
+  }
+  $r_endpoint="$r_url/applications/$appId/deployments.json"
+  $default_post_payload="$default_post_deployment_payload"
+
+  if ($env:opt_payload) {
+    if (!(Test-Path $env:opt_payload)) {
+      throw "Error: file not found at path: $env:opt_payload"
+    }
+    try {
+      $result = Get-Content $env:opt_payload -Raw | ConvertFrom-Json -ErrorAction Stop
+    } catch {
+      throw "Error: payload is not valid JSON"
+    }
+  } else {
+    if (!$env:opt_type) {
+      throw "Error: --type is missing in shipctl notify"
+    }
+    if (!$env:opt_revision) {
+      throw "Error: --revision is missing in shipctl notify"
+    }
+    Out-File -FilePath "$env:TEMP/payload.json" -InputObject $default_post_payload
+    $env:opt_payload = "$env:TEMP/payload.json"
+    shipctl replace $env:opt_payload
+  }
+
+   Write-Output "Recording deployments on NewRelic for appID: $appId"
+
+  _send_web_notification -payload "$env:opt_payload" -auth $r_authorization -endpoint "$r_endpoint"
 }
 
 function _check_message() {
