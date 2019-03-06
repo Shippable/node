@@ -689,6 +689,48 @@ put_resource_state_multi() {
   done
 }
 
+split_tests() {
+  if [ "$1" == "" ] || [ "$2" == "" ] || [ "$3" == "" ]; then
+    echo "Usage: shipctl split_tests TEST_PATH TEST_FILES_NAME_REGEX TEST_REPORTS_PATH"
+    exit 99
+  fi
+
+  rm -rf /tmp/current_tests.txt
+  for i in "$(find $TEST_PATH -name $TEST_FILES_NAME_REGEX)"; do echo -e "$i\n" >> /tmp/current_tests.txt; done
+  rm -rf /tmp/past_test_timings.txt
+  find $TESTREPORTSPATH -name \*.xml|while read i; do
+    echo $(xq .testsuites.testsuite $i | jq -cr '.["@filepath"]," ", .["@time"]') >> /tmp/past_test_timings.txt
+  done
+  sort -k 2n /tmp/past_test_timings.txt > /tmp/sorted_past_test_timings.txt
+  awk -F" " '{print $1}' /tmp/sorted_past_test_timings.txt > /tmp/sorted_past_test_timings.txt
+  IFS=$'\r\n' GLOBIGNORE='*' command eval  'past_tests=($(cat /tmp/sorted_past_test_timings.txt))'
+  IFS=$'\r\n' GLOBIGNORE='*' command eval  'current_tests=($(cat /tmp/current_tests.txt))'
+  all_tests=()
+  current_job_tests=()
+  for i in "${past_tests[@]}"; do
+    skip=
+    for j in "${current_tests[@]}"; do
+      [[ $i == *$j ]] && { skip=1; break; }
+    done
+    [[ -n $skip ]] && all_tests+=($i)
+  done
+  for i in "${current_tests[@]}"; do
+    skip=
+    for j in "${past_tests[@]}"; do
+      [[ $j == *$i ]] && { skip=1; break; }
+    done
+    [[ -n $skip ]] || all_tests+=($i)
+  done
+  tLen=${#all_tests[@]}
+  for (( i=${SHIPPABLE_JOB_NUMBER}-1; i<${tLen}; i=i+${SHIPPABLE_JOB_COUNT} ));
+  do
+    current_job_tests+=(${all_tests[$i]})
+  done
+  echo "Number of tests in this pass is ${#current_job_tests[@]}"
+
+  eval echo ${tests_1[*]}
+}
+
 bump_version() {
   local version_to_bump=$1
   local action=$2
