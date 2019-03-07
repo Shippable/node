@@ -722,7 +722,7 @@ split_tests() {
   done
 
   sort -k 2n /tmp/cached_test_timings.txt > /tmp/sorted_cached_test_timings.txt
-  awk -F" " '{print $1}' /tmp/sorted_cached_test_timings.txt > /tmp/sorted_cached_tests.txt
+  awk -F " " '{print $1}' /tmp/sorted_cached_test_timings.txt > /tmp/sorted_cached_tests.txt
   IFS=$'\r\n' GLOBIGNORE='*' command eval  'sorted_cached_tests=($(cat /tmp/sorted_cached_tests.txt))'
   IFS=$'\r\n' GLOBIGNORE='*' command eval  'current_tests=($(cat /tmp/current_tests.txt))'
   all_tests=()
