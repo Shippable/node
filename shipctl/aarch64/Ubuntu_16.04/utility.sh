@@ -689,6 +689,80 @@ put_resource_state_multi() {
   done
 }
 
+split_tests() {
+  local test_path=$1
+  local test_files_name_regex=$2
+  local test_reports_path=$3
+
+  if [ "$test_path" == "" ] || [ "$test_files_name_regex" == "" ] || [ "$test_reports_path" == "" ]; then
+    echo "Usage: shipctl split_tests TEST_PATH TEST_FILES_NAME_REGEX TEST_REPORTS_PATH"
+    exit 99
+  fi
+
+  # delete tmp files
+  rm -rf /tmp/current_tests.txt
+  rm -rf /tmp/cached_test_timings.txt
+  rm -rf /tmp/sorted_cached_test_timings.txt
+  rm -rf /tmp/sorted_cached_tests.txt
+
+  # create tmp files
+  touch /tmp/current_tests.txt
+  touch /tmp/cached_test_timings.txt
+  touch /tmp/sorted_cached_test_timings.txt
+  touch /tmp/sorted_cached_tests.txt
+
+  for current_test_file in "$(find $test_path -name $test_files_name_regex)";
+  do
+    echo -e "$current_test_file\n" >> /tmp/current_tests.txt;
+  done
+
+  find $test_reports_path -name \*.xml | while read cached_test_report_file;
+  do
+    echo $(xq .testsuites.testsuite $cached_test_report_file | jq -cr '.["@filepath"]," ", .["@time"]') >> /tmp/cached_test_timings.txt
+  done
+
+  sort -k 2n /tmp/cached_test_timings.txt > /tmp/sorted_cached_test_timings.txt
+  awk -F " " '{print $1}' /tmp/sorted_cached_test_timings.txt > /tmp/sorted_cached_tests.txt
+  IFS=$'\r\n' GLOBIGNORE='*' command eval  'sorted_cached_tests=($(cat /tmp/sorted_cached_tests.txt))'
+  IFS=$'\r\n' GLOBIGNORE='*' command eval  'current_tests=($(cat /tmp/current_tests.txt))'
+  all_tests=()
+  current_job_tests=()
+  # iterate through past tests(cached),
+  # put the once which are in current tests list in the beginning of all_tests
+  # so that sorted tests are distributed across jobs
+  for sorted_cached_test in "${sorted_cached_tests[@]}";
+  do
+    skip=
+    for current_test in "${current_tests[@]}";
+    do
+      [[ $sorted_cached_test == *$current_test ]] && { skip=1; break; }
+    done
+    [[ -n $skip ]] && all_tests+=($sorted_cached_test)
+  done
+
+  # iterate through current tests, put the remaining(unsorted) tests in the end all_tests
+  for current_test in "${current_tests[@]}";
+  do
+    skip=
+    for sorted_cached_test in "${sorted_cached_tests[@]}";
+    do
+      [[ $sorted_cached_test == *$current_test ]] && { skip=1; break; }
+    done
+    [[ -n $skip ]] || all_tests+=($current_test)
+  done
+
+  tLen=${#all_tests[@]}
+  for (( count=${SHIPPABLE_JOB_NUMBER}-1; count<${tLen}; count=count+${SHIPPABLE_JOB_COUNT} ));
+  do
+    current_job_tests+=(${all_tests[$count]})
+  done
+
+  for file in "${current_job_tests[@]}"
+  do
+    eval echo "$file"
+  done
+}
+
 bump_version() {
   local version_to_bump=$1
   local action=$2
