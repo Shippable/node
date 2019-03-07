@@ -716,7 +716,7 @@ split_tests() {
     echo -e "$i\n" >> /tmp/current_tests.txt;
   done
 
-  find $test_reports_path -name \*.xml|while read i;
+  find $test_reports_path -name \*.xml | while read i;
   do
     echo $(xq .testsuites.testsuite $i | jq -cr '.["@filepath"]," ", .["@time"]') >> /tmp/past_test_timings.txt
   done
