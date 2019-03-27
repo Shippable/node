@@ -1037,6 +1037,16 @@ notify() {
     opt_version=""
   fi
 
+  export opt_summary="$NOTIFY_SUMMARY"
+  if [ -z "$opt_summary" ]; then
+    opt_summary=""
+  fi
+
+  export opt_attach_file="$NOTIFY_ATTACH_FILE"
+  if [ -z "$opt_attach_file" ]; then
+    opt_attach_file=""
+  fi
+
   export opt_text="$NOTIFY_TEXT"
   if [ -z "$opt_text" ]; then
     # set up default text
@@ -1142,6 +1152,14 @@ notify() {
         opt_version="${arg#*=}"
         shift
         ;;
+      --summary=*)
+        opt_summary="${arg#*=}"
+        shift
+        ;;
+      --attach-file=*)
+        opt_attach_file="${arg#*=}"
+        shift
+        ;;
     esac
   done
 
@@ -1225,6 +1243,8 @@ notify() {
     _notify_newrelic
   elif [ "$r_mastername" == "airBrakeKey" ]; then
     _notify_airbrake
+  elif [ "$r_mastername" == "jira" ]; then
+    _notify_jira
   else
     local curl_auth=""
 
@@ -1447,6 +1467,76 @@ _notify_airbrake() {
   echo "Requesting Airbrake project: $r_project_id"
 
   _post_curl "$opt_payload" "$curl_auth" "$r_endpoint"
+}
+
+_notify_jira() {
+  local r_username=$(get_integration_resource_field "$r_name" username)
+  local r_endpoint=$(get_integration_resource_field "$r_name" url)
+  local r_token=$(get_integration_resource_field "$r_name" token)
+  local default_jira_payload="{\"fields\":{\"project\":{\"key\":\"\${opt_project_id}\"},\"summary\":\"\${opt_summary}\",\"description\":\"\${opt_description}\",\"issuetype\":{\"name\":\"\${opt_type}\"}}}"
+
+  if [ -z "$(which base64)" ]; then
+    echo "Error: base64 utility is not present, but is required for Jira authorization"
+    exit 99
+  fi
+  if [ -z "$r_endpoint" ]; then
+    echo "Error: missing endpoint. Please check your integration."
+    exit 99
+  fi
+  if [ -z "$r_token" ]; then
+    echo "Error: missing token. Please check your integration."
+    exit 99
+  fi
+  if [ -z "$r_username" ]; then
+    echo "Error: missing username. Please check your integration."
+    exit 99
+  fi
+  if [ -z "$opt_project_id" ]; then
+    echo "Error: missing project identifier. Please use --project-id."
+    exit 99
+  fi
+  if [ -z "$opt_type" ]; then
+    echo "Error: missing issue type. Please use --type."
+    exit 99
+  fi
+  if [ -z "$opt_summary" ]; then
+    echo "Error: missing summary. Please use --summary."
+    exit 99
+  fi
+
+  local encoded_auth=$(echo -n "$r_username:$r_token" | base64)
+
+  echo $default_jira_payload > /tmp/payload.json
+  opt_payload=/tmp/payload.json
+  shipctl replace $opt_payload
+
+  local isValid=$(jq type $opt_payload || true)
+  if [ -z "$isValid" ]; then
+    echo "Error: payload is not valid JSON"
+    exit 99
+  fi
+
+  result=$(curl -XPOST -sS \
+    -H "Content-Type: application/json" \
+    -H "Authorization: Basic $encoded_auth" \
+    "$r_endpoint/issue" \
+    -d @$opt_payload)
+  echo $result
+
+  if [ -n "$opt_attach_file" ]; then
+    if [ -f "$opt_attach_file" ]; then
+
+      issueKey=$(jq -r '.key' <<< $result)
+      curl -sS -XPOST \
+        -H "X-Atlassian-Token: nocheck" \
+        -H "Authorization: Basic $encoded_auth" \
+        -F "file=@$opt_attach_file" \
+        "$r_endpoint/issue/$issueKey/attachments"
+    else
+      echo "Error: --attach-file option refers to a file that doesn't exist"
+      exit 99
+    fi
+  fi
 }
 
 _post_curl() {
