@@ -1505,7 +1505,6 @@ _notify_jira() {
   fi
 
   local encoded_auth=$(echo -n "$r_username:$r_token" | base64)
-  local curl_auth="-H Authorization:'Basic $encoded_auth'"
 
   echo $default_jira_payload > /tmp/payload.json
   opt_payload=/tmp/payload.json
@@ -1518,7 +1517,7 @@ _notify_jira() {
   fi
 
   result=$(curl -XPOST -sS \
-    -H "content-type: application/json" \
+    -H "Content-Type: application/json" \
     -H "Authorization: Basic $encoded_auth" \
     "$r_endpoint/issue" \
     -d @$opt_payload)
