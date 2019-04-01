@@ -722,10 +722,12 @@ function notify() {
     [string]$description,
     [string]$changelog,
     [string]$appId,
+    [string]$summary,
+    [alias("attach-file")][string]$attach_file,
     [string]$appName
   )
   if ($PSBoundParameters.Count -lt 1) {
-    throw "Usage: shipctl notify RESOURCE [-payload|-recipient|-pretext|-text|-username|-password|-color|-icon_url|-type|-project-id|-environment|-email|-repository|-revision|-version|-description|-changelog|-appId|-appName]"
+    throw "Usage: shipctl notify RESOURCE [-payload|-recipient|-pretext|-text|-username|-password|-color|-icon_url|-type|-project-id|-environment|-email|-repository|-revision|-version|-description|-changelog|-appId|-appName|-summary|-attach-file]"
   }
 
   $env:opt_resource = $resource
@@ -772,6 +774,22 @@ function notify() {
     $env:opt_pretext = $env:NOTIFY_PRETEXT
     if (!$env:opt_pretext) {
       $env:opt_pretext = Get-Date -UFormat "%c (UTC %Z)"
+    }
+  }
+
+  $env:opt_summary = $summary
+  if (!$env:opt_summary) {
+    $env:opt_summary = $env:NOTIFY_SUMMARY
+    if (!$env:opt_summary) {
+      $env:opt_summary = ""
+    }
+  }
+
+  $env:opt_attach_file = $attach_file
+  if (!$env:opt_attach_file) {
+    $env:opt_attach_file = $env:NOTIFY_ATTACH_FILE
+    if (!$env:opt_attach_file) {
+      $env:opt_attach_file = ""
     }
   }
 
@@ -939,6 +957,8 @@ function notify() {
     _send_airbrake_notification
   } elseif ($r_mastername -eq "newRelicKey") {
     _send_newrelic_notification
+  } elseif ($r_mastername -eq "jira") {
+    _send_jira_notification
   } else {
     $r_endpoint = $(get_integration_resource_field "$env:opt_resource" webhookUrl)
     if (!$env:opt_username) {
@@ -1032,6 +1052,7 @@ function _send_web_notification() {
   if ($auth.count -eq 0) {
     try {
       $result = Invoke-WebRequest -Method 'Post' -Uri "$endpoint" -ContentType "application/json" -Body $json -UseBasicParsing
+      return $result
     } catch {
       Write-Output $_.Exception|format-list -force
       throw "Error: exception in web request."
@@ -1039,6 +1060,7 @@ function _send_web_notification() {
   } else {
     try {
       $result = Invoke-WebRequest -Method 'Post' -Uri "$endpoint" -Headers $auth -ContentType "application/json" -Body $json -UseBasicParsing
+      return $result
     } catch {
       Write-Output $_.Exception|format-list -force
       throw "Error: exception in web request."
@@ -1263,6 +1285,72 @@ function _send_newrelic_notification() {
    Write-Output "Recording deployments on NewRelic for appID: $appId"
 
   _send_web_notification -payload "$env:opt_payload" -auth $r_authorization -endpoint "$r_endpoint"
+}
+
+function _send_jira_notification() {
+  $default_issue_payload = '{"fields":{"project":{"key":"$opt_project_id"},"summary":"$opt_summary","description":"$opt_description","issuetype":{"name":"$opt_type"}}}'
+  $token = $(get_integration_resource_field "$env:opt_resource" token)
+  $endpoint = $(get_integration_resource_field "$env:opt_resource" url)
+  $username = $(get_integration_resource_field "$env:opt_resource" username)
+
+  if (!$env:opt_type) {
+    throw "Error: -type is missing in shipctl notify"
+  }
+  if (!$env:opt_summary) {
+    throw "Error: -summary is missing in shipctl notify"
+  }
+  if (!$env:opt_project_id) {
+    throw "Error: -project-id is missing in shipctl notify"
+  }
+
+  $auth = "$username" + ":" + "$token"
+  $authBytes = [System.Text.Encoding]::UTF8.GetBytes($auth)
+  $authEncoded = [Convert]::ToBase64String($authBytes)
+  $authString = ("Basic " + "$authEncoded")
+  $authObject = @{"Authorization" = "$authString"}
+
+  $issueEndpoint = ("$endpoint" + "/issue")
+  Out-File -FilePath "$env:TEMP/payload.json" -InputObject $default_issue_payload
+  $env:opt_payload = "$env:TEMP/payload.json"
+  shipctl replace $env:opt_payload
+
+  $result = $(_send_web_notification -payload "$env:opt_payload" -auth $authObject -endpoint "$issueEndpoint")
+  $resultObject = $result.Content | ConvertFrom-Json
+  $issueKey = $resultObject.key
+
+  if ($env:opt_attach_file) {
+    if (!(Test-Path "$env:opt_attach_file")) {
+      throw "$env:opt_attach_file: File does not exist at this path."
+    } else {
+      $fName = Split-Path $env:opt_attach_file -leaf
+      $fBytes = [System.IO.File]::ReadAllBytes($env:opt_attach_file);
+      $fEnc = [System.Text.Encoding]::GetEncoding('UTF-8').GetString($fBytes);
+      $boundary = [System.Guid]::NewGuid().ToString(); 
+      $LF = "`r`n";
+
+      $bodyLines = ( 
+          "--$boundary",
+          "Content-Disposition: form-data; name=`"file`"; filename=`"$fName`"",
+          "Content-Type: application/octet-stream$LF",
+          $fEnc,
+          "--$boundary--$LF" 
+      ) -join $LF
+
+      $attachmentHeaders = @{
+        "Authorization" = "$authString";
+        "X-Atlassian-Token" = "nocheck";
+        "Accept" = "application/json"
+      }
+      $attachmentEndpoint = "$issueEndpoint" + "/" + "$issueKey" + "/" + "attachments"
+
+      try {
+        $result = Invoke-RestMethod -Method "Post" -ContentType "multipart/form-data; boundary=`"$boundary`"" -Uri "$attachmentEndpoint"  -Body $bodyLines -Headers $attachmentHeaders
+      } catch {
+        Write-Output $_.Exception|format-list -force
+        throw "Error: exception in web request. Issue created, but attachment failed"
+      }
+    }
+  }
 }
 
 function _check_message() {
